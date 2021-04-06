@@ -132,3 +132,9 @@ token.pickle*
 
 
 conf.py
+
+syncState.db
+
+GoogleSampleData.json
+
+MonicaSampleData.json
