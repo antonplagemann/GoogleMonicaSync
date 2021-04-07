@@ -26,34 +26,33 @@ def getTestingData(filename: str) -> list:
         data = json.load(handle)
     return data
 
-
-
-
 def main() -> None:
-    try:
-        # Logging configuration
-        log.setLevel(logging.INFO)
-        format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        handler = logging.FileHandler(filename='Sync.log', mode='a', encoding="utf8")
-        handler.setLevel(logging.INFO)
-        handler.setFormatter(format)
-        log.addHandler(handler)
-        log.info(f"Sync started")
+    #try:
+    # Logging configuration
+    log.setLevel(logging.INFO)
+    format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    handler = logging.FileHandler(filename='Sync.log', mode='a', encoding="utf8")
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(format)
+    log.addHandler(handler)
+    log.info(f"Sync started")
 
-        # More code
-        google = Google(log, getTestingData('GoogleSampleData.json')[:50])
-        monica = Monica(log, TOKEN, BASE_URL, getTestingData('MonicaSampleData.json')[:30])
-        database = Database(log, 'syncState.db')
-        sync = Sync(log, monica, google, database)
+    # More code
+    google = Google(log, getTestingData('GoogleSampleData.json'))
+    monica = Monica(log, TOKEN, BASE_URL, getTestingData('MonicaSampleData.json'))
+    database = Database(log, 'syncState.db')
+    sync = Sync(log, monica, google, database, True)
 
-        sync.initialSync()
+    sync.initialSync()
 
-        print('Remove me')
-
+    log.info("Sync ended\n")
+    '''
     except Exception as e:
         log.error(str(e))
+        print(str(e))
         log.info("Sync ended\n")
         sys.exit(1)
+    '''
 
 if __name__ == '__main__':
     main()

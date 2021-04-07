@@ -4,6 +4,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from logging import Logger
+from typing import List
 
 class Google():
     def __init__(self, log: Logger, sampleData: list = None) -> None:
@@ -31,7 +32,7 @@ class Google():
         self.service = service
         self.contacts = sampleData
 
-    def getContacts(self):
+    def getContacts(self) -> List[dict]:
         if not self.contacts:
             # List contacts
             fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
@@ -50,3 +51,9 @@ class Google():
         if len(name) != 1:
             self.log.error(f"Error processing contact {contact.get('resourceName', '')} Name: {name}")
             return None
+
+    def createContactFromMonicaContact(self, monicaContact: dict) -> None:
+        raise NotImplementedError
+
+    def createContact(self) -> None:
+        raise NotImplementedError
