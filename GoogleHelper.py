@@ -1,14 +1,22 @@
 import pickle
 import os.path
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from logging import Logger
 from typing import List
+from DatabaseHelper import Database
 
 class Google():
-    def __init__(self, log: Logger, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, databaseHandler: Database, sampleData: list = None) -> None:
         self.log = log
+        self.database = databaseHandler
+        self.service = self.__buildService()
+        self.contacts = sampleData
+        self.updatedContacts = []
+        self.createdContacts = []
+
+    def __buildService(self) -> Resource:
         creds = None
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
@@ -29,8 +37,7 @@ class Google():
                 pickle.dump(creds, token)
 
         service = build('people', 'v1', credentials=creds)
-        self.service = service
-        self.contacts = sampleData
+        return service
 
     def getContacts(self) -> List[dict]:
         if not self.contacts:
