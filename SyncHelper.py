@@ -1,6 +1,6 @@
 # pylint: disable=import-error
 from DatabaseHelper import Database
-from MonicaHelper import Monica
+from MonicaHelper import Monica, ContactUploadForm
 from GoogleHelper import Google
 from logging import Logger
 from datetime import datetime
@@ -18,7 +18,28 @@ class Sync():
         self.syncBack = syncBackToGoogle
         self.fakeNum = 1
 
-    def initialSync(self):
+    def initialSync(self) -> None:
+        self.__buildSyncDatabase() # Delete before creation?
+        self.fullSync()
+    
+    def fullSync(self) -> None:
+        # Testing
+        #self.__mergeAndUpdate(self.monica.getContacts()[0], self.google.getContacts()[0])
+        contactCount = len(self.google.getContacts())
+        msg = "Starting full sync..."
+        self.log.info(msg)
+        print(msg)
+        for num, googleContact in enumerate(self.google.getContacts()):
+            sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
+            sys.stdout.flush()
+            monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
+            monicaContact = [c for c in self.monica.getContacts() if str(c['id']) == monicaId][0]
+            self.__mergeAndUpdate(monicaContact, googleContact)
+        msg = "Full sync finished!"
+        self.log.info(msg)
+        print(msg)
+
+    def __buildSyncDatabase(self) -> None:
         conflicts = []
         contactCount = len(self.google.getContacts())
         msg = "Building sync database..."
@@ -77,6 +98,71 @@ class Sync():
         while "fake_" + str(self.fakeNum) in idList:
             self.fakeNum += 1
         return "fake_" + str(self.fakeNum)
+    
+    def __mergeAndUpdate(self, monicaContact: dict, googleContact: dict) -> dict:
+        # Get names
+        firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
+        middleName = googleContact['names'][0].get("middleName", '')
+        displayName = googleContact['names'][0].get("displayName", '')
+        # First name is required for Monica
+        if not firstName:
+            firstName = displayName 
+            lastName = ''
+
+        # Get birthday
+        birthday = googleContact.get("birthdays", None)
+        birthdateYear, birthdateMonth, birthdateDay = None, None, None
+        if birthday:
+            birthdateYear = birthday[0].get("date", {}).get("year", None)
+            birthdateMonth = birthday[0].get("date", {}).get("month", None)
+            birthdateDay = birthday[0].get("date", {}).get("day", None)
+        
+        # Get deceased info
+        deceasedDate = monicaContact["information"]["dates"]["deceased_date"]["date"]
+        deceasedDateIsAgeBased = monicaContact["information"]["dates"]["deceased_date"]["is_age_based"]
+        deceasedYear, deceasedMonth, deceasedDay = None, None, None
+        if deceasedDate:
+            date = self.__convertMonicaTimestamp(deceasedDate)
+            deceasedYear = date.year
+            deceasedMonth = date.month
+            deceasedDay = date.day
+
+        # Assemble form object
+        form = ContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+                                        middleName=middleName, genderType=monicaContact["gender_type"],
+                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
+                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
+                                        isDeceased=monicaContact["is_dead"], isDeceasedDateKnown=bool(deceasedDate),
+                                        deceasedYear=deceasedYear, deceasedMonth=deceasedMonth,
+                                        deceasedDay=deceasedDay, deceasedAgeBased=deceasedDateIsAgeBased)
+        # Upload contact
+        self.monica.updateContact(id=monicaContact["id"], data=form.data)
+
+    def __createMonicaContact(self, googleContact: dict) -> dict:
+        # Get names
+        firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
+        middleName = googleContact['names'][0].get("middleName", '')
+        displayName = googleContact['names'][0].get("displayName", '')
+        # First name is required for Monica
+        if not firstName:
+            firstName = displayName 
+            lastName = ''
+
+        # Get birthday
+        birthday = googleContact.get("birthdays", None)
+        birthdateYear, birthdateMonth, birthdateDay = None, None, None
+        if birthday:
+            birthdateYear = birthday[0].get("date", {}).get("year", None)
+            birthdateMonth = birthday[0].get("date", {}).get("month", None)
+            birthdateDay = birthday[0].get("date", {}).get("day", None)
+
+        # Assemble form object
+        form = ContactUploadForm(firstName=firstName, lastName=lastName, middleName=middleName,
+                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
+                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday))
+        # Upload contact
+        monicaContact = self.monica.createContact(data=form.data)
+        return monicaContact
 
     def __convertGoogleTimestamp(self, timestamp: str) -> datetime:
         '''Converts Google timestamp to a datetime object.'''
@@ -110,11 +196,11 @@ class Sync():
             candidates = candidates[choice:choice+1]
         if not candidates:
             # Create a new Monica contact if chosen or no candidates found
-            #monicaContact = self.monica.createContactFromGoogleContact(googleContact)
+            monicaContact = self.__createMonicaContact(googleContact)
             # DUMMY! REMOVE LATER!
-            monicaContact = self.monica.getContacts()[0]
-            monicaContact['id'] = self.__generateFakeId(self.mapping.values())
-            monicaContact['complete_name'] = "New contact"
+            #monicaContact = self.monica.getContacts()[0]
+            #monicaContact['id'] = self.__generateFakeId(self.mapping.values())
+            #monicaContact['complete_name'] = "New contact"
             # DUMMY! REMOVE LATER!
             msg = f"Conflict resolved: New Monica contact with id '{monicaContact['id']}' created for '{gContactDisplayName}'"
             self.log.info(msg)

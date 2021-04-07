@@ -44,7 +44,7 @@ class Database():
         self.connection.commit()
 
     def update(self, googleId: str = None, monicaId: str = None, 
-                googleFullName: str = 'NULL', monicaFullName: str = 'NULL', 
+                googleFullName: str = None, monicaFullName: str = None, 
                 googleLastChanged: str = None, monicaLastChanged: str = None) -> None:
         '''Updates a dataset in the database. Needs positional arguments!'''
         if monicaId:

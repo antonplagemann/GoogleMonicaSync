@@ -26,6 +26,12 @@ def getTestingData(filename: str) -> list:
         data = json.load(handle)
     return data
 
+def updateTestingData(filename: str, contactList: list) -> None:
+    '''Creates sample data saved as json file. Only for developing purposes to avoid api penetration.'''
+    import json
+    with open(filename, 'w') as handle:
+        json.dump(contactList, handle, indent=4)
+
 def main() -> None:
     #try:
     # Logging configuration
@@ -38,9 +44,16 @@ def main() -> None:
     log.info(f"Sync started")
 
     # More code
-    google = Google(log, getTestingData('GoogleSampleData.json'))
-    monica = Monica(log, TOKEN, BASE_URL, getTestingData('MonicaSampleData.json'))
     database = Database(log, 'syncState.db')
+    google = Google(log, database, getTestingData('GoogleSampleData.json'))
+    monica = Monica(log, TOKEN, BASE_URL, database, getTestingData('MonicaSampleData.json'))
+    
+    # Update testing data
+    #monica = Monica(log, TOKEN, BASE_URL, database)
+    #google = Google(log, database)
+    #updateTestingData('MonicaSampleData.json', monica.getContacts())
+    #updateTestingData('GoogleSampleData.json', google.getContacts())
+
     sync = Sync(log, monica, google, database, True)
 
     sync.initialSync()

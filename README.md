@@ -13,3 +13,4 @@ This script aims to sync contacts from Google to Monica and eventually back.
 - Use attackIQ code as reference (argument parser, api, etc.)
 - Aim for an always consistent state, even in failures
 - Only sync new Monica contacts back? (no changed ones)
+- Birthday will always beo overwritten by Google
