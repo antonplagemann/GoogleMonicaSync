@@ -37,21 +37,12 @@ class Monica():
                 page += 1
             return self.contacts
         return self.contacts
+    
+    def createContactFromGoogleContact(self, googleContact: dict) -> None:
+        raise NotImplementedError
 
-    def findId(self, googleContact: dict):
-        '''Finds the corresponding Monica contact id for a given Google contact or creates a new one.
-        Returns a Monica contact id.'''
-        # Try simple search with displayName
+    def createContact(self) -> None:
+        raise NotImplementedError
 
-        mId = self.simpleIdSearch(googleContact)
-        if not mId:
-            #mId = advancedMIdSearch(gContact, mContactList)
-            pass
-        return mId
 
-    def simpleIdSearch(self, googleContact: dict):
-        for mContact in self.getContacts():
-            if googleContact['names'][0]["displayName"] == mContact['complete_name']:
-                return mContact['id']
-        return None
 
