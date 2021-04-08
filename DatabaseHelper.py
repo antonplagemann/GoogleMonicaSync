@@ -26,7 +26,7 @@ class Database():
     
     def __initializeDatabase(self):
         """Initializes the database with all tables."""
-        newSyncTableSql = '''
+        createSyncTableSql = '''
         CREATE TABLE IF NOT EXISTS sync (
         googleId VARCHAR(50) NOT NULL UNIQUE,
         monicaId VARCHAR(10) NOT NULL UNIQUE,
@@ -35,14 +35,12 @@ class Database():
         googleLastChanged DATETIME NULL,
         monicaLastChanged DATETIME NULL);
         '''
-        newConfigTableSql = '''
+        createConfigTableSql = '''
         CREATE TABLE IF NOT EXISTS config (
         googleNextSyncToken VARCHAR(100) NULL UNIQUE);
         '''
-        newGoogleNextSyncTokenRow = "INSERT INTO config(googleNextSyncToken) VALUES(NULL)"
-        self.cursor.execute(newSyncTableSql)
-        self.cursor.execute(newConfigTableSql)
-        self.cursor.execute(newGoogleNextSyncTokenRow)
+        self.cursor.execute(createSyncTableSql)
+        self.cursor.execute(createConfigTableSql)
         self.connection.commit()
     
     def insertData(self, googleId: str, monicaId: str, googleFullName: str = 'NULL', 
@@ -149,6 +147,8 @@ class Database():
 
     def updateGoogleNextSyncToken(self, token: str) -> None:
         '''Updates the given token in the database.'''
-        updateSql = "UPDATE config SET googleNextSyncToken = ? WHERE ROWID = 1"
-        self.cursor.execute(updateSql,(token,))
+        deleteSql = "DELETE FROM config WHERE ROWID=1"
+        insertSql = "INSERT INTO config(googleNextSyncToken) VALUES(?)"
+        self.cursor.execute(deleteSql)
+        self.cursor.execute(insertSql,(token,))
         self.connection.commit()

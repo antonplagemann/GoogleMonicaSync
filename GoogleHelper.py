@@ -45,8 +45,15 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
-    def getContacts(self) -> List[dict]:
+    def getContacts(self, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
+        # Build GET parameters
+        fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
+        parameters = {'resourceName': 'people/me', 
+                        'pageSize': 1000, 
+                        'personFields': fields, 
+                        **params}
+
         # Return sample data if present (debugging)
         if self.sampleData:
             return self.sampleData
@@ -60,14 +67,12 @@ class Google():
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
-        # Contact fields to be retrieved
-        fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
         # pylint: disable=no-member
-        results = self.service.people().connections().list(
-            resourceName='people/me',
-            pageSize=1000,
-            personFields=fields).execute()
-        self.contacts = results.get('connections', [])
+        result = self.service.people().connections().list(**parameters).execute()
+        nextSyncToken = result.get('nextSyncToken', None)
+        if nextSyncToken:
+            self.database.updateGoogleNextSyncToken(nextSyncToken)
+        self.contacts = result.get('connections', [])
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
