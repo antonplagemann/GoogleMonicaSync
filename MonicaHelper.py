@@ -12,10 +12,14 @@ class Monica():
         self.base_url = base_url
         self.header = {'Authorization': f'Bearer {token}'}
         self.parameters = {'limit': 100}
-        self.contacts = sampleData
+        self.dataAlreadyFetched = False
+        self.contacts = []
         self.updatedContacts = []
         self.createdContacts = []
         self.createReminders = createReminders
+
+        # Debugging area :-)
+        self.sampleData = sampleData
 
     def updateContact(self, id: str, data: dict) -> None:
         '''Updates a given contact and its id via api call.'''
@@ -34,6 +38,7 @@ class Monica():
         else:
             error = response.json()['error']['message']
             self.log.info(f"Error updating contact '{name}' with id '{id}': {error}")
+            raise Exception("Error updating contact!")
 
     def createContact(self, data: dict) -> dict:
         '''Creates a given contact via api call and returns the created contact.'''
@@ -54,27 +59,62 @@ class Monica():
             self.log.info(f"Error creating contact '{name}' with id '{id}': {error}")
             raise Exception("Error creating contact!")
 
-    def getContacts(self) -> dict:
+    def getContacts(self) -> list:
         '''Fetches all contacts from Monica if not already fetched.'''
-        if not self.contacts:
-            self.contacts = []
-            maxPage = '?'
-            page = 1
-            while True:
-                sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {maxPage})")
-                sys.stdout.flush()
-                response = requests.get(self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
-                data = response.json()
-                self.contacts += data['data']
-                maxPage = data['meta']['last_page']
-                if page == maxPage:
-                    break
-                page += 1
+        # Return sample data if present (debugging)
+        if self.sampleData:
+            return self.sampleData
+
+        # Avoid multiple fetches
+        if self.dataAlreadyFetched:
             return self.contacts
+
+        # Start fetching
+        maxPage = '?'
+        page = 1
+        self.log.info("Fetching all Monica contacts...")
+        while True:
+            sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {maxPage})")
+            sys.stdout.flush()
+            response = requests.get(self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
+            data = response.json()
+            self.contacts += data['data']
+            maxPage = data['meta']['last_page']
+            if page == maxPage:
+                break
+            page += 1
+        self.dataAlreadyFetched = True
+        msg = "Finished fetching Monica contacts"
+        self.log.info(msg)
+        print("\n" + msg)
         return self.contacts
+        
+
+    def getContact(self, id: str) -> dict:
+        '''Fetches a single contact by id from Monica.'''
+        # Check if contact is already fetched
+        if self.contacts:
+            monicaContactList = [c for c in self.contacts if str(c['id']) == id]
+            if monicaContactList:
+                monicaContact = monicaContactList[0]
+                # Remove Monica contact from contact list (add again after updated)
+                self.contacts.remove(monicaContact)
+                return monicaContact
+
+        # Fetch contact
+        response = requests.get(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
+        
+        # If successful
+        if response.status_code == 200:
+            monicaContact = response.json()['data']
+            return monicaContact
+        else:
+            error = response.json()['error']['message']
+            self.log.info(f"Error fetching contact with id '{id}': {error}")
+            raise Exception("Error fetching contact!")
 
 class ContactUploadForm():
-    '''Creates json form for creating or updateing contacts.'''
+    '''Creates json form for creating or updating contacts.'''
     def __init__(self, firstName: str, lastName: str = None, nickName: str = None,
                     middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
                     birthdateMonth: str = None, birthdateYear: str = None,

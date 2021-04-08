@@ -10,15 +10,22 @@ class Database():
         self.connection = sqlite3.connect(filename)
         self.cursor = self.connection.cursor()
         self.__initializeDatabase()
-    
-    def __initializeDatabase(self):
-        """Initializes the database with all tables. Deletes existing old tables."""
+
+    def deleteAndInitialize(self) -> None:
+        '''Deletes all tables from the database and creates new ones.'''
         deleteSyncTableSql = '''
         DROP TABLE IF EXISTS sync;
         '''
         deleteConfigTableSql = '''
         DROP TABLE IF EXISTS config;
         '''
+        self.cursor.execute(deleteSyncTableSql)
+        self.cursor.execute(deleteConfigTableSql)
+        self.connection.commit()
+        self.__initializeDatabase()
+    
+    def __initializeDatabase(self):
+        """Initializes the database with all tables."""
         newSyncTableSql = '''
         CREATE TABLE IF NOT EXISTS sync (
         googleId VARCHAR(50) NOT NULL UNIQUE,
@@ -33,8 +40,6 @@ class Database():
         googleNextSyncToken VARCHAR(100) NULL UNIQUE);
         '''
         newGoogleNextSyncTokenRow = "INSERT INTO config(googleNextSyncToken) VALUES(NULL)"
-        self.cursor.execute(deleteSyncTableSql)
-        self.cursor.execute(deleteConfigTableSql)
         self.cursor.execute(newSyncTableSql)
         self.cursor.execute(newConfigTableSql)
         self.cursor.execute(newGoogleNextSyncTokenRow)
