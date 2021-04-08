@@ -8,6 +8,7 @@ from typing import List
 from DatabaseHelper import Database
 
 class Google():
+    '''Handles all Google related (api) stuff.'''
     def __init__(self, log: Logger, databaseHandler: Database, sampleData: list = None) -> None:
         self.log = log
         self.database = databaseHandler
@@ -40,8 +41,9 @@ class Google():
         return service
 
     def getContacts(self) -> List[dict]:
+        '''Fetches all contacts from Google if not already fetched.'''
         if not self.contacts:
-            # List contacts
+            # Contact fields to be retrieved
             fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
             # pylint: disable=no-member
             results = self.service.people().connections().list(
@@ -51,16 +53,3 @@ class Google():
             self.contacts = results.get('connections', [])
             return self.contacts
         return self.contacts
-    
-    def processGContact(self, contact: dict):
-        # Process Names
-        name = contact.get('names',[])
-        if len(name) != 1:
-            self.log.error(f"Error processing contact {contact.get('resourceName', '')} Name: {name}")
-            return None
-
-    def createContactFromMonicaContact(self, monicaContact: dict) -> None:
-        raise NotImplementedError
-
-    def createContact(self) -> None:
-        raise NotImplementedError

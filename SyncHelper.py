@@ -8,6 +8,7 @@ from typing import Tuple, Union
 import sys
 
 class Sync():
+    '''Handles all syncing and merging issues with Google and Monica and the database.'''
     def __init__(self, log: Logger, monicaHandler: Monica, googleHandler: Google, 
                 databaseHandler: Database, syncBackToGoogle: bool) -> None:
         self.log = log
@@ -16,58 +17,84 @@ class Sync():
         self.database = databaseHandler
         self.mapping = self.database.getIdMapping()
         self.syncBack = syncBackToGoogle
+
+        # Debugging area :-)
         self.fakeNum = 1
 
     def initialSync(self) -> None:
-        self.__buildSyncDatabase() # Delete before creation?
+        '''Builds the syncing database and starts a full sync.'''
+        self.__buildSyncDatabase()
         self.fullSync()
     
     def fullSync(self) -> None:
-        # Testing
-        #self.__mergeAndUpdate(self.monica.getContacts()[0], self.google.getContacts()[0])
+        '''Fetches every contact from Google and Monica and does a full sync.'''
+        # Initialization
         contactCount = len(self.google.getContacts())
         msg = "Starting full sync..."
         self.log.info(msg)
         print(msg)
+
+        # Process every Google contact
         for num, googleContact in enumerate(self.google.getContacts()):
             sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
             sys.stdout.flush()
+            # Get Monica id from database (index 1 in returned row)
             monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
+            # Get Monica contact by id
             monicaContact = [c for c in self.monica.getContacts() if str(c['id']) == monicaId][0]
+            # Remove Monica contact from contact list (add again after updated)
             self.monica.getContacts().remove(self.monica.getContacts().index(monicaContact))
+            # Merge and update name, birthday and deceased date
             self.__mergeAndUpdateNBD(monicaContact, googleContact)
+
+        # Finished
         msg = "Full sync finished!"
         self.log.info(msg)
         print("\n" + msg)
 
     def __buildSyncDatabase(self) -> None:
+        '''Builds a Google <-> Monica contact id mapping and saves it to the database.'''
+        # Initialization
         conflicts = []
         contactCount = len(self.google.getContacts())
         msg = "Building sync database..."
         self.log.info(msg)
         print(msg)
-        for num, contact in enumerate(self.google.getContacts()):
+
+        # Process every Google contact
+        for num, googleContact in enumerate(self.google.getContacts()):
             sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
             sys.stdout.flush()
-            monicaId = self.mapping.get(contact['resourceName'], None)
+            monicaId = self.mapping.get(googleContact['resourceName'], None)
             if not monicaId:
-                monicaId = self.__simpleMonicaIdSearch(contact)
+                # If not found in database: try non-interactive search first
+                monicaId = self.__simpleMonicaIdSearch(googleContact)
             if not monicaId:
-                conflicts.append(contact)
+                # Non-interactive search failed, try interactive search next
+                conflicts.append(googleContact)
+
+        # Process all conflicts
         if len(conflicts):
             msg = f"Found {len(conflicts)} possible conflicts, starting resolving procedure..."
             self.log.info(msg)
-            print("\n"+msg)
-        for contact in conflicts:
-            monicaId = self.__interactiveMonicaIdSearch(contact)
+            print("\n" + msg)
+        for googleContact in conflicts:
+            # Do a interactive search with user interaction next
+            monicaId = self.__interactiveMonicaIdSearch(googleContact)
             assert monicaId, "Could not create a Monica contact. Sync aborted."
         
+        # Sync lonely Monica contacts back to Google
         if self.syncBack:
             contactCount = len(self.monica.getContacts())
+
+            # Process every Monica contact
             for num, monicaContact in enumerate(self.monica.getContacts()):
                 sys.stdout.write(f"\rProcessing Monica contact {num+1} of {contactCount}")
                 sys.stdout.flush()
+
+                # If there the id isnt in the database: create a new Google contact and upload
                 if str(monicaContact['id']) not in self.mapping.values():
+                    # Create Google contact
                     #googleContact = self.google.createContactFromMonicaContact(monicaContact)
                     #gContactDisplayName = googleContact['names'][0]['displayName']
                     # DUMMY! REMOVE LATER!
@@ -75,6 +102,7 @@ class Sync():
                     googleContact['resourceName'] = self.__generateFakeId(self.mapping.keys())
                     gContactDisplayName = "New contact"
                     # DUMMY! REMOVE LATER!
+
                     # Update database and mapping
                     self.database.insertData(googleContact['resourceName'],
                                             monicaContact['id'],
@@ -89,7 +117,7 @@ class Sync():
                     msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
                     self.log.info(msg)
 
-
+        # Finished
         msg = "Sync database built!"
         self.log.info(msg)
         print("\n" + msg)
@@ -179,29 +207,42 @@ class Sync():
         return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
 
     def __interactiveMonicaIdSearch(self, googleContact: dict) -> str:
-        '''Searches for possible matching candidates and asks for user decision if neccessary.'''
+        '''Advanced search by first and last name for a given Google contact. 
+        Tries to find a matching Monica contact and asks for user choice if 
+        at least one candidate has been found. Creates a new Monica contact
+        if neccessary or chosen by User. Returns Monica contact id.'''
+        # Initialization
         resolved = False
         candidates = []
         gContactGivenName = googleContact['names'][0].get("givenName", False)
         gContactFamilyName = googleContact['names'][0].get("familyName", False)
         gContactDisplayName = googleContact['names'][0]['displayName']
         monicaContact = None
+
+        # Process every Monica contact
         for mContact in self.monica.getContacts():
             if str(mContact['id']) not in self.mapping.values():
                 if gContactGivenName == mContact['first_name']:
+                    # If the id isnt in the database and first name matches add potential candidate to list
                     candidates.append(mContact)
                 elif gContactFamilyName == mContact['last_name']:
+                    # If the id isnt in the database and last name matches add potential candidate to list
                     candidates.append(mContact)
+        
+        # If there is at least one candidate let the user choose
         if candidates:
             print("\nPossible syncing conflict, please choose your alternative by number:")
             print(f"\tWhich Monica contact should be connected to '{gContactDisplayName}'?")
-            for num, mContact in enumerate(candidates):
-                print(f"\t{num}: {mContact['complete_name']}")
+            for num, monicaContact in enumerate(candidates):
+                print(f"\t{num}: {monicaContact['complete_name']}")
             print(f"\t{num+1}: Create a new Monica contact")
             choice = int(input("Enter your choice (number only): "))
+            # Created a sublist with the selected candidate or an empty list if user votes for a new contact
             candidates = candidates[choice:choice+1]
+
+        # If there are no candidates (user vote or nothing found) create a new Monica contact
         if not candidates:
-            # Create a new Monica contact if chosen or no candidates found
+            # Create a new Monica contact
             monicaContact = self.__createMonicaContact(googleContact)
             # DUMMY! REMOVE LATER!
             #monicaContact = self.monica.getContacts()[0]
@@ -212,8 +253,11 @@ class Sync():
             self.log.info(msg)
             print(msg)
             resolved = True
+
+        # There must be exactly one candidate from user vote
         else:
             monicaContact = candidates[0]
+
         # Update database and mapping
         self.database.insertData(googleContact['resourceName'],
                                 monicaContact['id'], 
@@ -228,37 +272,47 @@ class Sync():
             print("Conflict resolved: " + msg)
         return str(monicaContact['id'])
 
-
     # pylint: disable=unsubscriptable-object
     def __simpleMonicaIdSearch(self, googleContact: dict) -> Union[str,None]:
+        '''Simple search by displayname for a given Google contact. 
+        Tries to find a matching Monica contact and returns its id or None if not found'''
+        # Initialization
         gContactGivenName = googleContact['names'][0].get("givenName", False)
         gContactFamilyName = googleContact['names'][0].get("familyName", False)
         gContactDisplayName = googleContact['names'][0]['displayName']
         candidates = []
+
+        # Process every Monica contact
         for monicaContact in self.monica.getContacts():
             if str(monicaContact['id']) not in self.mapping.values():
                 if gContactDisplayName == monicaContact['complete_name']:
+                    # If the id isnt in the database and full name matches add potential candidate to list
                     candidates.append(monicaContact)
                 elif (gContactGivenName and gContactFamilyName and 
                     ' '.join([gContactGivenName, gContactFamilyName]) == monicaContact['complete_name']):
+                    # Sometimes Google does some strange naming things with 'honoricPrefix' etc. try to mitigate that
                     candidates.append(monicaContact)
+        
+        # If there is only one candidate
         if len(candidates) == 1:
             monicaContact = candidates[0]
-            try:
-                self.database.insertData(googleContact['resourceName'],
-                                        monicaContact['id'], 
-                                        googleContact['names'][0]["displayName"],
-                                        monicaContact['complete_name'],
-                                        googleContact['metadata']['sources'][0]["updateTime"],
-                                        monicaContact['updated_at'])
-                self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
-                return str(monicaContact['id'])
-            except Exception as e:
-                self.log.error(f'Error updating database: {str(e)}')
-                return None
+
+            # Update database and mapping
+            self.database.insertData(googleContact['resourceName'],
+                                    monicaContact['id'], 
+                                    googleContact['names'][0]["displayName"],
+                                    monicaContact['complete_name'],
+                                    googleContact['metadata']['sources'][0]["updateTime"],
+                                    monicaContact['updated_at'])
+            self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+            return str(monicaContact['id'])
+
+        # Simple search failed
         return None
 
     def __getMonicaNamesFromGoogleContact(self, googleContact: dict) -> Tuple[str,str]:
+        '''Creates first and last name from a Google contact with respect to honoric
+        suffix/prefix.'''
         givenName = googleContact['names'][0].get("givenName", '')
         familyName = googleContact['names'][0].get("familyName", '')
         prefix = googleContact['names'][0].get("honorificPrefix", '')

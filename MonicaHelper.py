@@ -5,6 +5,7 @@ from DatabaseHelper import Database
 import sys
 
 class Monica():
+    '''Handles all Monica related (api) stuff.'''
     def __init__(self, log: Logger, token: str, base_url: str, createReminders: bool, databaseHandler: Database, sampleData: list = None) -> None:
         self.log = log
         self.database = databaseHandler
@@ -16,9 +17,14 @@ class Monica():
         self.createdContacts = []
         self.createReminders = createReminders
 
-    def updateContact(self, id: str, data: dict) -> dict:
-        response = requests.put(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters, json=data)
+    def updateContact(self, id: str, data: dict) -> None:
+        '''Updates a given contact and its id via api call.'''
         name = f"{data['first_name']} {data['last_name']}"
+
+        # Update contact
+        response = requests.put(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
         if response.status_code == 200:
             contact = response.json()['data']
             self.updatedContacts.append(contact)
@@ -30,8 +36,13 @@ class Monica():
             self.log.info(f"Error updating contact '{name}' with id '{id}': {error}")
 
     def createContact(self, data: dict) -> dict:
-        response = requests.post(self.base_url + f"/contacts", headers=self.header, params=self.parameters, json=data)
+        '''Creates a given contact via api call and returns the created contact.'''
         name = f"{data['first_name']} {data['last_name']}"
+
+        # Create contact
+        response = requests.post(self.base_url + f"/contacts", headers=self.header, params=self.parameters, json=data)
+        
+        # If successful
         if response.status_code == 201:
             contact = response.json()['data']
             self.createdContacts.append(contact)
@@ -43,7 +54,8 @@ class Monica():
             self.log.info(f"Error creating contact '{name}' with id '{id}': {error}")
             raise Exception("Error creating contact!")
 
-    def getContacts(self):
+    def getContacts(self) -> dict:
+        '''Fetches all contacts from Monica if not already fetched.'''
         if not self.contacts:
             self.contacts = []
             maxPage = '?'
@@ -62,6 +74,7 @@ class Monica():
         return self.contacts
 
 class ContactUploadForm():
+    '''Creates json form for creating or updateing contacts.'''
     def __init__(self, firstName: str, lastName: str = None, nickName: str = None,
                     middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
                     birthdateMonth: str = None, birthdateYear: str = None,
