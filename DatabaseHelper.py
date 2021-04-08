@@ -3,6 +3,7 @@ from logging import Logger
 from typing import Union, Tuple
 
 class Database():
+    '''Handles all database related stuff.'''
     def __init__(self, log: Logger, filename: str) -> None:
         self.log = log
         # pylint: disable=no-member
@@ -11,7 +12,13 @@ class Database():
         self.__initializeDatabase()
     
     def __initializeDatabase(self):
-        """Initializes the database with all tables."""
+        """Initializes the database with all tables. Deletes existing old tables."""
+        deleteSyncTableSql = '''
+        DROP TABLE IF EXISTS sync;
+        '''
+        deleteConfigTableSql = '''
+        DROP TABLE IF EXISTS config;
+        '''
         newSyncTableSql = '''
         CREATE TABLE IF NOT EXISTS sync (
         googleId VARCHAR(50) NOT NULL UNIQUE,
@@ -26,6 +33,8 @@ class Database():
         googleNextSyncToken VARCHAR(100) NULL UNIQUE);
         '''
         newGoogleNextSyncTokenRow = "INSERT INTO config(googleNextSyncToken) VALUES(NULL)"
+        self.cursor.execute(deleteSyncTableSql)
+        self.cursor.execute(deleteConfigTableSql)
         self.cursor.execute(newSyncTableSql)
         self.cursor.execute(newConfigTableSql)
         self.cursor.execute(newGoogleNextSyncTokenRow)
@@ -34,6 +43,7 @@ class Database():
     def insertData(self, googleId: str, monicaId: str, googleFullName: str = 'NULL', 
                 monicaFullName: str = 'NULL', googleLastChanged: str = 'NULL', 
                 monicaLastChanged: str = 'NULL') -> None:
+        '''Inserts the given data into the database. Needs at least a Monica id AND a Google id'''
         insertSql = '''
         INSERT INTO sync(googleId, monicaId, googleFullName, monicaFullName,
                         googleLastChanged, monicaLastChanged)
@@ -46,7 +56,7 @@ class Database():
     def update(self, googleId: str = None, monicaId: str = None, 
                 googleFullName: str = None, monicaFullName: str = None, 
                 googleLastChanged: str = None, monicaLastChanged: str = None) -> None:
-        '''Updates a dataset in the database. Needs positional arguments!'''
+        '''Updates a dataset in the database. Needs at least a Monica id OR a Google id and the related data.'''
         if monicaId:
             if monicaFullName:
                 self.__updateFullNameByMonicaId(str(monicaId), monicaFullName)
@@ -54,14 +64,14 @@ class Database():
                 self.__updateMonicaLastChanged(str(monicaId), monicaLastChanged)
             else:
                 self.log.error("Unknown database update arguments!")
-        elif googleId:
+        if googleId:
             if googleFullName:
                 self.__updateFullNameByGoogleId(googleId, googleFullName)
             if googleLastChanged:
                 self.__updateGoogleLastChanged(googleId, googleLastChanged)
             else:
                 self.log.error("Unknown database update arguments!")
-        else:
+        if not monicaId and not googleId:
             self.log.error("Unknown database update arguments!")
 
     def __updateFullNameByMonicaId(self, monicaId: str, monicaFullName: str) -> None:
@@ -87,7 +97,7 @@ class Database():
 
     def findById(self, googleId: str = None, monicaId: str = None) -> Union[tuple, None]:
         '''Search for a contact row in the database. Returns None if not found.
-           Needs positional arguments!'''
+           Needs Google id OR Monica id'''
         if monicaId:
             row = self.__findByMonicaId(str(monicaId))
         elif googleId:
@@ -100,10 +110,10 @@ class Database():
         return None
     
     def getIdMapping(self) -> dict:
-        '''Returns a dictionary with the {monicaId:googleId} mapping from the database'''
+        '''Returns a dictionary with a {monicaId:googleId} mapping from the database'''
         findSql = "SELECT googleId,monicaId FROM sync"
         self.cursor.execute(findSql)
-        mapping = {googleId: str(monicaId) for googleId,monicaId in self.cursor.fetchall()}
+        mapping = {googleId: str(monicaId) for googleId, monicaId in self.cursor.fetchall()}
         return mapping
 
 
@@ -118,11 +128,13 @@ class Database():
         return self.cursor.fetchone()
 
     def delete(self, googleId: str, monicaId: str) -> None:
+        '''Deletes a row from the database. Needs Monica id AND Google id.'''
         deleteSql = "DELETE FROM sync WHERE googleId=? AND monicaId=?"
         self.cursor.execute(deleteSql,(str(monicaId), googleId))
         self.connection.commit()
 
     def getGoogleNextSyncToken(self) -> Union[str,None]:
+        '''Returns the next sync token.'''
         findSql = "SELECT * FROM config WHERE ROWID=1"
         self.cursor.execute(findSql)
         row = self.cursor.fetchone()
@@ -131,6 +143,7 @@ class Database():
         return None
 
     def updateGoogleNextSyncToken(self, token: str) -> None:
+        '''Updates the given token in the database.'''
         updateSql = "UPDATE config SET googleNextSyncToken = ? WHERE ROWID = 1"
         self.cursor.execute(updateSql,(token,))
         self.connection.commit()
