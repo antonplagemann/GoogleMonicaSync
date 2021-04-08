@@ -38,8 +38,8 @@ def main() -> None:
 
     # More code
     database = Database(log, 'syncState.db')
-    google = Google(log, database, getTestingData('GoogleSampleData.json'))
-    monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database, getTestingData('MonicaSampleData.json'))
+    google = Google(log, database)#, getTestingData('GoogleSampleData.json'))
+    monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)#, getTestingData('MonicaSampleData.json'))
     
     # Update testing data
     #monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
@@ -49,7 +49,8 @@ def main() -> None:
 
     sync = Sync(log, monica, google, database, False)
 
-    sync.initialSync()
+    #sync.initialSync()
+    sync.fastFullSync()
 
     log.info("Sync ended\n")
     '''

@@ -6,6 +6,7 @@ from google.auth.transport.requests import Request
 from logging import Logger
 from typing import List
 from DatabaseHelper import Database
+import sys
 
 class Google():
     '''Handles all Google related (api) stuff.'''
@@ -13,9 +14,13 @@ class Google():
         self.log = log
         self.database = databaseHandler
         self.service = self.__buildService()
-        self.contacts = sampleData
+        self.contacts = []
+        self.dataAlreadyFetched = False
         self.updatedContacts = []
         self.createdContacts = []
+
+        # Debugging area :-)
+        self.sampleData = sampleData
 
     def __buildService(self) -> Resource:
         creds = None
@@ -42,14 +47,29 @@ class Google():
 
     def getContacts(self) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
-        if not self.contacts:
-            # Contact fields to be retrieved
-            fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
-            # pylint: disable=no-member
-            results = self.service.people().connections().list(
-                resourceName='people/me',
-                pageSize=1000,
-                personFields=fields).execute()
-            self.contacts = results.get('connections', [])
+        # Return sample data if present (debugging)
+        if self.sampleData:
+            return self.sampleData
+
+        # Avoid multiple fetches
+        if self.dataAlreadyFetched:
             return self.contacts
+
+        # Start fetching
+        msg = "Fetching all Google contacts..."
+        self.log.info(msg)
+        sys.stdout.write(f"\r{msg}")
+        sys.stdout.flush()
+        # Contact fields to be retrieved
+        fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
+        # pylint: disable=no-member
+        results = self.service.people().connections().list(
+            resourceName='people/me',
+            pageSize=1000,
+            personFields=fields).execute()
+        self.contacts = results.get('connections', [])
+        msg = "Finished fetching Google contacts"
+        self.log.info(msg)
+        print("\n" + msg)
+        self.dataAlreadyFetched = True
         return self.contacts

@@ -23,6 +23,8 @@ class Sync():
 
     def initialSync(self) -> None:
         '''Builds the syncing database and starts a full sync.'''
+        self.database.deleteAndInitialize()
+        self.mapping.clear()
         self.__buildSyncDatabase()
         self.fullSync()
     
@@ -38,17 +40,54 @@ class Sync():
         for num, googleContact in enumerate(self.google.getContacts()):
             sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
             sys.stdout.flush()
+
             # Get Monica id from database (index 1 in returned row)
             monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
             # Get Monica contact by id
-            monicaContact = [c for c in self.monica.getContacts() if str(c['id']) == monicaId][0]
-            # Remove Monica contact from contact list (add again after updated)
-            self.monica.getContacts().remove(self.monica.getContacts().index(monicaContact))
+            monicaContact = self.monica.getContact(monicaId)
+            
             # Merge and update name, birthday and deceased date
             self.__mergeAndUpdateNBD(monicaContact, googleContact)
 
         # Finished
         msg = "Full sync finished!"
+        self.log.info(msg)
+        print("\n" + msg)
+
+    def fastFullSync(self) -> None:
+        '''Fetches every contact from Google and Monica and does a full sync 
+        if the Google contact has been updated since the last sync.'''
+        # Initialization
+        contactCount = len(self.google.getContacts())
+        msg = "Starting fast full sync..."
+        self.log.info(msg)
+        print(msg)
+
+        # Process every Google contact
+        for num, googleContact in enumerate(self.google.getContacts()):
+            sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
+            sys.stdout.flush()
+
+            # Get timestamps
+            databaseTimestamp = self.database.findById(googleId=googleContact["resourceName"])[4]
+            databaseDate = self.__convertGoogleTimestamp(databaseTimestamp)
+            contactTimestamp = googleContact['metadata']['sources'][0]["updateTime"]
+            contactDate = self.__convertGoogleTimestamp(contactTimestamp)
+
+            # Skip if nothing has changed
+            if databaseDate == contactDate:
+                continue
+
+            # Get Monica id from database (index 1 in returned row)
+            monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
+            # Get Monica contact by id
+            monicaContact = self.monica.getContact(monicaId)
+            
+            # Merge and update name, birthday and deceased date
+            self.__mergeAndUpdateNBD(monicaContact, googleContact)
+
+        # Finished
+        msg = "Fast full sync finished!"
         self.log.info(msg)
         print("\n" + msg)
 
