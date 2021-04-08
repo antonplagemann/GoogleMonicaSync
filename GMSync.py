@@ -3,7 +3,7 @@ VERSION = "v0.1"
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 # pylint: disable=import-error
 import logging
-from conf import TOKEN, BASE_URL, CREATE_REMINDERS
+from conf import TOKEN, BASE_URL, CREATE_REMINDERS, SYNC_BACK
 from DatabaseHelper import Database
 from MonicaHelper import Monica
 from GoogleHelper import Google
@@ -47,10 +47,9 @@ def main() -> None:
     #updateTestingData('MonicaSampleData.json', monica.getContacts())
     #updateTestingData('GoogleSampleData.json', google.getContacts())
 
-    sync = Sync(log, monica, google, database, False)
+    sync = Sync(log, monica, google, database, SYNC_BACK)
 
-    #sync.initialSync()
-    sync.fastFullSync()
+    sync.startSync()
 
     log.info("Sync ended\n")
     '''
