@@ -34,10 +34,11 @@ class Sync():
             sys.stdout.flush()
             monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
             monicaContact = [c for c in self.monica.getContacts() if str(c['id']) == monicaId][0]
-            self.__mergeAndUpdate(monicaContact, googleContact)
+            self.monica.getContacts().remove(self.monica.getContacts().index(monicaContact))
+            self.__mergeAndUpdateNBD(monicaContact, googleContact)
         msg = "Full sync finished!"
         self.log.info(msg)
-        print(msg)
+        print("\n" + msg)
 
     def __buildSyncDatabase(self) -> None:
         conflicts = []
@@ -99,7 +100,9 @@ class Sync():
             self.fakeNum += 1
         return "fake_" + str(self.fakeNum)
     
-    def __mergeAndUpdate(self, monicaContact: dict, googleContact: dict) -> dict:
+    def __mergeAndUpdateNBD(self, monicaContact: dict, googleContact: dict) -> dict:
+        '''Updates names, birthday and deceased date by merging an existing Monica contact with
+        a given Google contact.'''
         # Get names
         firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
         middleName = googleContact['names'][0].get("middleName", '')
@@ -134,11 +137,13 @@ class Sync():
                                         birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
                                         isDeceased=monicaContact["is_dead"], isDeceasedDateKnown=bool(deceasedDate),
                                         deceasedYear=deceasedYear, deceasedMonth=deceasedMonth,
-                                        deceasedDay=deceasedDay, deceasedAgeBased=deceasedDateIsAgeBased)
+                                        deceasedDay=deceasedDay, deceasedAgeBased=deceasedDateIsAgeBased,
+                                        createReminders=self.monica.createReminders)
         # Upload contact
         self.monica.updateContact(id=monicaContact["id"], data=form.data)
 
     def __createMonicaContact(self, googleContact: dict) -> dict:
+        '''Creates a new Monica contact from a given Google contact.'''
         # Get names
         firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
         middleName = googleContact['names'][0].get("middleName", '')
@@ -159,7 +164,8 @@ class Sync():
         # Assemble form object
         form = ContactUploadForm(firstName=firstName, lastName=lastName, middleName=middleName,
                                         birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
-                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday))
+                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
+                                        createReminders=self.monica.createReminders)
         # Upload contact
         monicaContact = self.monica.createContact(data=form.data)
         return monicaContact

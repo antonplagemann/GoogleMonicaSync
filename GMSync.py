@@ -1,16 +1,9 @@
 VERSION = "v0.1"
 # Google-Monica-Sync
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
-
-import pickle
-import os.path
-import requests
-import sys
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+# pylint: disable=import-error
 import logging
-from conf import TOKEN, BASE_URL
+from conf import TOKEN, BASE_URL, CREATE_REMINDERS
 from DatabaseHelper import Database
 from MonicaHelper import Monica
 from GoogleHelper import Google
@@ -46,15 +39,15 @@ def main() -> None:
     # More code
     database = Database(log, 'syncState.db')
     google = Google(log, database, getTestingData('GoogleSampleData.json'))
-    monica = Monica(log, TOKEN, BASE_URL, database, getTestingData('MonicaSampleData.json'))
+    monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database, getTestingData('MonicaSampleData.json'))
     
     # Update testing data
-    #monica = Monica(log, TOKEN, BASE_URL, database)
+    #monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
     #google = Google(log, database)
     #updateTestingData('MonicaSampleData.json', monica.getContacts())
     #updateTestingData('GoogleSampleData.json', google.getContacts())
 
-    sync = Sync(log, monica, google, database, True)
+    sync = Sync(log, monica, google, database, False)
 
     sync.initialSync()
 

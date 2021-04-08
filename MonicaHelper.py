@@ -5,7 +5,7 @@ from DatabaseHelper import Database
 import sys
 
 class Monica():
-    def __init__(self, log: Logger, token: str, base_url: str, databaseHandler: Database, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, token: str, base_url: str, createReminders: bool, databaseHandler: Database, sampleData: list = None) -> None:
         self.log = log
         self.database = databaseHandler
         self.base_url = base_url
@@ -14,6 +14,7 @@ class Monica():
         self.contacts = sampleData
         self.updatedContacts = []
         self.createdContacts = []
+        self.createReminders = createReminders
 
     def updateContact(self, id: str, data: dict) -> dict:
         response = requests.put(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters, json=data)
@@ -21,6 +22,7 @@ class Monica():
         if response.status_code == 200:
             contact = response.json()['data']
             self.updatedContacts.append(contact)
+            self.contacts.append(contact)
             self.log.info(f"Contact with name '{name}' and id '{id}' updated successfully")
             self.database.update(monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
         else:
@@ -66,8 +68,9 @@ class ContactUploadForm():
                     birthdateAgeBased: bool = None, isBirthdateKnown: bool = False,
                     isDeceased: bool = False, isDeceasedDateKnown: bool = False,
                     deceasedDay: int = None, deceasedMonth: int = None,
-                    deceasedYear: int = None, deceasedAgeBased: bool = None) -> None:
-        genderId = {'M':1, 'W':2, 'O':3}.get(genderType, 3)
+                    deceasedYear: int = None, deceasedAgeBased: bool = None,
+                    createReminders: bool = True) -> None:
+        genderId = {'M':1, 'F':2, 'O':3}.get(genderType, 3)
         self.data = {
             "first_name": firstName,
             "last_name": lastName,
@@ -78,6 +81,8 @@ class ContactUploadForm():
             "birthdate_month": birthdateMonth,
             "birthdate_year": birthdateYear,
             "birthdate_is_age_based": birthdateAgeBased,
+            "deceased_date_add_reminder": createReminders,
+            "birthdate_add_reminder": createReminders,
             "is_birthdate_known": isBirthdateKnown,
             "is_deceased": isDeceased,
             "is_deceased_date_known": isDeceasedDateKnown,
