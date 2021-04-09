@@ -25,14 +25,14 @@ class Sync():
 
     def startSync(self, syncType: str = '') -> None:
         '''Starts the next sync type depending on database data.'''
-        if syncType:
-            raise NotImplementedError
+        if syncType == 'initial':
+            self.__initialSync()
         if not self.mapping:
-            # There is no database, so build it before syncing
-            msg = "No sync database found, try building it..."
+            # There is no sync database
+            msg = "No sync database found, please do a initial sync first!"
             self.log.info(msg)
             print(msg + "\n")
-            self.__initialSync()
+            raise Exception("Initial sync needed!")
         elif not self.nextSyncToken:
             # There is a database, but no full sync has been done yet
             msg = "No sync token found, doing a full sync..."
@@ -48,7 +48,7 @@ class Sync():
         
 
     def __initialSync(self) -> None:
-        '''Builds the syncing database and starts a full sync.'''
+        '''Builds the syncing database and starts a full sync. Needs user interaction!'''
         self.database.deleteAndInitialize()
         self.__buildSyncDatabase()
         self.mapping = self.database.getIdMapping()
@@ -160,9 +160,15 @@ class Sync():
                 # Proceed with next contact
                 continue
 
-            # Get Monica contact by id
-            monicaContact = self.monica.getContact(monicaId)
-            
+            try:
+                # Get Monica contact by id
+                monicaContact = self.monica.getContact(monicaId)
+            except:
+                msg = f"Failed to fetch Monica contact for id {monicaId}. Database rebuilt can help here."
+                self.log.error(msg)
+                print(msg)
+                print("Please do not delete Monica contacts by yourself!")
+                raise Exception("Database seems not consistent, please do a initial sync manually!")
             # Merge name, birthday and deceased date and update them
             self.__mergeAndUpdateNBD(monicaContact, googleContact)
 
@@ -246,6 +252,9 @@ class Sync():
         msg = "Sync database built!"
         self.log.info(msg)
         print("\n" + msg)
+
+    def __checkDatabaseConsistency(self) -> None:
+        '''Checks if there are orphaned database entries which need to be resolved.'''
 
     def __generateFakeId(self, idList: list) -> str:
         '''Used to generate useless ids for debugging and testing'''
