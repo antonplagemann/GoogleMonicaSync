@@ -14,3 +14,8 @@ This script aims to sync contacts from Google to Monica and eventually back.
 - Aim for an always consistent state, even in failures
 - Only sync new Monica contacts back? (no changed ones)
 - Birthday will always beo overwritten by Google
+- Label sync
+- Initial Notes sync (if not present at Monica)
+- Work details Sync
+- Contact picture sync
+- Limit 1000 Google contacts

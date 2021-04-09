@@ -3,6 +3,7 @@ import os.path
 from googleapiclient.discovery import build, Resource
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
 from logging import Logger
 from typing import List
 from DatabaseHelper import Database
@@ -45,7 +46,12 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
-    def getContacts(self, **params) -> List[dict]:
+    def removeContactFromList(self, googleContact: dict) -> None:
+        '''Removes a Google contact internally to avoid further processing 
+        (e.g. if it has been deleted on both sides)'''
+        self.contacts.remove(googleContact)
+
+    def getContacts(self, refetchData: bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
         # Build GET parameters
         fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
@@ -59,7 +65,7 @@ class Google():
             return self.sampleData
 
         # Avoid multiple fetches
-        if self.dataAlreadyFetched:
+        if self.dataAlreadyFetched and not refetchData:
             return self.contacts
 
         # Start fetching
@@ -67,8 +73,19 @@ class Google():
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
-        # pylint: disable=no-member
-        result = self.service.people().connections().list(**parameters).execute()
+        try:
+            # pylint: disable=no-member
+            result = self.service.people().connections().list(**parameters).execute()
+        except HttpError as error:
+            if 'Sync token' in error._get_reason():
+                msg = "Sync token expired or wrong. Fetching again without token (full sync)..."
+                self.log.warning(msg)
+                print("\n" + msg)
+                parameters.pop('syncToken')
+                # pylint: disable=no-member
+                result = self.service.people().connections().list(**parameters).execute()
+            else:
+                raise Exception(error._get_reason())
         nextSyncToken = result.get('nextSyncToken', None)
         if nextSyncToken:
             self.database.updateGoogleNextSyncToken(nextSyncToken)

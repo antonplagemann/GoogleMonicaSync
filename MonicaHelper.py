@@ -37,8 +37,23 @@ class Monica():
             self.database.update(monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error updating contact '{name}' with id '{id}': {error}")
-            raise Exception("Error updating contact!")
+            self.log.info(f"Error updating Monica contact '{name}' with id '{id}': {error}")
+            raise Exception("Error updating Monica contact!")
+
+    def deleteContact(self, monicaId: str) -> None:
+        '''Deletes the contact with the given id from Monica and removes it from the internal list.'''
+
+        # Delete contact
+        response = requests.delete(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
+
+        # If successful
+        if response.status_code == 200:
+            self.contacts = [c for c in self.contacts if str(c['id']) != monicaId]
+        else:
+            error = response.json()['error']['message']
+            self.log.error(f"Failed to complete delete request for Monica contact with id '{id}': {error}")
+            raise Exception("Error deleting Monica contact!")
+        
 
     def createContact(self, data: dict) -> dict:
         '''Creates a given contact via api call and returns the created contact.'''
@@ -56,8 +71,8 @@ class Monica():
             return contact
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error creating contact '{name}' with id '{id}': {error}")
-            raise Exception("Error creating contact!")
+            self.log.info(f"Error creating Monica contact '{name}' with id '{id}': {error}")
+            raise Exception("Error creating Monica contact!")
 
     def getContacts(self) -> list:
         '''Fetches all contacts from Monica if not already fetched.'''
@@ -110,8 +125,8 @@ class Monica():
             return monicaContact
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error fetching contact with id '{id}': {error}")
-            raise Exception("Error fetching contact!")
+            self.log.info(f"Error fetching Monica contact with id '{id}': {error}")
+            raise Exception("Error fetching Monica contact!")
 
 class ContactUploadForm():
     '''Creates json form for creating or updating contacts.'''

@@ -10,7 +10,7 @@ import sys
 class Sync():
     '''Handles all syncing and merging issues with Google and Monica and the database.'''
     def __init__(self, log: Logger, monicaHandler: Monica, googleHandler: Google, 
-                databaseHandler: Database, syncBackToGoogle: bool) -> None:
+                databaseHandler: Database, syncBackToGoogle: bool, deleteMonicaContactsOnSync: bool) -> None:
         self.log = log
         self.monica = monicaHandler
         self.google = googleHandler
@@ -18,81 +18,178 @@ class Sync():
         self.mapping = self.database.getIdMapping()
         self.nextSyncToken = self.database.getGoogleNextSyncToken()
         self.syncBack = syncBackToGoogle
+        self.deleteMonicaContacts = deleteMonicaContactsOnSync
 
         # Debugging area :-)
         self.fakeNum = 1
 
-    def startSync(self) -> None:
+    def startSync(self, syncType: str = '') -> None:
         '''Starts the next sync type depending on database data.'''
+        if syncType:
+            raise NotImplementedError
         if not self.mapping:
-            self.initialSync()
+            # There is no database, so build it before syncing
+            msg = "No sync database found, try building it..."
+            self.log.info(msg)
+            print(msg + "\n")
+            self.__initialSync()
         elif not self.nextSyncToken:
-            self.fullSync()
+            # There is a database, but no full sync has been done yet
+            msg = "No sync token found, doing a full sync..."
+            self.log.info(msg)
+            print(msg + "\n")
+            self.__sync()
         else:
-            self.deltaSync()
+            # There has been a full sync before, so do a delta sync from now on
+            msg = "Sync token found, doing a delta sync..."
+            self.log.info(msg)
+            print(msg + "\n")
+            self.__deltaSync()
         
 
-    def initialSync(self) -> None:
+    def __initialSync(self) -> None:
         '''Builds the syncing database and starts a full sync.'''
         self.database.deleteAndInitialize()
-        self.mapping.clear()
         self.__buildSyncDatabase()
-        self.fullSync(dateBasedSync=False)
+        self.mapping = self.database.getIdMapping()
+        self.__sync()
 
-    def deltaSync(self) -> None:
-        '''Fetches every contact from Google that has changed since the last sync.'''
-        self.google.getContacts(requestSyncToken=True, syncToken=self.nextSyncToken)
-        #tbc
-
-    def fullSync(self, dateBasedSync: bool = True, requestGoogleSyncToken: bool = True) -> None:
-        '''Fetches every contact from Google and Monica and does a full sync.'''
-        # Initialization
-        contactCount = len(self.google.getContacts(requestSyncToken=requestGoogleSyncToken))
-        msg = "Starting full sync..."
+    def __deltaSync(self) -> None:
+        '''Fetches every contact from Google that has changed since the last sync including deleted ones.'''
+        msg = "Initializing delta sync..."
         self.log.info(msg)
         print(msg)
+        googleContacts = self.google.getContacts(requestSyncToken=True, syncToken=self.nextSyncToken)
+        contactCount = len(googleContacts)
+
+        if self.deleteMonicaContacts:
+            # Process every Google contact and search for deleted ones
+            for num, googleContact in enumerate(googleContacts):
+                sys.stdout.write(f"\rPreprocessing Google contact {num+1} of {contactCount}")
+                sys.stdout.flush()
+                isDeleted = googleContact.get('metadata', {}).get('deleted', False)
+                if isDeleted:
+                    googleId = googleContact["resourceName"]
+                    try:
+                        # Try to delete the corresponding contact
+                        msg = f"Found deleted Google contact with id '{googleId}'. Deleting Monica contact..."
+                        self.log.info(msg)
+                        print("\n" + msg)
+                        monicaId = self.database.findById(googleId=googleId)[1]
+                        self.monica.deleteContact(monicaId)
+                        self.database.delete(googleId, monicaId)
+                        self.mapping.pop(googleId)
+                        self.google.removeContactFromList(googleContact)
+                        msg = f"Monica contact with id '{monicaId}' deleted successfully"
+                        self.log.info(msg)
+                        print(msg)
+                    except:
+                        msg = f"Failed deleting monica contact for '{googleId}'! Please delete manually!"
+                        self.log.error(msg)
+                        print(msg)
+        
+        # Deleted contacts have been processed, now do a full sync with the already fetched delta list of Google contacts
+        self.__sync(syncDescription='delta')
+                
+        
+
+    def __sync(self, dateBasedSync: bool = True, requestGoogleSyncToken: bool = True, syncDescription: str = 'full') -> None:
+        '''Fetches every contact from Google and Monica and does a full sync.'''
+        # Initialization
+        msg = f"Starting {syncDescription} sync..."
+        self.log.info(msg)
+        print("\n" + msg)
+        googleContacts = self.google.getContacts(requestSyncToken=requestGoogleSyncToken)
+        contactCount = len(googleContacts)
+
+        # If Google hasnt returned some data
+        if not googleContacts:
+            msg = f"No (changed) Google contacts found!"
+            self.log.info(msg)
+            print("\n" + msg)
 
         # Process every Google contact
-        for num, googleContact in enumerate(self.google.getContacts()):
+        for num, googleContact in enumerate(googleContacts):
             sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
             sys.stdout.flush()
 
-            # Skip all contacts which have not changed according to the database lastChanged date
-            if dateBasedSync:
-                # Get timestamps
-                databaseTimestamp = self.database.findById(googleId=googleContact["resourceName"])[4]
-                databaseDate = self.__convertGoogleTimestamp(databaseTimestamp)
-                contactTimestamp = googleContact['metadata']['sources'][0]["updateTime"]
-                contactDate = self.__convertGoogleTimestamp(contactTimestamp)
+            # Skip all contacts which have not changed according to the database lastChanged date (if present)
+            try:
+                if dateBasedSync:
+                    # Get timestamps
+                    databaseTimestamp = self.database.findById(googleId=googleContact["resourceName"])[4]
+                    databaseDate = self.__convertGoogleTimestamp(databaseTimestamp)
+                    contactTimestamp = googleContact['metadata']['sources'][0]["updateTime"]
+                    contactDate = self.__convertGoogleTimestamp(contactTimestamp)
 
-                # Skip if nothing has changed
-                if databaseDate == contactDate:
-                    continue
+                    # Skip if nothing has changed
+                    if databaseDate == contactDate:
+                        continue
+            except:
+                # Continue if there is no lastChanged date
+                pass
+            try:
+                # Get Monica id from database (index 1 in returned row)
+                monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
+            except:
+                # That must be a new Google contact
+                googleId = googleContact['resourceName']
+                gContactDisplayName = googleContact.get('names',[{}])[0].get('displayName', "")
+                msg = f"No Monica id for '{googleId}' with name '{gContactDisplayName} found': Creating new Monica contact..."
+                self.log.info(msg)
+                print("\n" + msg)
 
-            # Get Monica id from database (index 1 in returned row)
-            monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
+                # Create new Monica contact
+                monicaContact = self.__createMonicaContact(googleContact)
+                msg = f"New Monica contact with id '{monicaContact['id']}' for '{gContactDisplayName}' created"
+                self.log.info(msg)
+                print(msg)
+
+                # Update database and mapping
+                self.database.insertData(googleContact['resourceName'],
+                                monicaContact['id'], 
+                                gContactDisplayName,
+                                monicaContact['complete_name'])
+                self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+                msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
+                self.log.info(msg)
+
+                # Sync additional details
+                self.__syncDetails(googleContact, monicaContact)
+
+                # Proceed with next contact
+                continue
+
             # Get Monica contact by id
             monicaContact = self.monica.getContact(monicaId)
             
-            # Merge and update name, birthday and deceased date
+            # Merge name, birthday and deceased date and update them
             self.__mergeAndUpdateNBD(monicaContact, googleContact)
 
+            # Sync additional details
+            self.__syncDetails(googleContact, monicaContact)
+
         # Finished
-        msg = "Full sync finished!"
+        msg = f"{syncDescription.capitalize()} sync finished!"
         self.log.info(msg)
         print("\n" + msg)
+
+    def __syncDetails(self, googleContact: dict, monicaContact: dict) -> None:
+        '''Syncs additional details, such as work, phone numbers, emails, notes, etc.'''
+        pass
 
     def __buildSyncDatabase(self) -> None:
         '''Builds a Google <-> Monica contact id mapping and saves it to the database.'''
         # Initialization
         conflicts = []
-        contactCount = len(self.google.getContacts())
+        googleContacts = self.google.getContacts(requestSyncToken=True)
+        contactCount = len(googleContacts)
         msg = "Building sync database..."
         self.log.info(msg)
         print(msg)
 
         # Process every Google contact
-        for num, googleContact in enumerate(self.google.getContacts()):
+        for num, googleContact in enumerate(googleContacts):
             sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
             sys.stdout.flush()
             monicaId = self.mapping.get(googleContact['resourceName'], None)
@@ -128,7 +225,7 @@ class Sync():
                     #googleContact = self.google.createContactFromMonicaContact(monicaContact)
                     #gContactDisplayName = googleContact['names'][0]['displayName']
                     # DUMMY! REMOVE LATER!
-                    googleContact = self.google.getContacts()[0]
+                    googleContact = googleContacts[0]
                     googleContact['resourceName'] = self.__generateFakeId(self.mapping.keys())
                     gContactDisplayName = "New contact"
                     # DUMMY! REMOVE LATER!
@@ -137,9 +234,7 @@ class Sync():
                     self.database.insertData(googleContact['resourceName'],
                                             monicaContact['id'],
                                             gContactDisplayName, 
-                                            monicaContact['complete_name'],
-                                            googleContact['metadata']['sources'][0]["updateTime"],
-                                            monicaContact['updated_at'])
+                                            monicaContact['complete_name'])
                     msg = f"Sync back: New google contact '{googleContact['resourceName']}' created"
                     print("\n" + msg)
                     self.log.info(msg)
@@ -292,9 +387,7 @@ class Sync():
         self.database.insertData(googleContact['resourceName'],
                                 monicaContact['id'], 
                                 gContactDisplayName,
-                                monicaContact['complete_name'],
-                                googleContact['metadata']['sources'][0]["updateTime"],
-                                monicaContact['updated_at'])
+                                monicaContact['complete_name'])
         self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
         msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
         self.log.info(msg)
@@ -331,9 +424,7 @@ class Sync():
             self.database.insertData(googleContact['resourceName'],
                                     monicaContact['id'], 
                                     googleContact['names'][0]["displayName"],
-                                    monicaContact['complete_name'],
-                                    googleContact['metadata']['sources'][0]["updateTime"],
-                                    monicaContact['updated_at'])
+                                    monicaContact['complete_name'])
             self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
             return str(monicaContact['id'])
 
