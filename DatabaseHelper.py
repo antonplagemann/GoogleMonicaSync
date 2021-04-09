@@ -113,7 +113,7 @@ class Database():
         return None
     
     def getIdMapping(self) -> dict:
-        '''Returns a dictionary with a {monicaId:googleId} mapping from the database'''
+        '''Returns a dictionary with the {monicaId:googleId} mapping from the database'''
         findSql = "SELECT googleId,monicaId FROM sync"
         self.cursor.execute(findSql)
         mapping = {googleId: str(monicaId) for googleId, monicaId in self.cursor.fetchall()}
