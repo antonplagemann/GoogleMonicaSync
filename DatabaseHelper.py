@@ -132,7 +132,7 @@ class Database():
 
     def delete(self, googleId: str, monicaId: str) -> None:
         '''Deletes a row from the database. Needs Monica id AND Google id.'''
-        deleteSql = "DELETE FROM sync WHERE googleId=? AND monicaId=?"
+        deleteSql = "DELETE FROM sync WHERE monicaId=? AND googleId=?"
         self.cursor.execute(deleteSql,(str(monicaId), googleId))
         self.connection.commit()
 
