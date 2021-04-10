@@ -9,16 +9,20 @@ from typing import List
 from DatabaseHelper import Database
 import sys
 
+
 class Google():
     '''Handles all Google related (api) stuff.'''
+
     def __init__(self, log: Logger, databaseHandler: Database, sampleData: list = None) -> None:
         self.log = log
         self.database = databaseHandler
         self.service = self.__buildService()
+        self.labelMapping = self.__getLabelMapping()
         self.contacts = []
         self.dataAlreadyFetched = False
         self.updatedContacts = []
         self.createdContacts = []
+        self.syncFields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
 
         # Debugging area :-)
         self.sampleData = sampleData
@@ -54,11 +58,10 @@ class Google():
     def getContacts(self, refetchData: bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
         # Build GET parameters
-        fields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
-        parameters = {'resourceName': 'people/me', 
-                        'pageSize': 1000, 
-                        'personFields': fields, 
-                        **params}
+        parameters = {'resourceName': 'people/me',
+                      'pageSize': 1000,
+                      'personFields': self.syncFields,
+                      **params}
 
         # Return sample data if present (debugging)
         if self.sampleData:
@@ -69,7 +72,7 @@ class Google():
             return self.contacts
 
         # Start fetching
-        msg = "Fetching all Google contacts..."
+        msg = "Fetching Google contacts..."
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
@@ -78,7 +81,7 @@ class Google():
             result = self.service.people().connections().list(**parameters).execute()
         except HttpError as error:
             if 'Sync token' in error._get_reason():
-                msg = "Sync token expired or wrong. Fetching again without token (full sync)..."
+                msg = "Sync token expired or invalid. Fetching again without token (full sync)..."
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
@@ -95,3 +98,142 @@ class Google():
         print("\n" + msg)
         self.dataAlreadyFetched = True
         return self.contacts
+
+    def __getLabelMapping(self) -> dict:
+        '''Searches a Google contacts label by name and returns its id.'''
+        # Get all contact groups
+        # pylint: disable=no-member
+        response = self.service.contactGroups().list().execute()
+        groups = response.get('contactGroups', [])
+
+        # Initialize mapping for all user groups and allowed system groups
+        labelMapping = {group['name']: group['resourceName'] for group in groups
+                        if group['groupType'] == 'USER_CONTACT_GROUP'
+                        or group['name'] in ['myContacts', 'starred']}
+
+        return labelMapping
+    
+    def createLabel(self, labelName: str) -> str:
+        '''Creates a new Google contacts label and returns its id.'''
+        # Search label and return if found
+        if labelName in self.labelMapping:
+            return self.labelMapping[labelName]
+
+        # Create group object
+        newGroup = {
+            "contactGroup": {
+                "name": labelName
+            }
+        }
+
+        # Upload group object
+        # pylint: disable=no-member
+        response = self.service.contactGroups().create(body=newGroup).execute()
+        groupId = response.get('resourceName', 'contactGroups/myContacts')
+        self.labelMapping.update({labelName: groupId})
+        return groupId
+
+    def createContact(self, data) -> dict:
+        '''Creates a given Google contact via api call and returns the created contact.'''
+        # Upload contact
+        try:
+            # pylint: disable=no-member
+            result = self.service.people().createContact(
+                personFields=self.syncFields, body=data).execute()
+        except HttpError as error:
+            reason = error._get_reason()
+            msg = f"Failed to create Google contact for {data['names'][0]}. Reason: {reason}"
+            self.log.warning(msg)
+            print("\n" + msg)
+            return
+
+        # Process result
+        id = result.get('resourceName', '-')
+        name = result.get('names', [{}])[0].get('displayName', 'error')
+        self.createdContacts.append(result)
+        self.contacts.append(result)
+        self.log.info(
+            f"Contact with name '{name}' and id '{id}' created successfully")
+        return result
+
+
+class GoogleContactUploadForm():
+    '''Creates json form for creating Google contacts.'''
+
+    def __init__(self, firstName: str = '', lastName: str = '',
+                 middleName: str = '', birthdate: dict = {},
+                 phoneNumbers: List[str] = [], career: dict = {},
+                 emailAdresses: List[str] = [], labelIds: List[str] = [],
+                 address: dict = {}) -> None:
+        self.data = {
+            "names": [
+                {
+                    "familyName": lastName,
+                    "givenName": firstName,
+                    "middleName": middleName
+                }
+            ]
+        }
+
+        if birthdate:
+            self.data["birthdays"] = [
+                {
+                    "date": {
+                        "year": birthdate.get('year', 0),
+                        "month": birthdate.get('month', 0),
+                        "day": birthdate.get('day', 0)
+                    }
+                }
+            ]
+
+        if career:
+            self.data["organizations"] = [
+                {
+                    "name": career.get('company', ''),
+                    "title": career.get('job', '')
+                }
+            ]
+
+        if address:
+            self.data["addresses"] = [
+                {
+                    "streetAddress": address.get('street', ''),
+                    "city": address.get('city', ''),
+                    "region": address.get('province', ''),
+                    "postalCode": address.get('postal_code', ''),
+                    "country": address.get('country', {}).get('name', ''),
+                    "countryCode": address.get('country', {}).get('iso', '')
+                }
+            ]
+
+        if phoneNumbers:
+            self.data["phoneNumbers"] = [
+                {
+                    "value": number,
+                    "type": "main",
+                }
+                for number in phoneNumbers
+            ]
+
+        if emailAdresses:
+            self.data["emailAddresses"] = [
+                {
+                    "value": email,
+                    "type": "other",
+                }
+                for email in emailAdresses
+            ]
+
+
+        if labelIds:
+            self.data["memberships"] = [
+                {
+                "contactGroupMembership": 
+                    {
+                    "contactGroupResourceName": labelId
+                    }
+                } 
+                for labelId in labelIds
+            ]
+
+

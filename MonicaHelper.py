@@ -37,7 +37,7 @@ class Monica():
             self.database.update(monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error updating Monica contact '{name}' with id '{id}': {error}")
+            self.log.info(f"Error updating Monica contact '{name}' with id '{id}': {error}. Does it exist?")
             raise Exception("Error updating Monica contact!")
 
     def deleteContact(self, monicaId: str) -> None:
@@ -56,7 +56,7 @@ class Monica():
         
 
     def createContact(self, data: dict) -> dict:
-        '''Creates a given contact via api call and returns the created contact.'''
+        '''Creates a given Monica contact via api call and returns the created contact.'''
         name = f"{data['first_name']} {data['last_name']}"
 
         # Create contact
@@ -67,11 +67,11 @@ class Monica():
             contact = response.json()['data']
             self.createdContacts.append(contact)
             self.contacts.append(contact)
-            self.log.info(f"Contact with name '{name}' and id '{id}' created successfully")
+            self.log.info(f"Contact with name '{name}' and id '{contact['id']}' created successfully")
             return contact
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error creating Monica contact '{name}' with id '{id}': {error}")
+            self.log.info(f"Error creating Monica contact '{name}': {error}")
             raise Exception("Error creating Monica contact!")
 
     def getContacts(self) -> list:
@@ -128,8 +128,8 @@ class Monica():
             self.log.info(f"Error fetching Monica contact with id '{id}': {error}")
             raise Exception("Error fetching Monica contact!")
 
-class ContactUploadForm():
-    '''Creates json form for creating or updating contacts.'''
+class MonicaContactUploadForm():
+    '''Creates json form for creating or updating Monica contacts.'''
     def __init__(self, firstName: str, lastName: str = None, nickName: str = None,
                     middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
                     birthdateMonth: str = None, birthdateYear: str = None,
