@@ -252,6 +252,11 @@ class Sync():
                     msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
                     self.log.info(msg)
 
+            if not self.google.createdContacts:
+                msg = "No contacts for sync back found"
+                self.log.info(msg)
+                print(msg)
+
         # Finished
         msg = "Sync database built!"
         self.log.info(msg)

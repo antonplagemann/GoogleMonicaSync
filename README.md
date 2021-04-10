@@ -26,7 +26,7 @@ That beeing said: Be welcome to try it, fork and develop it, use it for your own
 
 1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. Edit the `conf.py` file with your desired settings.
+3. Edit the `conf.py` file with your desired settings (a Monica token can be retrieved in your account settings; no Oauth client needed).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 
