@@ -4,8 +4,10 @@ from typing import List, Tuple
 from DatabaseHelper import Database
 import sys
 
+
 class Monica():
     '''Handles all Monica related (api) stuff.'''
+
     def __init__(self, log: Logger, token: str, base_url: str, createReminders: bool, databaseHandler: Database, sampleData: list = None) -> None:
         self.log = log
         self.database = databaseHandler
@@ -34,7 +36,8 @@ class Monica():
             self.updatedContacts.append(contact)
             self.contacts.append(contact)
             self.log.info(f"Contact with name '{name}' and id '{id}' updated successfully")
-            self.database.update(monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
+            self.database.update(
+                monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
         else:
             error = response.json()['error']['message']
             self.log.info(f"Error updating Monica contact '{name}' with id '{id}': {error}. Does it exist?")
@@ -44,7 +47,8 @@ class Monica():
         '''Deletes the contact with the given id from Monica and removes it from the internal list.'''
 
         # Delete contact
-        response = requests.delete(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
+        response = requests.delete(
+            self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
 
         # If successful
         if response.status_code == 200:
@@ -53,15 +57,15 @@ class Monica():
             error = response.json()['error']['message']
             self.log.error(f"Failed to complete delete request for Monica contact with id '{id}': {error}")
             raise Exception("Error deleting Monica contact!")
-        
 
     def createContact(self, data: dict) -> dict:
         '''Creates a given Monica contact via api call and returns the created contact.'''
         name = f"{data['first_name']} {data['last_name']}"
 
         # Create contact
-        response = requests.post(self.base_url + f"/contacts", headers=self.header, params=self.parameters, json=data)
-        
+        response = requests.post(self.base_url + f"/contacts",
+                                 headers=self.header, params=self.parameters, json=data)
+
         # If successful
         if response.status_code == 201:
             contact = response.json()['data']
@@ -91,7 +95,8 @@ class Monica():
         while True:
             sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {maxPage})")
             sys.stdout.flush()
-            response = requests.get(self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
+            response = requests.get(
+                self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
             data = response.json()
             self.contacts += data['data']
             maxPage = data['meta']['last_page']
@@ -103,7 +108,6 @@ class Monica():
         self.log.info(msg)
         print("\n" + msg)
         return self.contacts
-        
 
     def getContact(self, id: str) -> dict:
         '''Fetches a single contact by id from Monica.'''
@@ -117,28 +121,32 @@ class Monica():
                 return monicaContact
 
         # Fetch contact
-        response = requests.get(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
-        
+        response = requests.get(
+            self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
+
         # If successful
         if response.status_code == 200:
             monicaContact = response.json()['data']
             return monicaContact
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error fetching Monica contact with id '{id}': {error}")
+            self.log.info(
+                f"Error fetching Monica contact with id '{id}': {error}")
             raise Exception("Error fetching Monica contact!")
+
 
 class MonicaContactUploadForm():
     '''Creates json form for creating or updating Monica contacts.'''
+
     def __init__(self, firstName: str, lastName: str = None, nickName: str = None,
-                    middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
-                    birthdateMonth: str = None, birthdateYear: str = None,
-                    birthdateAgeBased: bool = None, isBirthdateKnown: bool = False,
-                    isDeceased: bool = False, isDeceasedDateKnown: bool = False,
-                    deceasedDay: int = None, deceasedMonth: int = None,
-                    deceasedYear: int = None, deceasedAgeBased: bool = None,
-                    createReminders: bool = True) -> None:
-        genderId = {'M':1, 'F':2, 'O':3}.get(genderType, 3)
+                 middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
+                 birthdateMonth: str = None, birthdateYear: str = None,
+                 birthdateAgeBased: bool = None, isBirthdateKnown: bool = False,
+                 isDeceased: bool = False, isDeceasedDateKnown: bool = False,
+                 deceasedDay: int = None, deceasedMonth: int = None,
+                 deceasedYear: int = None, deceasedAgeBased: bool = None,
+                 createReminders: bool = True) -> None:
+        genderId = {'M': 1, 'F': 2, 'O': 3}.get(genderType, 3)
         self.data = {
             "first_name": firstName,
             "last_name": lastName,
@@ -159,4 +167,3 @@ class MonicaContactUploadForm():
             "deceased_date_year": deceasedYear,
             "deceased_date_is_age_based": deceasedAgeBased,
         }
-

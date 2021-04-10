@@ -2,8 +2,10 @@ import sqlite3
 from logging import Logger
 from typing import Union, Tuple
 
+
 class Database():
     '''Handles all database related stuff.'''
+
     def __init__(self, log: Logger, filename: str) -> None:
         self.log = log
         # pylint: disable=no-member
@@ -23,7 +25,7 @@ class Database():
         self.cursor.execute(deleteConfigTableSql)
         self.connection.commit()
         self.__initializeDatabase()
-    
+
     def __initializeDatabase(self):
         """Initializes the database with all tables."""
         createSyncTableSql = '''
@@ -42,29 +44,30 @@ class Database():
         self.cursor.execute(createSyncTableSql)
         self.cursor.execute(createConfigTableSql)
         self.connection.commit()
-    
-    def insertData(self, googleId: str, monicaId: str, googleFullName: str = 'NULL', 
-                monicaFullName: str = 'NULL', googleLastChanged: str = 'NULL', 
-                monicaLastChanged: str = 'NULL') -> None:
+
+    def insertData(self, googleId: str, monicaId: str, googleFullName: str = 'NULL',
+                   monicaFullName: str = 'NULL', googleLastChanged: str = 'NULL',
+                   monicaLastChanged: str = 'NULL') -> None:
         '''Inserts the given data into the database. Needs at least a Monica id AND a Google id'''
         insertSql = '''
         INSERT INTO sync(googleId, monicaId, googleFullName, monicaFullName,
                         googleLastChanged, monicaLastChanged)
         VALUES(?,?,?,?,?,?)
         '''
-        self.cursor.execute(insertSql,(googleId, str(monicaId), googleFullName, monicaFullName, 
-                            googleLastChanged, monicaLastChanged))
+        self.cursor.execute(insertSql, (googleId, str(monicaId), googleFullName, monicaFullName,
+                                        googleLastChanged, monicaLastChanged))
         self.connection.commit()
 
-    def update(self, googleId: str = None, monicaId: str = None, 
-                googleFullName: str = None, monicaFullName: str = None, 
-                googleLastChanged: str = None, monicaLastChanged: str = None) -> None:
+    def update(self, googleId: str = None, monicaId: str = None,
+               googleFullName: str = None, monicaFullName: str = None,
+               googleLastChanged: str = None, monicaLastChanged: str = None) -> None:
         '''Updates a dataset in the database. Needs at least a Monica id OR a Google id and the related data.'''
         if monicaId:
             if monicaFullName:
                 self.__updateFullNameByMonicaId(str(monicaId), monicaFullName)
             if monicaLastChanged:
-                self.__updateMonicaLastChanged(str(monicaId), monicaLastChanged)
+                self.__updateMonicaLastChanged(
+                    str(monicaId), monicaLastChanged)
             else:
                 self.log.error("Unknown database update arguments!")
         if googleId:
@@ -79,24 +82,23 @@ class Database():
 
     def __updateFullNameByMonicaId(self, monicaId: str, monicaFullName: str) -> None:
         insertSql = "UPDATE sync SET monicaFullName = ? WHERE monicaId = ?"
-        self.cursor.execute(insertSql,(monicaFullName, str(monicaId)))
+        self.cursor.execute(insertSql, (monicaFullName, str(monicaId)))
         self.connection.commit()
 
     def __updateFullNameByGoogleId(self, googleId: str, googleFullName: str) -> None:
         insertSql = "UPDATE sync SET googleFullName = ? WHERE googleId = ?"
-        self.cursor.execute(insertSql,(googleFullName, googleId))
+        self.cursor.execute(insertSql, (googleFullName, googleId))
         self.connection.commit()
 
     def __updateMonicaLastChanged(self, monicaId: str, monicaLastChanged: str) -> None:
         insertSql = "UPDATE sync SET monicaLastChanged = ? WHERE monicaId = ?"
-        self.cursor.execute(insertSql,(monicaLastChanged, str(monicaId)))
+        self.cursor.execute(insertSql, (monicaLastChanged, str(monicaId)))
         self.connection.commit()
 
     def __updateGoogleLastChanged(self, googleId: str, googleLastChanged: str) -> None:
         insertSql = "UPDATE sync SET googleLastChanged = ? WHERE googleId = ?"
-        self.cursor.execute(insertSql,(googleLastChanged, googleId))
+        self.cursor.execute(insertSql, (googleLastChanged, googleId))
         self.connection.commit()
-
 
     def findById(self, googleId: str = None, monicaId: str = None) -> Union[tuple, None]:
         '''Search for a contact row in the database. Returns None if not found.
@@ -111,32 +113,32 @@ class Database():
             gId, mId, googleFullName, monicaFullName, googleLastChanged, monicaLastChanged = row
             return gId, str(mId), googleFullName, monicaFullName, googleLastChanged, monicaLastChanged
         return None
-    
+
     def getIdMapping(self) -> dict:
         '''Returns a dictionary with the {monicaId:googleId} mapping from the database'''
         findSql = "SELECT googleId,monicaId FROM sync"
         self.cursor.execute(findSql)
-        mapping = {googleId: str(monicaId) for googleId, monicaId in self.cursor.fetchall()}
+        mapping = {googleId: str(monicaId)
+                   for googleId, monicaId in self.cursor.fetchall()}
         return mapping
-
 
     def __findByMonicaId(self, monicaId: str) -> list:
         findSql = "SELECT * FROM sync WHERE monicaId=?"
-        self.cursor.execute(findSql,(str(monicaId),))
+        self.cursor.execute(findSql, (str(monicaId),))
         return self.cursor.fetchone()
 
     def __findByGoogleId(self, googleId: str) -> list:
         findSql = "SELECT * FROM sync WHERE googleId=?"
-        self.cursor.execute(findSql,(googleId,))
+        self.cursor.execute(findSql, (googleId,))
         return self.cursor.fetchone()
 
     def delete(self, googleId: str, monicaId: str) -> None:
         '''Deletes a row from the database. Needs Monica id AND Google id.'''
         deleteSql = "DELETE FROM sync WHERE monicaId=? AND googleId=?"
-        self.cursor.execute(deleteSql,(str(monicaId), googleId))
+        self.cursor.execute(deleteSql, (str(monicaId), googleId))
         self.connection.commit()
 
-    def getGoogleNextSyncToken(self) -> Union[str,None]:
+    def getGoogleNextSyncToken(self) -> Union[str, None]:
         '''Returns the next sync token.'''
         findSql = "SELECT * FROM config WHERE ROWID=1"
         self.cursor.execute(findSql)
@@ -150,5 +152,5 @@ class Database():
         deleteSql = "DELETE FROM config WHERE ROWID=1"
         insertSql = "INSERT INTO config(googleNextSyncToken) VALUES(?)"
         self.cursor.execute(deleteSql)
-        self.cursor.execute(insertSql,(token,))
+        self.cursor.execute(insertSql, (token,))
         self.connection.commit()
