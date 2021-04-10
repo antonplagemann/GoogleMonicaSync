@@ -5,23 +5,44 @@
 This script does a contact syncing from a Google account to a [Monica](https://github.com/monicahq/monica) account. This script is intended for my personal use only. It can contain a lot of bugs, errors and unhandled exceptions, so do a backup before using it. It was programmed very carefully not to screw things up and delete everything but it`s your own risk trusting my words.
 That beeing said: Be welcome to try it, fork and develop it, use it for your own projects and open issues for bugfixes and improvements you wish for.
 
-## Features (more on the way)
+## Features
 
-- One-way sync of names and birthdays
-- Fast delta sync
+- One-way sync (Google -> Monica)
+  - Syncs the following fields: first name, last name, middle name, birthday
+- Advanced matching of already present Monica contacts (e.g. from earlier contact import)
+- Fast delta sync using Google sync tokens
+- Optional one-time sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
+  - Syncs the following fields: first name, last name, middle name, birthday, company, jobtitle, labels, address
+- Extensive logging of every change, warning or error including the affected contact ids and names (File: `Sync.log`)
 
 ## Limits
 
-- The delta sync will fail if there is more than 7 days between the last sync (Gogle restriction)
+- Do not update [*synced*](#features) fields at Monica. As this is a one-way sync, it will overwrite all Monica changes!
+- The delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case the script will automatically do a full sync instead
 - Only up to 1000 Google contacts are currently supported (working on it)
+- No support for custom Monica gender types, will be overwritten with standard type O (other)
 
-## How to setup
+## How to get started
 
-- Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
-- Copy `credentials.json` and `token.pickle` inside the main repository directory.
-- Edit the `conf.py` file with your desired settings.
-- Do a `pip install -r requirements.txt` inside the main repository directory.
-- Run `python GMSync.py --initial`
+1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
+2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
+3. Edit the `conf.py` file with your desired settings.
+4. Do a `pip install -r requirements.txt` inside the main repository directory.
+5. Run `python GMSync.py -i`
+
+## All sync commands
+
+Initial sync and database reset (interactive):
+
+```bash
+python GMSync.py -i
+```
+
+Delta or full sync (unattended):
+
+```bash
+python GMSync.py
+```
 
 ## How it works
 
@@ -43,21 +64,12 @@ After building the database a full sync starts. This sync merges every Google an
 
 All progress will be printed at running time and will be logged in the `Sync.log` file. If there are any errors at running time the sync will be aborted. Note that there is than a chance for an inconsistent database and you should better rebuild it using `python GMSync.py --initial`.
 
-## Personal Notes (Braindump)
+## Feature roadmap (working on it)
 
-- SQLite DB columns: MId, GId, FullName, MLastChanged, GLastChanged, GNextSyncToken
-- Use Googles Sync Token
-- Implement delta and full (initial) sync capabilities
-- Implement "source of truth" constant and conflict management
-- Define elements (fields) for sync and exclude others
-- Implement pip package?
-- Use attackIQ code as reference (argument parser, api, etc.)
-- Aim for an always consistent state, even in failures
-- Only sync new Monica contacts back? (no changed ones)
-- Birthday will always beo overwritten by Google
-- Label sync
-- Initial Notes sync (if not present at Monica)
-- Work details Sync
-- Contact picture sync
-- Limit 1000 Google contacts
-- 7 days sync limit
+- Database consistency check function
+- Maybe an additional (pretty printed) sync summary
+- Add more sync fields: company, jobtitle, labels, address, phone numbers, emails, notes, contact picture
+- Add more one-time sync-back fields: phone numbers, emails, contact picture
+- Add sync include/exclude labels on both sides
+- Think about two-way sync
+- Think about a pip package
