@@ -112,7 +112,7 @@ class Google():
                         or group['name'] in ['myContacts', 'starred']}
 
         return labelMapping
-    
+
     def createLabel(self, labelName: str) -> str:
         '''Creates a new Google contacts label and returns its id.'''
         # Search label and return if found
@@ -224,16 +224,13 @@ class GoogleContactUploadForm():
                 for email in emailAdresses
             ]
 
-
         if labelIds:
             self.data["memberships"] = [
                 {
-                "contactGroupMembership": 
+                    "contactGroupMembership":
                     {
-                    "contactGroupResourceName": labelId
+                        "contactGroupResourceName": labelId
                     }
-                } 
+                }
                 for labelId in labelIds
             ]
-
-
