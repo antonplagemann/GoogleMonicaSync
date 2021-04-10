@@ -9,7 +9,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional one-time sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
@@ -86,7 +86,7 @@ DELETE_ON_SYNC = True
 
 - Database consistency check function
 - Maybe an additional (pretty printed) sync summary
-- Add more sync fields: company, jobtitle, labels, address, phone numbers, emails, notes, contact picture
+- Add more sync fields: ~~company, jobtitle,~~ labels, address, phone numbers, emails, notes, contact picture
 - Add more one-time sync-back fields: phone numbers, emails, contact picture
 - Add sync include/exclude labels on both sides
 - Think about two-way sync

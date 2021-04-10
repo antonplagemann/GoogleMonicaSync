@@ -40,10 +40,10 @@ class Monica():
                 monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error updating Monica contact '{name}' with id '{id}': {error}. Does it exist?")
+            self.log.error(f"Error updating Monica contact '{name}' with id '{id}': {error}. Does it exist?")
             raise Exception("Error updating Monica contact!")
 
-    def deleteContact(self, monicaId: str) -> None:
+    def deleteContact(self, id: str) -> None:
         '''Deletes the contact with the given id from Monica and removes it from the internal list.'''
 
         # Delete contact
@@ -52,7 +52,7 @@ class Monica():
 
         # If successful
         if response.status_code == 200:
-            self.contacts = [c for c in self.contacts if str(c['id']) != monicaId]
+            self.contacts = [c for c in self.contacts if str(c['id']) != id]
         else:
             error = response.json()['error']['message']
             self.log.error(f"Failed to complete delete request for Monica contact with id '{id}': {error}")
@@ -133,6 +133,28 @@ class Monica():
             self.log.info(
                 f"Error fetching Monica contact with id '{id}': {error}")
             raise Exception("Error fetching Monica contact!")
+
+    def updateCareer(self, id: str, data: dict) -> None:
+        '''Updates job title and company for a given contact id via api call.'''
+        # Initialization
+        contact = self.getContact(id)
+        name = contact['complete_name']
+
+        # Update contact
+        response = requests.put(self.base_url + f"/contacts/{id}/work", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
+        if response.status_code == 200:
+            contact = response.json()['data']
+            self.updatedContacts.append(contact)
+            self.contacts.append(contact)
+            self.log.info(f"Company and job title for name '{name}' and id '{id}' updated successfully")
+            self.database.update(
+                monicaId=id, monicaLastChanged=contact['updated_at'])
+        else:
+            error = response.json()['error']['message']
+            self.log.warning(f"Error updating Monica contact career info for '{name}' with id '{id}': {error}")
+            raise Exception("Error updating Monica contact career!")
 
 
 class MonicaContactUploadForm():

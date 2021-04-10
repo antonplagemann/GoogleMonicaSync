@@ -182,8 +182,30 @@ class Sync():
         print("\n" + msg)
 
     def __syncDetails(self, googleContact: dict, monicaContact: dict) -> None:
-        '''Syncs additional details, such as work, phone numbers, emails, notes, etc.'''
-        # To be implemented
+        '''Syncs additional details, such as company, jobtitle, labels, 
+        address, phone numbers, emails, notes, contact picture, etc.'''
+        # Update career info
+        try:
+            monicaDataPresent = bool(monicaContact["information"]["career"]["job"] or
+                                 monicaContact["information"]["career"]["company"])
+            googleDataPresent = bool(googleContact.get("organizations", False))
+            if googleDataPresent or monicaDataPresent:
+                # Add or delete career information
+                company = googleContact.get("organizations", [{}])[0].get("name", "")
+                department = googleContact.get("organizations", [{}])[0].get("department", "")
+                if department:
+                    department = f"; {department}"
+                data = {
+                    "job": googleContact.get("organizations", [{}])[0].get("title", None),
+                    "company": company + department if company or department else None
+                }
+                self.monica.updateCareer(monicaContact["id"], data)
+        except Exception as e:
+            msg = f"Error updating Monica contact career for id '{monicaContact['id']}'. Reason: {str(e)}"
+            self.log.warning(msg)
+
+        # Work in progress
+        
 
     def __buildSyncDatabase(self) -> None:
         '''Builds a Google <-> Monica contact id mapping and saves it to the database.'''
