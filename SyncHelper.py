@@ -48,6 +48,9 @@ class Sync():
         elif syncType == 'delta':
             # Delta sync requested
             self.__deltaSync()
+        elif syncType == 'syncBack':
+            # Sync back to Google requested
+            self.__syncBack()
 
     def __initialSync(self) -> None:
         '''Builds the syncing database and starts a full sync. Needs user interaction!'''

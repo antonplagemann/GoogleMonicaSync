@@ -85,6 +85,9 @@ def main() -> None:
         elif args.full:
             # Start initial sync
             sync.startSync('full')
+        elif args.syncback:
+            # Start sync back to Google
+            sync.startSync('syncBack')
         else:
             # Wrong arguments
             print("Unknown sync arguments, check your input!\n")
