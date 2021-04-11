@@ -26,7 +26,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 
 ## Known bugs
 
-- I observed strange behavior of the Google sync tokens used for delta sync. Sometimes the response contains the same sync token as before but includes a lot of updated contacts. Often the response contains more updated contacts than I should (I haven't changed that many). This is not really an issue because the only disadvantage of it is a bit longer sync time as there are more contacts to process.
+- I observed strange behavior of the Google sync tokens used for delta sync. Sometimes the response contains the same sync token as before but includes a lot of updated contacts. Often the response contains more updated contacts than I should (I haven't changed that many). This is not an issue because the sync will count on the `updateTime` timestamp which seems more reliable. It will match them against the database timestamp and skip the contact if it is equal.
 
 ## Get started
 
@@ -52,7 +52,7 @@ python GMSync.py [arguments]
 | `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments |
 
 Remark:
-Full sync and sync back require heavy api fetching of all contacts (Monica and Google), so use wisely and consider the load you're producing with them (especially if you use the public Monica instance).
+Full sync and sync back require heavy api use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public Monica instance).
 
 ## How it works
 
