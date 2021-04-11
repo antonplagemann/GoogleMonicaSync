@@ -1,6 +1,7 @@
 import sqlite3
 from logging import Logger
-from typing import Union, Tuple
+from typing import Union
+from datetime import datetime
 
 
 class Database():
@@ -39,7 +40,8 @@ class Database():
         '''
         createConfigTableSql = '''
         CREATE TABLE IF NOT EXISTS config (
-        googleNextSyncToken VARCHAR(100) NULL UNIQUE);
+        googleNextSyncToken VARCHAR(100) NULL UNIQUE,
+        tokenLastUpdated DATETIME NULL);
         '''
         self.cursor.execute(createSyncTableSql)
         self.cursor.execute(createConfigTableSql)
@@ -149,8 +151,9 @@ class Database():
 
     def updateGoogleNextSyncToken(self, token: str) -> None:
         '''Updates the given token in the database.'''
+        timestamp = datetime.now().strftime('%F %H:%M:%S')
         deleteSql = "DELETE FROM config WHERE ROWID=1"
-        insertSql = "INSERT INTO config(googleNextSyncToken) VALUES(?)"
+        insertSql = "INSERT INTO config(googleNextSyncToken, tokenLastUpdated) VALUES(?,?)"
         self.cursor.execute(deleteSql)
-        self.cursor.execute(insertSql, (token,))
+        self.cursor.execute(insertSql, (token, timestamp))
         self.connection.commit()
