@@ -200,6 +200,13 @@ class Sync():
         '''Syncs additional details, such as company, jobtitle, labels, 
         address, phone numbers, emails, notes, contact picture, etc.'''
         # Update career info
+        self.__syncCareerInfo(googleContact, monicaContact)
+
+        # Work in progress
+
+    def __syncCareerInfo(self, googleContact: dict, monicaContact: dict) -> None:
+        '''Syncs company and job title fields.'''
+        # Update career info
         try:
             monicaDataPresent = bool(monicaContact["information"]["career"]["job"] or
                                  monicaContact["information"]["career"]["company"])
@@ -218,8 +225,6 @@ class Sync():
         except Exception as e:
             msg = f"Error updating Monica contact career for id '{monicaContact['id']}'. Reason: {str(e)}"
             self.log.warning(msg)
-
-        # Work in progress
         
 
     def __buildSyncDatabase(self) -> None:
