@@ -12,39 +12,47 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
   - Syncs the following details: first name, last name, middle name, birthday, job title, company
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
-- Optional one-time sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
+- Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
   - Syncs the following details: first name, last name, middle name, birthday, company, job title, labels, address
 - Extensive logging of every change, warning, or error including the affected contact ids and names (File: `Sync.log`)
 
 ## Limits
 
 - Do not update [*synced*](#features) details at Monica. As this is a one-way sync, it will overwrite all Monica changes!
-- Do not delete contacts at Monica. This will cause a sync error which cou can resolve by doing initial sync again.
+- Do not delete contacts at Monica. This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - Only up to 1000 Google contacts are currently supported (working on it)
 - No support for custom Monica gender types. Will be overwritten with standard type O (other)
+
+## Known bugs
+
+- I observed strange behavior of the Google sync tokens used for delta sync. Sometimes the response contains the same sync token as before but includes a lot of updated contacts. Often the response contains more updated contacts than I should (I haven't changed that many). This is not really an issue because the only disadvantage of it is a bit longer sync time as there are more contacts to process.
 
 ## Get started
 
 1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/5caaf3ccb658934fa2f298be6508f8c9848db85c/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
+3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/52cd1b3635f1ae01db5a30825dc533cfc1114460/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 
 ## All sync commands
 
-Initial sync and database reset (interactive):
+Usage:
 
 ```bash
-python GMSync.py -i
+python GMSync.py [arguments]
 ```
 
-Delta or full sync (unattended):
+| Argument | Description                                                                          |
+| :------- | :----------------------------------------------------------------------------------- |
+| `-i`     | Database rebuild (interactive) and full sync                                         |
+| `-d`     | Delta sync (unattended)                                                              |
+| `-f`     | Full sync (unattended)                                                               |
+| `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments |
 
-```bash
-python GMSync.py
-```
+Remark:
+Full sync and sync back require heavy api fetching of all contacts (Monica and Google), so use wisely and consider the load you're producing with them (especially if you use the public Monica instance).
 
 ## How it works
 
@@ -64,6 +72,8 @@ After building the database, full sync starts. This sync merges every Google and
 - The list of returned contacts from Googly (using the sync token) contains only changed contacts, so the sync will be faster
 - It can detect deleted contacts from Google and delete them on Monica
 
+If chosen, sync back will run after a sync or standalone (if no sync was selected). To find new contacts, the script will fetch all Monica contacts and search the database if they are already known. For all unknown ones, it will create a new Google contact and update the sync database accordingly.
+
 All progress will be printed at running time and will be logged in the `Sync.log` file. If there are any errors at running time the sync will be aborted. Note that there is then a chance for an inconsistent database and you should better rebuild it using `python GMSync.py -i`.
 
 ## The conf.py file
@@ -77,8 +87,6 @@ TOKEN = 'YOUR_TOKEN_HERE'
 BASE_URL = 'https://app.monicahq.com/api'
 # Create reminders for birthdays and deceased days?
 CREATE_REMINDERS = True
-# Sync back a new Monica contact to Google once at initialization?
-SYNC_BACK = True
 # Delete Monica contact if the corresponding Google contact has been deleted?
 DELETE_ON_SYNC = True
 ```
@@ -89,7 +97,7 @@ DELETE_ON_SYNC = True
 - Maybe an additional (pretty printed) sync summary
 - Add more sync fields: ~~company, jobtitle,~~ labels, address, phone numbers, emails, notes, contact picture
 - Add more one-time sync-back fields: phone numbers, emails, contact picture
-- Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
+- ~~Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)~~
 - Add sync include/exclude labels on both sides
 - Think about two-way sync
 - Think about a pip package
