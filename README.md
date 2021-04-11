@@ -19,6 +19,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Limits
 
 - Do not update [*synced*](#features) details at Monica. As this is a one-way sync, it will overwrite all Monica changes!
+- Do not delete contacts at Monica. This will cause a sync error which cou can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - Only up to 1000 Google contacts are currently supported (working on it)
 - No support for custom Monica gender types. Will be overwritten with standard type O (other)
@@ -88,6 +89,7 @@ DELETE_ON_SYNC = True
 - Maybe an additional (pretty printed) sync summary
 - Add more sync fields: ~~company, jobtitle,~~ labels, address, phone numbers, emails, notes, contact picture
 - Add more one-time sync-back fields: phone numbers, emails, contact picture
+- Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
 - Add sync include/exclude labels on both sides
 - Think about two-way sync
 - Think about a pip package
