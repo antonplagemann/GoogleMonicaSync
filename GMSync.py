@@ -1,13 +1,13 @@
 # pylint: disable=import-error
 import logging
-from conf import TOKEN, BASE_URL, CREATE_REMINDERS, SYNC_BACK, DELETE_ON_SYNC
+from conf import TOKEN, BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC
 from DatabaseHelper import Database
 from MonicaHelper import Monica
 from GoogleHelper import Google
 from SyncHelper import Sync
 import sys
 import argparse
-VERSION = "v1.1"
+VERSION = "v1.2"
 # Google -> Monica syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
@@ -17,7 +17,7 @@ log = logging.getLogger('GMSync')
 
 
 def getTestingData(filename: str) -> list:
-    '''Returns sample data saved as json file. Only for developing purposes to avoid intensive api penetration.'''
+    '''Only for developing purposes. Returns sample data from a json file to avoid intensive api penetration.'''
     import json
     with open(filename) as handle:
         data = json.load(handle)
@@ -25,14 +25,14 @@ def getTestingData(filename: str) -> list:
 
 
 def updateTestingData(filename: str, contactList: list) -> None:
-    '''Creates sample data saved as json file. Only for developing purposes to avoid intensive api penetration.'''
+    '''Only for developing purposes. Creates sample data saved as json file to avoid intensive api penetration.'''
     import json
     with open(filename, 'w') as handle:
         json.dump(contactList, handle, indent=4)
 
 
 def fetchAndSaveTestingData() -> None:
-    '''Fetches new data from Monica and Google and saves it to a json file. Only for developing purposes.'''
+    '''Only for developing purposes. Fetches new data from Monica and Google and saves it to a json file.'''
     database = Database(log, 'syncState.db')
     monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
     google = Google(log, database)
@@ -40,25 +40,20 @@ def fetchAndSaveTestingData() -> None:
     updateTestingData('GoogleSampleData.json', google.getContacts())
 
 
-def runWithTestingData() -> None:
-    '''Does a script run without fetching full data to avoid intensive api penetration.'''
-    database = Database(log, 'syncState.db')
-    google = Google(log, database, getTestingData('GoogleSampleData.json'))
-    monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database, getTestingData('MonicaSampleData.json'))
-    sync = Sync(log, monica, google, database, SYNC_BACK, DELETE_ON_SYNC)
-    print("")
-    sync.startSync()
-    raise Exception("Test sync ended")
-
-
 def main() -> None:
     try:
         # Setup argument parser
         parser = argparse.ArgumentParser(description='Syncs Google contacts to a Monica instance.')
         parser.add_argument('-i', '--initial', action='store_true',
-                            required=False, help="Do a initial sync and rebuild the database")
-        parser.add_argument('-c', '--check', action='store_true',
-                            required=False, help="Not implemented yet")
+                            required=False, help="build the syncing database and do a full sync")
+        parser.add_argument('-sb', '--syncback', action='store_true',
+                            required=False, help="sync new Monica contacts back to Google. Can be combined with other arguments")
+        parser.add_argument('-d', '--delta', action='store_true',
+                            required=False, help="do a delta sync of new or changed Google contacts")
+        parser.add_argument('-f', '--full', action='store_true',
+                            required=False, help="do a full sync and request a new delta sync token")
+        #parser.add_argument('-c', '--check', action='store_true',
+        #                    required=False, help="not implemented yet")
 
         # Parse arguments
         args = parser.parse_args()
@@ -70,13 +65,13 @@ def main() -> None:
         handler.setLevel(logging.INFO)
         handler.setFormatter(format)
         log.addHandler(handler)
-        log.info(f"Sync started ({VERSION})")
+        log.info(f"\nSync started ({VERSION})")
 
         # Create sync object
         database = Database(log, 'syncState.db')
         google = Google(log, database)
         monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
-        sync = Sync(log, monica, google, database, SYNC_BACK, DELETE_ON_SYNC)
+        sync = Sync(log, monica, google, database, args.syncback, DELETE_ON_SYNC)
 
         # A newline makes things more beatiful
         print("")
@@ -84,9 +79,20 @@ def main() -> None:
         if args.initial:
             # Start initial sync
             sync.startSync('initial')
+        elif args.delta:
+            # Start initial sync
+            sync.startSync('delta')
+        elif args.full:
+            # Start initial sync
+            sync.startSync('full')
+        elif args.syncback:
+            # Start sync back to Google
+            sync.startSync('syncBack')
         else:
-            # Start delta or full sync
-            sync.startSync()
+            # Wrong arguments
+            print("Unknown sync arguments, check your input!\n")
+            parser.print_help()
+            sys.exit(2)
 
         # Its over now
         log.info("Sync ended\n")
