@@ -136,7 +136,7 @@ class Sync():
 
             # Update Google contact last changed date in the database
             self.database.update(googleId=googleContact['resourceName'],
-                                 googleFullName=googleContacts[231]['names'][0]['displayName'],
+                                 googleFullName=googleContact['names'][0]['displayName'],
                                  googleLastChanged=googleContact['metadata']['sources'][0]['updateTime'])
             try:
                 # Get Monica id from database (index 1 in returned row)
