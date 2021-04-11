@@ -41,7 +41,7 @@ class Sync():
             self.__sync(dateBasedSync=False)
         elif syncType == 'delta' and not self.nextSyncToken:
             # Delta sync requested but no sync token found
-            msg = "No sync token found, delta sync not possible. Doing full sync instead..."
+            msg = "No sync token found, delta sync not possible. Doing (fast) full sync instead..."
             self.log.info(msg)
             print(msg + "\n")
             self.__sync()
@@ -133,6 +133,11 @@ class Sync():
             except:
                 # Continue if there is no lastChanged date
                 pass
+
+            # Update Google contact last changed date in the database
+            self.database.update(googleId=googleContact['resourceName'],
+                                 googleFullName=googleContacts[231]['names'][0]['displayName'],
+                                 googleLastChanged=googleContact['metadata']['sources'][0]['updateTime'])
             try:
                 # Get Monica id from database (index 1 in returned row)
                 monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
@@ -154,7 +159,9 @@ class Sync():
                 self.database.insertData(googleContact['resourceName'],
                                          monicaContact['id'],
                                          gContactDisplayName,
-                                         monicaContact['complete_name'])
+                                         monicaContact['complete_name'],
+                                         googleContact['metadata']['sources'][0]['updateTime'],
+                                         monicaContact['updated_at'])
                 self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
                 msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
                 self.log.info(msg)

@@ -65,7 +65,7 @@ def main() -> None:
         handler.setLevel(logging.INFO)
         handler.setFormatter(format)
         log.addHandler(handler)
-        log.info(f"\nSync started ({VERSION})")
+        log.info(f"Sync started ({VERSION})")
 
         # Create sync object
         database = Database(log, 'syncState.db')
