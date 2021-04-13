@@ -12,7 +12,8 @@ class Sync():
     '''Handles all syncing and merging issues with Google, Monica and the database.'''
 
     def __init__(self, log: Logger, monicaHandler: Monica, googleHandler: Google,
-                 databaseHandler: Database, syncBackToGoogle: bool, deleteMonicaContactsOnSync: bool) -> None:
+                 databaseHandler: Database, syncBackToGoogle: bool, 
+                 deleteMonicaContactsOnSync: bool, streetReversalOnAddressSync: bool) -> None:
         self.log = log
         self.monica = monicaHandler
         self.google = googleHandler
@@ -21,6 +22,7 @@ class Sync():
         self.nextSyncToken = self.database.getGoogleNextSyncToken()
         self.syncBack = syncBackToGoogle
         self.deleteMonicaContacts = deleteMonicaContactsOnSync
+        self.streetReversal = streetReversalOnAddressSync
 
         # Debugging area :-)
         self.fakeNum = 1
@@ -199,14 +201,19 @@ class Sync():
     def __syncDetails(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs additional details, such as company, jobtitle, labels, 
         address, phone numbers, emails, notes, contact picture, etc.'''
+        # If you do not want to sync certain fields you can safely
+        # comment out the following functions
+        
         # Update career info
         self.__syncCareerInfo(googleContact, monicaContact)
+
+        # Update address info
+        self.__syncAddress(googleContact, monicaContact)
 
         # Work in progress
 
     def __syncCareerInfo(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs company and job title fields.'''
-        # Update career info
         try:
             monicaDataPresent = bool(monicaContact["information"]["career"]["job"] or
                                  monicaContact["information"]["career"]["company"])
@@ -223,9 +230,99 @@ class Sync():
                 }
                 self.monica.updateCareer(monicaContact["id"], data)
         except Exception as e:
-            msg = f"Error updating Monica contact career for id '{monicaContact['id']}'. Reason: {str(e)}"
+            msg = f"Error updating Monica contact career for '{monicaContact['complete_name']}' with id '{monicaContact['id']}'. Reason: {str(e)}"
             self.log.warning(msg)
-        
+
+    def __syncAddress(self, googleContact: dict, monicaContact: dict) -> None:
+        '''Syncs all address fields.'''
+        try:
+            monicaDataPresent = bool(monicaContact.get("addresses", False))
+            googleDataPresent = bool(googleContact.get("addresses", False))
+            if googleDataPresent:
+                # Get Google data
+                googleAddressList = []
+                for addr in googleContact.get("addresses", []):
+                    # None type is important for comparison, empty string won't work here
+                    name = None
+                    street = None
+                    city = None
+                    province = None
+                    postalCode = None
+                    countryCode = None
+                    street = addr.get("streetAddress", "").replace("\n", " ").strip()
+                    # Convert "" (empty string) to None
+                    street = street if street else None
+                    if self.streetReversal:
+                        # Street reversal: from '13 Auenweg' to 'Auenweg 13'
+                        try: 
+                            if street and street[0].isdigit():
+                                street = f'{street[street.index(" ")+1:]} {street[:street.index(" ")]}'.strip()
+                        except:
+                            pass
+                    
+                    # Get (extended) city
+                    city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip()
+                    city = city if city else None
+                    # Get other details
+                    province = addr.get("region", None)
+                    postalCode = addr.get("postalCode", None)
+                    countryCode = addr.get("countryCode", None)
+                    name = addr.get("formattedType", None)
+                    # Do not sync empty addresses
+                    if not any([street, city, province, postalCode, countryCode]):
+                        continue
+                    # Name can not be empty
+                    name = name if name else "Other"
+                    googleAddressList.append({
+                        'name': name,
+                        'street': street,
+                        'city': city,
+                        'province': province,
+                        'postal_code': postalCode,
+                        'country': countryCode,
+                        'contact_id': monicaContact['id']
+                    })
+            
+            if monicaDataPresent:
+                # Get Monica data
+                monicaAddressList = []
+                for addr in monicaContact.get("addresses", []):
+                    monicaAddressList.append({addr["id"]: {
+                        'name': addr["name"],
+                        'street': addr["street"],
+                        'city': addr["city"],
+                        'province': addr["province"],
+                        'postal_code': addr["postal_code"],
+                        'country': addr["country"].get("iso", None) if addr["country"] else None,
+                        'contact_id': monicaContact['id']
+                    }})
+
+            if googleDataPresent and monicaDataPresent:
+                monicaPlainAddressList = [monicaAddress for item in monicaAddressList for monicaAddress in item.values()]
+                # Do a complete comparison
+                if all([googleAddress in monicaPlainAddressList for googleAddress in googleAddressList]):
+                    # All addresses are equal, nothing to do
+                    return
+                else:
+                    # Delete all Monica addresses and create new ones afterwards
+                    # Safest way, I don't want to code more deeper comparisons and update functions
+                    for element in monicaAddressList:
+                        for addressId, _ in element.items():
+                            self.monica.deleteAddress(addressId, monicaContact["id"], monicaContact["complete_name"])
+            elif not googleDataPresent and monicaDataPresent:
+                # Delete all Monica addresses
+                for element in monicaAddressList:
+                    for addressId, _ in element.items():
+                        self.monica.deleteAddress(addressId, monicaContact["id"], monicaContact["complete_name"])
+
+            if googleDataPresent:
+                # All old Monica data (if existed) have been cleaned now, proceed with address creation
+                for googleAddress in googleAddressList:
+                    self.monica.createAddress(googleAddress, monicaContact["complete_name"])
+                            
+        except Exception as e:
+            msg = f"Error updating Monica addresses for '{monicaContact['complete_name']}' with id '{monicaContact['id']}'. Reason: {str(e)}"
+            self.log.warning(msg)
 
     def __buildSyncDatabase(self) -> None:
         '''Builds a Google <-> Monica contact id mapping and saves it to the database.'''

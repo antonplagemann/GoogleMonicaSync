@@ -36,6 +36,15 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 
+## Brain
+
+Do not change monica synced fields detaillierte und verständlicher
+Roadmap checkbox statt durchgestrichen
+https://www.youtube.com/watch?v=StmNWzHbQJU Python Threads implementieren (schneller)?
+Refactor logging
+Config anpassen
+Config für synced fields?
+
 ## All sync commands
 
 Usage:
