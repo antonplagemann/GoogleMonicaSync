@@ -1,6 +1,6 @@
 # pylint: disable=import-error
 import logging
-from conf import TOKEN, BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC
+from conf import TOKEN, BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, STREET_REVERSAL
 from DatabaseHelper import Database
 from MonicaHelper import Monica
 from GoogleHelper import Google
@@ -71,7 +71,7 @@ def main() -> None:
         database = Database(log, 'syncState.db')
         google = Google(log, database)
         monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
-        sync = Sync(log, monica, google, database, args.syncback, DELETE_ON_SYNC)
+        sync = Sync(log, monica, google, database, args.syncback, DELETE_ON_SYNC, STREET_REVERSAL)
 
         # A newline makes things more beatiful
         print("")
