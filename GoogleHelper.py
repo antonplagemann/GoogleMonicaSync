@@ -77,22 +77,35 @@ class Google():
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
         try:
-            # pylint: disable=no-member
-            result = self.service.people().connections().list(**parameters).execute()
+            while True:
+                # pylint: disable=no-member
+                result = self.service.people().connections().list(**parameters).execute()
+                nextPageToken = result.get('nextPageToken', False)
+                self.contacts += result.get('connections', [])
+                if nextPageToken:
+                    parameters['pageToken'] = nextPageToken
+                else:
+                    break
         except HttpError as error:
             if 'Sync token' in error._get_reason():
                 msg = "Sync token expired or invalid. Fetching again without token (full sync)..."
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
-                # pylint: disable=no-member
-                result = self.service.people().connections().list(**parameters).execute()
+                while True:
+                    # pylint: disable=no-member
+                    result = self.service.people().connections().list(**parameters).execute()
+                    nextPageToken = result.get('nextPageToken', False)
+                    self.contacts += result.get('connections', [])
+                    if nextPageToken:
+                        parameters['pageToken'] = nextPageToken
+                    else:
+                        break
             else:
                 raise Exception(error._get_reason())
         nextSyncToken = result.get('nextSyncToken', None)
         if nextSyncToken:
             self.database.updateGoogleNextSyncToken(nextSyncToken)
-        self.contacts = result.get('connections', [])
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
