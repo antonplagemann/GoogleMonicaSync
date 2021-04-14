@@ -102,12 +102,19 @@ class Monica():
                 sys.stdout.flush()
                 response = requests.get(
                     self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
-                data = response.json()
-                self.contacts += data['data']
-                maxPage = data['meta']['last_page']
-                if page == maxPage:
-                    break
-                page += 1
+                # If successful
+                if response.status_code == 200:
+                    data = response.json()
+                    self.contacts += data['data']
+                    maxPage = data['meta']['last_page']
+                    if page == maxPage:
+                        break
+                    page += 1
+                else:
+                    error = response.json()['error']['message']
+                    msg = f"Error fetching Monica contacts: {error}"
+                    self.log.error(msg)
+                    raise Exception(msg)
             self.dataAlreadyFetched = True
             msg = "Finished fetching Monica contacts"
             self.log.info(msg)
