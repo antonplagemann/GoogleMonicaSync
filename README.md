@@ -9,7 +9,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
@@ -21,7 +21,6 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 - Do not update [*synced*](#features) details at Monica. As this is a one-way sync, it will overwrite all Monica changes to this fields! Of course you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - Do not delete contacts at Monica. This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
-- Only up to 1000 Google contacts are currently supported (working on it)
 - No support for custom Monica gender types. Will be overwritten with standard type O (other)
 
 ## Known bugs
@@ -52,7 +51,7 @@ python GMSync.py [arguments]
 | `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments |
 
 Remark:
-Full sync and sync back require heavy api use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public Monica instance).
+Full sync and sync back require heavy api use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
 
 ## How it works
 
@@ -67,7 +66,7 @@ If there is ambiguity you will be asked whether to link an existing contact or c
 - Google last updated timestamp
 - Monica last changed timestamp
 
-After building the database, full sync starts. This sync merges every Google and Monica contact according to the sync database. Name and birthday will be overwritten by the Google data, the deceased date will be preserved. This full sync also requests a sync token from Google that is used for every following delta sync. Delta sync is only different from full sync in two points:
+After building the database, full sync starts. This sync merges every Google and Monica contact according to the sync database and updates it on Monica *if neccessary*. Name and birthday will be overwritten by the Google data, the deceased date will be preserved. Full sync also requests a sync token from Google that is used for every following delta sync. Delta sync is only different from full sync in two points:
 
 - The list of returned contacts from Googly (using the sync token) contains only changed contacts, so the sync will be faster
 - It can detect deleted contacts from Google and delete them on Monica
@@ -100,14 +99,12 @@ STREET_REVERSAL = False
   - [x] company and jobtitle
   - [ ] labels
   - [x] address
-  - [ ] phone numbers
-  - [ ] emails
+  - [x] phone numbers
+  - [x] emails
   - [ ] notes
-  - [ ] contact picture
 - Add more one-time sync-back fields:
   - [ ] phone numbers
   - [ ] emails
-  - [ ] contact picture
 - [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
 - [ ] Database consistency check function
 - [ ] Maybe an additional (pretty printed) sync summary
