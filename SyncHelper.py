@@ -398,7 +398,7 @@ class Sync():
                                             monicaContact['id'],
                                             gContactDisplayName,
                                             monicaContact['complete_name'])
-                msg = f"'{gContactDisplayName}' ('{googleContact['resourceName']}'): Sync back: New google contact created"
+                msg = f"'{gContactDisplayName}' ('{googleContact['resourceName']}'): New google contact created (sync back)"
                 print("\n" + msg)
                 self.log.info(msg)
                 self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
@@ -444,9 +444,7 @@ class Sync():
             })
 
         # Get first address if exists
-        address = monicaContact["addresses"][0:1]
-        if address:
-            address = address[0]
+        addresses = monicaContact["addresses"]
 
         # Get career info if exists
         career = {key: value for key, value in monicaContact['information']["career"].items() if value}
@@ -466,7 +464,7 @@ class Sync():
                                        middleName=middleName, birthdate=birthday,
                                        phoneNumbers=phoneNumbers, career=career,
                                        emailAdresses=emails, labelIds=labelIds,
-                                       address=address)
+                                       addresses=addresses)
 
         # Upload contact
         contact = self.google.createContact(data=form.data)

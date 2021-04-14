@@ -164,7 +164,7 @@ class GoogleContactUploadForm():
                  middleName: str = '', birthdate: dict = {},
                  phoneNumbers: List[str] = [], career: dict = {},
                  emailAdresses: List[str] = [], labelIds: List[str] = [],
-                 address: dict = {}) -> None:
+                 addresses: List[dict] = {}) -> None:
         self.data = {
             "names": [
                 {
@@ -194,16 +194,18 @@ class GoogleContactUploadForm():
                 }
             ]
 
-        if address:
+        if addresses:
             self.data["addresses"] = [
                 {
+                    'type': address.get("name",''),
                     "streetAddress": address.get('street', ''),
                     "city": address.get('city', ''),
                     "region": address.get('province', ''),
                     "postalCode": address.get('postal_code', ''),
-                    "country": address.get('country', {}).get('name', ''),
-                    "countryCode": address.get('country', {}).get('iso', '')
+                    "country": address["country"].get("name", None) if address["country"] else None,
+                    "countryCode": address["country"].get("iso", None) if address["country"] else None,
                 }
+                for address in addresses
             ]
 
         if phoneNumbers:
