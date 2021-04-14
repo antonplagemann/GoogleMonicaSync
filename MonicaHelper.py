@@ -35,15 +35,16 @@ class Monica():
             contact = response.json()['data']
             self.updatedContacts.append(contact)
             self.contacts.append(contact)
-            self.log.info(f"Contact with name '{name}' and id '{id}' updated successfully")
+            name = contact["complete_name"]
+            self.log.info(f"'{name}' ('{id}'): Contact updated successfully")
             self.database.update(
                 monicaId=id, monicaLastChanged=contact['updated_at'], monicaFullName=contact["complete_name"])
         else:
             error = response.json()['error']['message']
-            self.log.error(f"Error updating Monica contact '{name}' with id '{id}': {error}. Does it exist?")
+            self.log.error(f"'{name}' ('{id}'): Error updating Monica contact: {error}. Does it exist?")
             raise Exception("Error updating Monica contact!")
 
-    def deleteContact(self, id: str) -> None:
+    def deleteContact(self, id: str, name: str) -> None:
         '''Deletes the contact with the given id from Monica and removes it from the internal list.'''
 
         # Delete contact
@@ -55,7 +56,7 @@ class Monica():
             self.contacts = [c for c in self.contacts if str(c['id']) != id]
         else:
             error = response.json()['error']['message']
-            self.log.error(f"Failed to complete delete request for Monica contact with id '{id}': {error}")
+            self.log.error(f"'{name}' ('{id}'): Failed to complete delete request: {error}")
             raise Exception("Error deleting Monica contact!")
 
     def createContact(self, data: dict) -> dict:
@@ -71,11 +72,11 @@ class Monica():
             contact = response.json()['data']
             self.createdContacts.append(contact)
             self.contacts.append(contact)
-            self.log.info(f"Contact with name '{name}' and id '{contact['id']}' created successfully")
+            self.log.info(f"'{name}' ('{contact['id']}'): Contact created successfully")
             return contact
         else:
             error = response.json()['error']['message']
-            self.log.info(f"Error creating Monica contact '{name}': {error}")
+            self.log.info(f"'{name}': Error creating Monica contact: {error}")
             raise Exception("Error creating Monica contact!")
 
     def getContacts(self) -> list:
@@ -113,7 +114,7 @@ class Monica():
         '''Fetches a single contact by id from Monica.'''
         # Check if contact is already fetched
         if self.contacts:
-            monicaContactList = [c for c in self.contacts if str(c['id']) == id]
+            monicaContactList = [c for c in self.contacts if str(c['id']) == str(id)]
             if monicaContactList:
                 monicaContact = monicaContactList[0]
                 # Remove Monica contact from contact list (add again after updated)
@@ -127,11 +128,12 @@ class Monica():
         # If successful
         if response.status_code == 200:
             monicaContact = response.json()['data']
+            self.contacts.append(monicaContact)
             return monicaContact
         else:
             error = response.json()['error']['message']
             self.log.info(
-                f"Error fetching Monica contact with id '{id}': {error}")
+                f"Error fetching Monica contact '{id}': {error}")
             raise Exception("Error fetching Monica contact!")
 
     def updateCareer(self, id: str, data: dict) -> None:
@@ -148,14 +150,41 @@ class Monica():
             contact = response.json()['data']
             self.updatedContacts.append(contact)
             self.contacts.append(contact)
-            self.log.info(f"Company and job title for name '{name}' and id '{id}' updated successfully")
+            self.log.info(f"'{name}' ('{id}'): Company and job title updated successfully")
             self.database.update(
                 monicaId=id, monicaLastChanged=contact['updated_at'])
         else:
             error = response.json()['error']['message']
-            self.log.warning(f"Error updating Monica contact career info for '{name}' with id '{id}': {error}")
-            raise Exception("Error updating Monica contact career!")
+            self.log.warning(f"'{name}' ('{id}'): Error updating Monica contact career info: {error}")
 
+    def deleteAddress(self, id: str, monicaId: str, name: str) -> None:
+        '''Deletes an address for a given address id via api call.'''
+        # Delete address
+        response = requests.delete(self.base_url + f"/addresses/{id}", headers=self.header, params=self.parameters)
+
+        # If successful
+        if response.status_code == 200:
+            self.log.info(f"'{name}' ('{monicaId}'): Address '{id}' deleted successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error deleting address '{id}': {error}")
+
+    def createAddress(self, data: dict, name: str) -> None:
+        '''Creates an address for a given contact id via api call.'''
+        # Initialization
+        monicaId = data['contact_id']
+
+        # Create address
+        response = requests.post(self.base_url + f"/addresses", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
+        if response.status_code == 201:
+            address = response.json()['data']
+            id = address["id"]
+            self.log.info(f"'{name}' ('{monicaId}'): Address '{id}' created successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error creating Monica address: {error}")
 
 class MonicaContactUploadForm():
     '''Creates json form for creating or updating Monica contacts.'''
