@@ -220,16 +220,24 @@ class Sync():
                                  monicaContact["information"]["career"]["company"])
             googleDataPresent = bool(googleContact.get("organizations", False))
             if googleDataPresent or monicaDataPresent:
-                # Add or delete career information
+                # Get google career information
                 company = googleContact.get("organizations", [{}])[0].get("name", "")
                 department = googleContact.get("organizations", [{}])[0].get("department", "")
                 if department:
                     department = f"; {department}"
-                data = {
+                googleData = {
                     "job": googleContact.get("organizations", [{}])[0].get("title", None),
                     "company": company + department if company or department else None
                 }
-                self.monica.updateCareer(monicaContact["id"], data)
+                # Get monica career information
+                monicaData = {
+                    "job": monicaContact['information']['career'].get('job', None),
+                    "company": monicaContact['information']['career'].get('company', None)
+                }
+
+                # Compare and update if neccessary
+                if googleData != monicaData:
+                    self.monica.updateCareer(monicaContact["id"], googleData)
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact career: {str(e)}"
             self.log.warning(msg)
