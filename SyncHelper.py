@@ -80,19 +80,20 @@ class Sync():
                     googleId = googleContact["resourceName"]
                     try:
                         # Try to delete the corresponding contact
-                        msg = f"Found deleted Google contact with id '{googleId}'. Deleting Monica contact..."
+                        gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
+                        msg = f"'{gContactDisplayName}' ('{googleId}'): Found deleted Google contact. Deleting Monica contact..."
                         self.log.info(msg)
                         print("\n" + msg)
                         monicaId = self.database.findById(googleId=googleId)[1]
-                        self.monica.deleteContact(monicaId)
+                        self.monica.deleteContact(monicaId, gContactDisplayName)
                         self.database.delete(googleId, monicaId)
                         self.mapping.pop(googleId)
                         self.google.removeContactFromList(googleContact)
-                        msg = f"Monica contact with id '{monicaId}' deleted successfully"
+                        msg = f"'{gContactDisplayName}' ('{monicaId}'): Monica contact deleted successfully"
                         self.log.info(msg)
                         print(msg)
                     except:
-                        msg = f"Failed deleting monica contact for '{googleId}'! Please delete manually!"
+                        msg = f"'{gContactDisplayName}' ('{googleId}'): Failed deleting corresponding Monica contact! Please delete manually!"
                         self.log.error(msg)
                         print(msg)
 
@@ -147,13 +148,13 @@ class Sync():
                 # That must be a new Google contact
                 googleId = googleContact['resourceName']
                 gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
-                msg = f"No Monica id for '{googleId}' with name '{gContactDisplayName} found': Creating new Monica contact..."
+                msg = f"'{gContactDisplayName}' ('{googleId}'): No Monica id found': Creating new Monica contact..."
                 self.log.info(msg)
                 print("\n" + msg)
 
                 # Create new Monica contact
                 monicaContact = self.__createMonicaContact(googleContact)
-                msg = f"New Monica contact with id '{monicaContact['id']}' for '{gContactDisplayName}' created"
+                msg = f"'{gContactDisplayName}' ('{monicaContact['id']}'): New Monica contact created"
                 self.log.info(msg)
                 print(msg)
 
@@ -165,7 +166,7 @@ class Sync():
                                          googleContact['metadata']['sources'][0]['updateTime'],
                                          monicaContact['updated_at'])
                 self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
-                msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
+                msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
                 self.log.info(msg)
 
                 # Sync additional details
@@ -178,7 +179,7 @@ class Sync():
                 # Get Monica contact by id
                 monicaContact = self.monica.getContact(monicaId)
             except:
-                msg = f"Failed to fetch Monica contact for id {monicaId}. Database rebuilt can help here."
+                msg = f"'{monicaId}': Failed to fetch Monica contact. Database rebuilt can help here."
                 self.log.error(msg)
                 print(msg)
                 print("Please do not delete Monica contacts by yourself!")
@@ -230,7 +231,7 @@ class Sync():
                 }
                 self.monica.updateCareer(monicaContact["id"], data)
         except Exception as e:
-            msg = f"Error updating Monica contact career for '{monicaContact['complete_name']}' with id '{monicaContact['id']}'. Reason: {str(e)}"
+            msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact career: {str(e)}"
             self.log.warning(msg)
 
     def __syncAddress(self, googleContact: dict, monicaContact: dict) -> None:
@@ -321,7 +322,7 @@ class Sync():
                     self.monica.createAddress(googleAddress, monicaContact["complete_name"])
                             
         except Exception as e:
-            msg = f"Error updating Monica addresses for '{monicaContact['complete_name']}' with id '{monicaContact['id']}'. Reason: {str(e)}"
+            msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica addresses: {str(e)}"
             self.log.warning(msg)
 
     def __buildSyncDatabase(self) -> None:
@@ -378,23 +379,22 @@ class Sync():
                 # Create Google contact
                 googleContact = self.__createGoogleContact(monicaContact)
                 if not googleContact:
-                    msg = f"Error encountered at creating Google contact '{monicaContact['complete_name']}'. Skipping..."
+                    msg = f"'{monicaContact['complete_name']}': Error encountered at creating new Google contact. Skipping..."
                     self.log.warning(msg)
                     print(msg)
                     continue
-                gContactDisplayName = googleContact['names'][0].get(
-                    "displayName", '')
+                gContactDisplayName = googleContact['names'][0].get("displayName", '')
 
                 # Update database and mapping
                 self.database.insertData(googleContact['resourceName'],
                                             monicaContact['id'],
                                             gContactDisplayName,
                                             monicaContact['complete_name'])
-                msg = f"Sync back: New google contact '{gContactDisplayName}' with id '{googleContact['resourceName']}' created"
+                msg = f"'{gContactDisplayName}' ('{googleContact['resourceName']}'): Sync back: New google contact created"
                 print("\n" + msg)
                 self.log.info(msg)
                 self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
-                msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
+                msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
                 self.log.info(msg)
 
         if not self.google.createdContacts:
@@ -600,7 +600,7 @@ class Sync():
         if not candidates:
             # Create a new Monica contact
             monicaContact = self.__createMonicaContact(googleContact)
-            msg = f"Conflict resolved: New Monica contact with id '{monicaContact['id']}' created for '{gContactDisplayName}'"
+            msg = f"'{gContactDisplayName}' ('{monicaContact['id']}'): Conflict resolved: New Monica contact created"
             self.log.info(msg)
             print(msg)
             resolved = True
@@ -615,7 +615,7 @@ class Sync():
                                  gContactDisplayName,
                                  monicaContact['complete_name'])
         self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
-        msg = f"New sync connection between id:'{googleContact['resourceName']}' and id:'{monicaContact['id']}' added"
+        msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
         self.log.info(msg)
         if not resolved:
             print("Conflict resolved: " + msg)

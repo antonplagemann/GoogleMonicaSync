@@ -142,7 +142,7 @@ class Google():
                 personFields=self.syncFields, body=data).execute()
         except HttpError as error:
             reason = error._get_reason()
-            msg = f"Failed to create Google contact for {data['names'][0]}. Reason: {reason}"
+            msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
             self.log.warning(msg)
             print("\n" + msg)
             return
@@ -153,7 +153,7 @@ class Google():
         self.createdContacts.append(result)
         self.contacts.append(result)
         self.log.info(
-            f"Contact with name '{name}' and id '{id}' created successfully")
+            f"'{name}': Contact with id '{id}' created successfully")
         return result
 
 
