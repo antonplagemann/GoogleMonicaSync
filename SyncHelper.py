@@ -39,6 +39,8 @@ class Sync():
             print(msg + "\n")
             raise Exception("Initial sync needed!")
         elif syncType == 'full':
+            # As this is a full sync, get all contacts at once to save time
+            self.monica.getContacts()
             # Full sync requested so dont use database timestamps here
             self.__sync(dateBasedSync=False)
         elif syncType == 'delta' and not self.nextSyncToken:
@@ -178,14 +180,17 @@ class Sync():
             try:
                 # Get Monica contact by id
                 monicaContact = self.monica.getContact(monicaId)
-            except:
-                msg = f"'{monicaId}': Failed to fetch Monica contact. Database rebuilt can help here."
+            except Exception as e:
+                msg = f"'{monicaId}': Failed to fetch Monica contact: {str(e)}"
                 self.log.error(msg)
-                print(msg)
-                print("Please do not delete Monica contacts by yourself!")
-                raise Exception("Database seems not consistent, please do a initial sync manually!")
+                print("\n" + msg)
+                print("Please do not delete Monica contacts manually!")
+                raise Exception("Could't connect to Monica api or Database not consistent, consider doing initial sync to rebuild.")
             # Merge name, birthday and deceased date and update them
             self.__mergeAndUpdateNBD(monicaContact, googleContact)
+
+            # Refresh data
+            monicaContact = self.monica.getContact(monicaId)
 
             # Sync additional details
             self.__syncDetails(googleContact, monicaContact)
@@ -211,7 +216,92 @@ class Sync():
         # Update address info
         self.__syncAddress(googleContact, monicaContact)
 
+        # Update phone and email
+        self.__syncPhoneEmail(googleContact, monicaContact)
+
         # Work in progress
+        
+    def __syncPhoneEmail(self, googleContact: dict, monicaContact: dict) -> None:
+        '''Syncs phone and email fields.'''
+        monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
+        monicaContactEmails = [
+            field for field in monicaContactFields if field["contact_field_type"]["type"] == "email"]
+        monicaContactPhones = [
+            field for field in monicaContactFields if field["contact_field_type"]["type"] == "phone"]
+        googleContactPhones = googleContact.get("phoneNumbers", [])
+        googleContactEmails = googleContact.get("emailAddresses", [])
+        try:
+            # Email processing
+            if googleContactEmails:
+                googleEmails = [
+                    {
+                    "contact_field_type_id": 1,
+                    "data": email["value"].strip(),
+                    "contact_id": monicaContact["id"]
+                    } 
+                    for email in googleContactEmails
+                ]
+                if monicaContactEmails:
+                    # There is Google and Monica data: Check and recreate emails
+                    for monicaEmail in monicaContactEmails:
+                        # Check if there are emails to be deleted
+                        if monicaEmail["content"] in [googleEmail["data"] for googleEmail in googleEmails]:
+                            continue
+                        else:
+                            self.monica.deleteContactField(monicaEmail["id"], monicaContact["id"], monicaContact["complete_name"])
+                    for googleEmail in googleEmails:
+                        # Check if there are emails to be created
+                        if googleEmail["data"] in [monicaEmail["content"] for monicaEmail in monicaContactEmails]:
+                            continue
+                        else:
+                            self.monica.createContactField(monicaContact["id"], googleEmail, monicaContact["complete_name"])
+                else:
+                    # There is only Google data: Create emails
+                    for googleEmail in googleEmails:
+                        self.monica.createContactField(monicaContact["id"], googleEmail, monicaContact["complete_name"])
+
+            elif monicaContactEmails:
+                # Delete Monica contact emails
+                for monicaEmail in monicaContactEmails:
+                    self.monica.deleteContactField(monicaEmail["id"], monicaContact["id"], monicaContact["complete_name"])
+
+            # Phone number processing
+            if googleContactPhones:
+                googlePhones = [
+                    {
+                    "contact_field_type_id": 2,
+                    "data": number["value"].strip(),
+                    "contact_id": monicaContact["id"]
+                    } 
+                    for number in googleContactPhones
+                ]
+                if monicaContactPhones:
+                    # There is Google and Monica data: Check and recreate phone numbers
+                    for monicaPhone in monicaContactPhones:
+                        # Check if there are phone numbers to be deleted
+                        if monicaPhone["content"] in [googlePhone["data"] for googlePhone in googlePhones]:
+                            continue
+                        else:
+                            self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
+                    for googlePhone in googlePhones:
+                        # Check if there are phone numbers to be created
+                        if googlePhone["data"] in [monicaPhone["content"] for monicaPhone in monicaContactPhones]:
+                            continue
+                        else:
+                            self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
+                else:
+                    # There is only Google data: Create phone numbers
+                    for googlePhone in googlePhones:
+                        self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
+
+            elif monicaContactEmails:
+                # Delete Monica contact phone numbers
+                for monicaPhone in monicaContactPhones:
+                    self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
+
+        except Exception as e:
+            msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact email or phone: {str(e)}"
+            self.log.warning(msg)
 
     def __syncCareerInfo(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs company and job title fields.'''
@@ -221,12 +311,13 @@ class Sync():
             googleDataPresent = bool(googleContact.get("organizations", False))
             if googleDataPresent or monicaDataPresent:
                 # Get google career information
-                company = googleContact.get("organizations", [{}])[0].get("name", "")
-                department = googleContact.get("organizations", [{}])[0].get("department", "")
+                company = googleContact.get("organizations", [{}])[0].get("name", "").strip()
+                department = googleContact.get("organizations", [{}])[0].get("department", "").strip()
                 if department:
                     department = f"; {department}"
+                job = googleContact.get("organizations", [{}])[0].get("title", None)
                 googleData = {
-                    "job": googleContact.get("organizations", [{}])[0].get("title", None),
+                    "job": job.strip() if job else None,
                     "company": company + department if company or department else None
                 }
                 # Get monica career information
@@ -521,7 +612,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        form = MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+        googleForm = MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
@@ -529,8 +620,54 @@ class Sync():
                                        deceasedYear=deceasedYear, deceasedMonth=deceasedMonth,
                                        deceasedDay=deceasedDay, deceasedAgeBased=deceasedDateIsAgeBased,
                                        createReminders=self.monica.createReminders)
+
+        # Check if contacts are already equal
+        monicaForm = self.__getMonicaForm(monicaContact)
+        #if all([googleForm.data[key] == monicaForm.data[key] for key in googleForm.data.keys() if key != 'birthdate_year']):
+        if googleForm.data == monicaForm.data:
+            return
+
         # Upload contact
-        self.monica.updateContact(id=monicaContact["id"], data=form.data)
+        self.monica.updateContact(id=monicaContact["id"], data=googleForm.data)
+
+    def __getMonicaForm(self, monicaContact: dict) -> MonicaContactUploadForm:
+        '''Creates a Monica contact upload form from a given Monica contact for comparison.'''
+        # Get names
+        firstName = monicaContact['first_name'] if monicaContact['first_name'] else ''
+        lastName = monicaContact['last_name'] if monicaContact['last_name'] else ''
+        fullName = monicaContact['complete_name']
+        middleName = self.__getMonicaMiddleName(firstName, lastName, fullName)
+
+        # Get birthday details
+        birthdayTimestamp = monicaContact['information']["dates"]["birthdate"]["date"]
+        birthdateYear, birthdateMonth, birthdateDay = None, None, None
+        if birthdayTimestamp:
+            yearUnknown = monicaContact['information']["dates"]["birthdate"]["is_year_unknown"]   
+            date = self.__convertMonicaTimestamp(birthdayTimestamp)
+            birthdateYear = date.year if not yearUnknown else None
+            birthdateMonth = date.month
+            birthdateDay = date.day
+
+        
+        # Get deceased info
+        deceasedDate = monicaContact["information"]["dates"]["deceased_date"]["date"]
+        deceasedDateIsAgeBased = monicaContact["information"]["dates"]["deceased_date"]["is_age_based"]
+        deceasedYear, deceasedMonth, deceasedDay = None, None, None
+        if deceasedDate:
+            date = self.__convertMonicaTimestamp(deceasedDate)
+            deceasedYear = date.year
+            deceasedMonth = date.month
+            deceasedDay = date.day
+
+        # Assemble form object
+        return MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+                                       middleName=middleName, genderType=monicaContact["gender_type"],
+                                       birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
+                                       birthdateYear=birthdateYear, isBirthdateKnown=bool(birthdayTimestamp),
+                                       isDeceased=monicaContact["is_dead"], isDeceasedDateKnown=bool(deceasedDate),
+                                       deceasedYear=deceasedYear, deceasedMonth=deceasedMonth,
+                                       deceasedDay=deceasedDay, deceasedAgeBased=deceasedDateIsAgeBased,
+                                       createReminders=self.monica.createReminders)
 
     def __createMonicaContact(self, googleContact: dict) -> dict:
         '''Creates a new Monica contact from a given Google contact and returns it.'''
@@ -671,7 +808,7 @@ class Sync():
         prefix = googleContact['names'][0].get("honorificPrefix", '')
         suffix = googleContact['names'][0].get("honorificSuffix", '')
         if prefix:
-            givenName = prefix + ' ' + givenName
+            givenName = f"{prefix} {givenName}".strip()
         if suffix:
-            familyName = familyName + ' ' + suffix
+            familyName = f"{familyName} {suffix}".strip()
         return givenName, familyName
