@@ -18,7 +18,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 
 ## Limits
 
-- Do not update [*synced*](#features) details at Monica. As this is a one-way sync, it will overwrite all Monica changes!
+- Do not update [*synced*](#features) details at Monica. As this is a one-way sync, it will overwrite all Monica changes to this fields! Of course you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - Do not delete contacts at Monica. This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - Only up to 1000 Google contacts are currently supported (working on it)
@@ -32,18 +32,9 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 
 1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/52cd1b3635f1ae01db5a30825dc533cfc1114460/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
+3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/90c8d8749d0291e828e8c8b50a143efe636c73f3/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
-
-## Brain
-
-Do not change monica synced fields detaillierte und verständlicher
-Roadmap checkbox statt durchgestrichen
-https://www.youtube.com/watch?v=StmNWzHbQJU Python Threads implementieren (schneller)?
-Refactor logging
-Config anpassen
-Config für synced fields?
 
 ## All sync commands
 
@@ -98,15 +89,30 @@ BASE_URL = 'https://app.monicahq.com/api'
 CREATE_REMINDERS = True
 # Delete Monica contact if the corresponding Google contact has been deleted?
 DELETE_ON_SYNC = True
+# Do a street reversal in address sync if the first character is a number.
+# E.g. from '13 Auenweg' to 'Auenweg 13'
+STREET_REVERSAL = False
 ```
 
 ## Feature roadmap (working on it)
 
-- Database consistency check function
-- Maybe an additional (pretty printed) sync summary
-- Add more sync fields: ~~company, jobtitle,~~ labels, address, phone numbers, emails, notes, contact picture
-- Add more one-time sync-back fields: phone numbers, emails, contact picture
-- ~~Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)~~
-- Add sync include/exclude labels on both sides
-- Think about two-way sync
-- Think about a pip package
+- Add more sync fields:
+  - [x] company and jobtitle
+  - [ ] labels
+  - [x] address
+  - [ ] phone numbers
+  - [ ] emails
+  - [ ] notes
+  - [ ] contact picture
+- Add more one-time sync-back fields:
+  - [ ] phone numbers
+  - [ ] emails
+  - [ ] contact picture
+- [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
+- [ ] Database consistency check function
+- [ ] Maybe an additional (pretty printed) sync summary
+- [ ] Implement sync procedure using python threads (propably much more faster)
+- [ ] Add sync include/exclude labels on both sides
+- [ ] ~~Think about two-way sync~~ (too involving, not really needed)
+- [ ] Think about a pip package
+- [ ] Extend config to allow user choice of synced fields? (not sure if this is needed)
