@@ -9,11 +9,11 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
-  - Syncs the following details: first name, last name, middle name, birthday, company, job title, labels, address
+  - Syncs the following details: first name, last name, middle name, birthday, company, job title, labels, addresses
 - Extensive logging of every change, warning, or error including the affected contact ids and names (File: `Sync.log`)
 
 ## Limits
