@@ -7,8 +7,8 @@ from GoogleHelper import Google
 from SyncHelper import Sync
 import sys
 import argparse
-VERSION = "v1.3.2"
-# Google -> Monica syncing script
+VERSION = "v1.4.0"
+# Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
 
@@ -73,7 +73,7 @@ def main() -> None:
         monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
         sync = Sync(log, monica, google, database, args.syncback, DELETE_ON_SYNC, STREET_REVERSAL)
 
-        # A newline makes things more beatiful
+        # A newline makes things more beautiful
         print("")
 
         if args.initial:
@@ -86,7 +86,7 @@ def main() -> None:
             # Start initial sync
             sync.startSync('full')
         elif args.syncback:
-            # Start sync back to Google
+            # Start sync back from Monica to Google
             sync.startSync('syncBack')
         else:
             # Wrong arguments
@@ -98,9 +98,9 @@ def main() -> None:
         log.info("Sync ended\n")
 
     except Exception as e:
-        log.error(str(e))
-        print(str(e))
-        log.info("Sync aborted\n")
+        msg = f"\nSync aborted: {str(e)}\n"
+        log.error(msg)
+        print(msg)
         sys.exit(1)
 
 

@@ -81,60 +81,74 @@ class Monica():
 
     def getContacts(self) -> list:
         '''Fetches all contacts from Monica if not already fetched.'''
-        # Return sample data if present (debugging)
-        if self.sampleData:
-            return self.sampleData
+        try:
+            # Return sample data if present (debugging)
+            if self.sampleData:
+                return self.sampleData
 
-        # Avoid multiple fetches
-        if self.dataAlreadyFetched:
+            # Avoid multiple fetches
+            if self.dataAlreadyFetched:
+                return self.contacts
+
+            # Start fetching
+            maxPage = '?'
+            page = 1
+            self.log.info("Fetching all Monica contacts...")
+            while True:
+                sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {maxPage})")
+                sys.stdout.flush()
+                response = requests.get(
+                    self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
+                data = response.json()
+                self.contacts += data['data']
+                maxPage = data['meta']['last_page']
+                if page == maxPage:
+                    break
+                page += 1
+            self.dataAlreadyFetched = True
+            msg = "Finished fetching Monica contacts"
+            self.log.info(msg)
+            print("\n" + msg)
             return self.contacts
 
-        # Start fetching
-        maxPage = '?'
-        page = 1
-        self.log.info("Fetching all Monica contacts...")
-        while True:
-            sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {maxPage})")
-            sys.stdout.flush()
-            response = requests.get(
-                self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
-            data = response.json()
-            self.contacts += data['data']
-            maxPage = data['meta']['last_page']
-            if page == maxPage:
-                break
-            page += 1
-        self.dataAlreadyFetched = True
-        msg = "Finished fetching Monica contacts"
-        self.log.info(msg)
-        print("\n" + msg)
-        return self.contacts
+        except Exception as e:
+            msg = f"Failed to fetch Monica contacts (maybe connection issue): {str(e)}"
+            print("\n" + msg)
+            self.log.error(msg)
+            raise Exception(msg)
 
     def getContact(self, id: str) -> dict:
         '''Fetches a single contact by id from Monica.'''
-        # Check if contact is already fetched
-        if self.contacts:
-            monicaContactList = [c for c in self.contacts if str(c['id']) == str(id)]
-            if monicaContactList:
-                monicaContact = monicaContactList[0]
-                # Remove Monica contact from contact list (add again after updated)
-                self.contacts.remove(monicaContact)
+        try:
+            # Check if contact is already fetched
+            if self.contacts:
+                monicaContactList = [c for c in self.contacts if str(c['id']) == str(id)]
+                if monicaContactList:
+                    monicaContact = monicaContactList[0]
+                    # Remove Monica contact from contact list (add again after updated)
+                    self.contacts.remove(monicaContact)
+                    return monicaContact
+
+            # Fetch contact
+            response = requests.get(
+                self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
+
+            # If successful
+            if response.status_code == 200:
+                monicaContact = response.json()['data']
+                self.contacts.append(monicaContact)
                 return monicaContact
+            else:
+                error = response.json()['error']['message']
+                msg = f"Error fetching Monica contact '{id}': {error}"
+                self.log.error(msg)
+                raise Exception(msg)
 
-        # Fetch contact
-        response = requests.get(
-            self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
-
-        # If successful
-        if response.status_code == 200:
-            monicaContact = response.json()['data']
-            self.contacts.append(monicaContact)
-            return monicaContact
-        else:
-            error = response.json()['error']['message']
-            self.log.info(
-                f"Error fetching Monica contact '{id}': {error}")
-            raise Exception("Error fetching Monica contact!")
+        except Exception as e:
+            msg = f"Failed to fetch Monica contact (maybe connection issue): {str(e)}"
+            print("\n" + msg)
+            self.log.error(msg)
+            raise Exception(msg)
 
     def updateCareer(self, id: str, data: dict) -> None:
         '''Updates job title and company for a given contact id via api call.'''
@@ -185,6 +199,53 @@ class Monica():
         else:
             error = response.json()['error']['message']
             raise Exception(f"'{name}' ('{monicaId}'): Error creating Monica address: {error}")
+
+    def getContactFields(self, monicaId: str, name: str) -> List[dict]:
+        '''Fetches all contact fields (phone numbers, emails, etc.) 
+        for a given Monica contact id via api call.'''
+
+        # Get contact fields
+        response = requests.get(self.base_url + f"/contacts/{monicaId}/contactfields", headers=self.header, params=self.parameters)
+
+        # If successful
+        if response.status_code == 200:
+            fieldList = response.json()['data']
+            return fieldList
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error fetching Monica contact fields: {error}")
+
+    def createContactField(self, monicaId: str, data: dict, name: str) -> None:
+        '''Creates a contact field (phone number, email, etc.) 
+        for a given Monica contact id via api call.'''
+
+        # Create contact field
+        response = requests.post(self.base_url + f"/contactfields", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
+        if response.status_code == 201:
+            contactField = response.json()['data']
+            fieldId = contactField["id"]
+            typeDesc = contactField["contact_field_type"]["type"]
+            self.log.info(f"'{name}' ('{monicaId}'): Contact field '{fieldId}' ({typeDesc}) created successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error creating Monica contact field: {error}")
+
+    def deleteContactField(self, fieldId: str, monicaId: str, name: str) -> None:
+        '''Updates a contact field (phone number, email, etc.) 
+        for a given Monica contact id via api call.'''
+
+        # Delete contact field
+        response = requests.delete(self.base_url + f"/contactfields/{fieldId}", headers=self.header, params=self.parameters)
+
+        # If successful
+        if response.status_code == 200:
+            self.log.info(f"'{name}' ('{monicaId}'): Contact field '{fieldId}' deleted successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error deleting Monica contact field '{fieldId}': {error}")
+
 
 class MonicaContactUploadForm():
     '''Creates json form for creating or updating Monica contacts.'''
