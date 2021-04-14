@@ -27,6 +27,9 @@ class Monica():
         '''Updates a given contact and its id via api call.'''
         name = f"{data['first_name']} {data['last_name']}"
 
+        # Remove Monica contact from contact list (add again after updated)
+        self.contacts = [c for c in self.contacts if str(c['id']) != str(id)]
+
         # Update contact
         response = requests.put(self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters, json=data)
 
@@ -53,7 +56,7 @@ class Monica():
 
         # If successful
         if response.status_code == 200:
-            self.contacts = [c for c in self.contacts if str(c['id']) != id]
+            self.contacts = [c for c in self.contacts if str(c['id']) != str(id)]
         else:
             error = response.json()['error']['message']
             self.log.error(f"'{name}' ('{id}'): Failed to complete delete request: {error}")
@@ -123,11 +126,8 @@ class Monica():
             # Check if contact is already fetched
             if self.contacts:
                 monicaContactList = [c for c in self.contacts if str(c['id']) == str(id)]
-                if monicaContactList:
-                    monicaContact = monicaContactList[0]
-                    # Remove Monica contact from contact list (add again after updated)
-                    self.contacts.remove(monicaContact)
-                    return monicaContact
+                if monicaContactList: 
+                    return monicaContactList[0]
 
             # Fetch contact
             response = requests.get(

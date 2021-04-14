@@ -9,7 +9,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
@@ -100,14 +100,12 @@ STREET_REVERSAL = False
   - [x] company and jobtitle
   - [ ] labels
   - [x] address
-  - [ ] phone numbers
-  - [ ] emails
+  - [x] phone numbers
+  - [x] emails
   - [ ] notes
-  - [ ] contact picture
 - Add more one-time sync-back fields:
   - [ ] phone numbers
   - [ ] emails
-  - [ ] contact picture
 - [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
 - [ ] Database consistency check function
 - [ ] Maybe an additional (pretty printed) sync summary
