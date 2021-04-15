@@ -157,6 +157,33 @@ class Monica():
             self.log.error(msg)
             raise Exception(msg)
 
+    def removeTags(self, data: dict, monicaId: str, name: str) -> None:
+        '''Removes all tags given by id from a given contact id via api call.'''
+
+        # Create address
+        response = requests.post(self.base_url + f"/contacts/{monicaId}/unsetTag", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
+        if response.status_code == 200:
+            self.log.info(f"'{name}' ('{monicaId}'): Labels with id {data['tags']} removed successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error removing Monica labels: {error}")
+
+    def addTags(self, data: dict, monicaId: str, name: str) -> None:
+        '''Adds all tags given by name for a given contact id via api call.'''
+
+        # Create address
+        response = requests.post(self.base_url + f"/contacts/{monicaId}/setTags", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
+        if response.status_code == 200:
+            self.log.info(f"'{name}' ('{monicaId}'): Labels {data['tags']} assigned successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error assigning Monica labels: {error}")
+
+
     def updateCareer(self, id: str, data: dict) -> None:
         '''Updates job title and company for a given contact id via api call.'''
         # Initialization
@@ -169,11 +196,8 @@ class Monica():
         # If successful
         if response.status_code == 200:
             contact = response.json()['data']
-            self.updatedContacts.append(contact)
-            self.contacts.append(contact)
             self.log.info(f"'{name}' ('{id}'): Company and job title updated successfully")
-            self.database.update(
-                monicaId=id, monicaLastChanged=contact['updated_at'])
+            self.database.update(monicaId=id, monicaLastChanged=contact['updated_at'])
         else:
             error = response.json()['error']['message']
             self.log.warning(f"'{name}' ('{id}'): Error updating Monica contact career info: {error}")
