@@ -18,6 +18,7 @@ class Google():
         self.database = databaseHandler
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
+        self.reversedLabelMapping = {id: name for name, id in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
         self.updatedContacts = []
@@ -113,7 +114,8 @@ class Google():
         return self.contacts
 
     def __getLabelMapping(self) -> dict:
-        '''Searches a Google contacts label by name and returns its id.'''
+        '''Fetches all contact groups from Google (aka labels) and
+        returns a {name: id} mapping.'''
         # Get all contact groups
         # pylint: disable=no-member
         response = self.service.contactGroups().list().execute()
