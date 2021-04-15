@@ -210,16 +210,46 @@ class Sync():
         # If you do not want to sync certain fields you can safely
         # comment out the following functions
         
-        # Update career info
+        # Sync career info
         self.__syncCareerInfo(googleContact, monicaContact)
 
-        # Update address info
+        # Sync address info
         self.__syncAddress(googleContact, monicaContact)
 
-        # Update phone and email
+        # Sync phone and email
         self.__syncPhoneEmail(googleContact, monicaContact)
 
+        # Sync labels
+        self.__syncLabels(googleContact, monicaContact)
+
         # Work in progress
+
+    def __syncLabels(self, googleContact: dict, monicaContact: dict) -> None:
+        '''Syncs Google contact labels/groups/tags.'''
+        try:
+            # Get google labels information
+            googleLabels = [
+                self.google.reversedLabelMapping[
+                    label["contactGroupMembership"]["contactGroupResourceName"]]
+                for label in googleContact.get("memberships", [])
+            ]
+
+            # Remove tags if not present in Google contact
+            removeList = [label["id"] for label in monicaContact["tags"]
+                          if label["name"] not in googleLabels]
+            if removeList:
+                self.monica.removeTags({"tags": removeList}, monicaContact["id"], monicaContact["complete_name"])
+
+            # Update labels if neccessary
+            monicaLabels = [label["name"]
+                            for label in monicaContact["tags"] if label["name"] in googleLabels]
+            if sorted(googleLabels) != sorted(monicaLabels):
+                self.monica.addTags({"tags": googleLabels}, monicaContact["id"], monicaContact["complete_name"])
+
+        except Exception as e:
+            msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact labels: {str(e)}"
+            self.log.warning(msg)
+
         
     def __syncPhoneEmail(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs phone and email fields.'''
