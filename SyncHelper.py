@@ -222,7 +222,36 @@ class Sync():
         # Sync labels
         self.__syncLabels(googleContact, monicaContact)
 
+        # Sync notes if not existent
+        self.__syncNotes(googleContact, monicaContact)
+
         # Work in progress
+
+    def __syncNotes(self, googleContact: dict, monicaContact: dict) -> None:
+        '''Syncs Google contact notes if there is no note present at Monica.'''
+        try:
+            # Get Google notes
+            googleNotes = [
+                {
+                "body": note["value"],
+                "contact_id": monicaContact["id"],
+                "is_favorited": False
+                }
+                for note in googleContact.get("biographies", [])
+            ]
+
+            if googleNotes:
+                # Get Monica notes
+                monicaNotes = self.monica.getNotes(monicaContact["id"], monicaContact["complete_name"])
+                if not monicaNotes:
+                    # If there is no Monica note sync the Google notes
+                    for note in googleNotes:
+                        self.monica.addNote(note, monicaContact["complete_name"])
+            
+        except Exception as e:
+            msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error creating Monica note: {str(e)}"
+            self.log.warning(msg)
+
 
     def __syncLabels(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs Google contact labels/groups/tags.'''
@@ -250,7 +279,6 @@ class Sync():
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact labels: {str(e)}"
             self.log.warning(msg)
 
-        
     def __syncPhoneEmail(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs phone and email fields.'''
         monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])

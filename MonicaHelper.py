@@ -157,6 +157,37 @@ class Monica():
             self.log.error(msg)
             raise Exception(msg)
 
+    def getNotes(self, monicaId: str, name: str) -> List[dict]:
+        '''Fetches all contact notes for a given Monica contact id via api call.'''
+
+        # Get contact fields
+        response = requests.get(self.base_url + f"/contacts/{monicaId}/notes", headers=self.header, params=self.parameters)
+
+        # If successful
+        if response.status_code == 200:
+            monicaNotes = response.json()['data']
+            return monicaNotes
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error fetching Monica notes: {error}")
+
+    def addNote(self, data: dict, name: str) -> None:
+        '''Creates a new note for a given contact id via api call.'''
+        # Initialization
+        monicaId = data['contact_id']
+
+        # Create address
+        response = requests.post(self.base_url + f"/notes", headers=self.header, params=self.parameters, json=data)
+
+        # If successful
+        if response.status_code == 201:
+            note = response.json()['data']
+            id = note["id"]
+            self.log.info(f"'{name}' ('{monicaId}'): Note '{id}' created successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error creating Monica note: {error}")
+
     def removeTags(self, data: dict, monicaId: str, name: str) -> None:
         '''Removes all tags given by id from a given contact id via api call.'''
 
