@@ -9,11 +9,11 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags)
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
-  - Syncs the following details: first name, last name, middle name, birthday, company, job title, labels, addresses
+  - Syncs the following details: first name, last name, middle name, birthday, company, job title, labels (tags), addresses
 - Extensive logging of every change, warning, or error including the affected contact ids and names (File: `Sync.log`)
 
 ## Limits
@@ -22,10 +22,12 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 - Do not delete contacts at Monica. This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - No support for custom Monica gender types. Will be overwritten with standard type O (other)
+- A label itself won't be deleted automatically if it has been removed from the last contact
 
 ## Known bugs
 
 - I observed strange behavior of the Google sync tokens used for delta sync. Sometimes the response contains the same sync token as before but includes a lot of updated contacts. Often the response contains more updated contacts than I should (I haven't changed that many). This is not an issue because the sync will count on the `updateTime` timestamp which seems more reliable. It will match them against the database timestamp and skip the contact if it is equal.
+- Birthdays on 29. Feb will be synced as 01. March :-)
 
 ## Get started
 
@@ -97,7 +99,7 @@ STREET_REVERSAL = False
 
 - Add more sync fields:
   - [x] company and jobtitle
-  - [ ] labels
+  - [x] labels
   - [x] address
   - [x] phone numbers
   - [x] emails
