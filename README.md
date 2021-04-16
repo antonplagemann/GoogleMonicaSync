@@ -62,7 +62,7 @@ Full sync and sync back require heavy api use (e.g. fetching of all Monica and G
 
 At first, the script builds an SQLite syncing database named `syncState.db`. To do that it fetches
 all Google contacts and all Monica contacts (can take some time) and tries to match them by name.
-If there is ambiguity you will be asked whether to link an existing contact or create a new one at Monica. The following details will be stored there:
+If there is ambiguity you will be asked whether to link an existing contact or create a new one at Monica. The following details will be stored in the database file:
 
 - Google contact id (unique)
 - Monica contact id (unique)
