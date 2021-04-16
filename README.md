@@ -21,7 +21,8 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 - **Do not update [*synced*](#features) details at Monica.** As this is a one-way sync, it will overwrite all Monica changes to this fields! Of course you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
-- No support for custom Monica gender types. Will be overwritten with standard type O (other)
+- No support for custom Monica gender types. Will be overwritten with standard type O (other) during sync.
+- No support for nickname and gender sync (can be added, file an issue if you want it).
 - No support for Monica nicknames (will not be used or synced as there is no Google field for it)
 - A label itself won't be deleted automatically if it has been removed from the last contact
 - A Google contact note will *only* be synced *once* if there are no notes already in the corresponding Monica contact. This means **you can update and create as many notes as you want at Monica**, they will not be overwritten.
@@ -112,8 +113,8 @@ STREET_REVERSAL = False
 - [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
 - [ ] Database consistency check function
 - [ ] Maybe an additional (pretty printed) sync summary
-- [ ] Implement sync procedure using python threads (propably much more faster)
-- [ ] Add sync include/exclude labels on both sides
+- [ ] Implement sync procedure using python threads (propably much faster with multithreading)
+- [x] Add sync include/exclude labels on both sides
 - [ ] ~~Think about two-way sync~~ (too involving, not really needed)
 - [ ] Think about a pip package
-- [ ] Extend config to allow user choice of synced fields? (not sure if this is needed)
+- [x] Extend config to allow user choice of synced fields
