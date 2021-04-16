@@ -22,9 +22,9 @@ class Google():
         self.reversedLabelMapping = {id: name for name, id in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
-        self.updatedContacts = []
-        self.createdContacts = []
-        self.syncFields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
+        self.createdContacts = {}
+        self.apiRequests = 0
+        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
 
         # Debugging area :-)
         self.sampleData = sampleData
@@ -101,6 +101,7 @@ class Google():
             while True:
                 # pylint: disable=no-member
                 result = self.service.people().connections().list(**parameters).execute()
+                self.apiRequests += 1
                 nextPageToken = result.get('nextPageToken', False)
                 contacts += result.get('connections', [])
                 if nextPageToken:
@@ -118,6 +119,7 @@ class Google():
                 while True:
                     # pylint: disable=no-member
                     result = self.service.people().connections().list(**parameters).execute()
+                    self.apiRequests += 1
                     nextPageToken = result.get('nextPageToken', False)
                     contacts += result.get('connections', [])
                     if nextPageToken:
@@ -176,8 +178,8 @@ class Google():
         # Upload contact
         try:
             # pylint: disable=no-member
-            result = self.service.people().createContact(
-                personFields=self.syncFields, body=data).execute()
+            result = self.service.people().createContact(personFields=self.syncFields, body=data).execute()
+            self.apiRequests += 1
         except HttpError as error:
             reason = error._get_reason()
             msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
@@ -188,7 +190,7 @@ class Google():
         # Process result
         id = result.get('resourceName', '-')
         name = result.get('names', [{}])[0].get('displayName', 'error')
-        self.createdContacts.append(result)
+        self.createdContacts[id] = True
         self.contacts.append(result)
         self.log.info(
             f"'{name}': Contact with id '{id}' created successfully")
