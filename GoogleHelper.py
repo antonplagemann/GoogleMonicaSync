@@ -17,13 +17,13 @@ class Google():
         self.log = log
         self.labelFilter = labelFilter
         self.database = databaseHandler
+        self.apiRequests = 0
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
         self.reversedLabelMapping = {id: name for name, id in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}
-        self.apiRequests = 0
         self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
 
         # Debugging area :-)
@@ -144,6 +144,7 @@ class Google():
         # Get all contact groups
         # pylint: disable=no-member
         response = self.service.contactGroups().list().execute()
+        self.apiRequests += 1
         groups = response.get('contactGroups', [])
 
         # Initialize mapping for all user groups and allowed system groups
@@ -169,6 +170,8 @@ class Google():
         # Upload group object
         # pylint: disable=no-member
         response = self.service.contactGroups().create(body=newGroup).execute()
+        self.apiRequests += 1
+
         groupId = response.get('resourceName', 'contactGroups/myContacts')
         self.labelMapping.update({labelName: groupId})
         return groupId

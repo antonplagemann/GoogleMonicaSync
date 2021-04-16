@@ -131,9 +131,10 @@ auth.py
 token.pickle*
 
 
-conf.py
+
 
 syncState.db
+syncState.db-journal
 
 GoogleSampleData.json
 
