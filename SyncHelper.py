@@ -58,6 +58,8 @@ class Sync():
             # Sync back to Google requested
             self.__syncBack()
 
+        self.__printSyncStatistics()
+
     def __initialSync(self) -> None:
         '''Builds the syncing database and starts a full sync. Needs user interaction!'''
         self.database.deleteAndInitialize()
@@ -87,7 +89,6 @@ class Sync():
                         gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
                         msg = f"'{gContactDisplayName}' ('{googleId}'): Found deleted Google contact. Deleting Monica contact..."
                         self.log.info(msg)
-                        print("\n" + msg)
                         monicaId = self.database.findById(googleId=googleId)[1]
                         self.monica.deleteContact(monicaId, gContactDisplayName)
                         self.database.delete(googleId, monicaId)
@@ -95,9 +96,9 @@ class Sync():
                         self.google.removeContactFromList(googleContact)
                         msg = f"'{gContactDisplayName}' ('{monicaId}'): Monica contact deleted successfully"
                         self.log.info(msg)
-                        print(msg)
                     except:
                         msg = f"'{gContactDisplayName}' ('{googleId}'): Failed deleting corresponding Monica contact! Please delete manually!"
+                        self.google.removeContactFromList(googleContact)
                         self.log.error(msg)
                         print(msg)
 
@@ -577,9 +578,28 @@ class Sync():
         self.log.info(msg)
         print("\n" + msg)
 
-    def __printSyncSummary(self) -> None:
-        '''Prints a summary of all created and updated contacts.'''
-        # To be implemented
+    def __printSyncStatistics(self) -> None:
+        '''Prints a pretty sync statistic of the last sync.'''
+        gAp = str(self.google.apiRequests) + (4-len(str(self.google.apiRequests))) * ' '
+        mAp = str(self.monica.apiRequests) + (4-len(str(self.monica.apiRequests))) * ' '
+        mCC = str(len(self.monica.createdContacts)) + (4-len(str(len(self.monica.createdContacts)))) * ' '
+        mCU = str(len(self.monica.updatedContacts)) + (4-len(str(len(self.monica.updatedContacts)))) * ' '
+        mCD = str(len(self.monica.deletedContacts)) + (4-len(str(len(self.monica.deletedContacts)))) * ' '
+        gCC = str(len(self.google.createdContacts)) + (4-len(str(len(self.google.createdContacts)))) * ' '
+        msg = "\n" \
+        f"Statistics: \n" \
+        f"+--------------------------------+\n" \
+        f"| Google api calls used:    {gAp} |\n" \
+        f"| Monica api calls used:    {mAp} |\n" \
+        f"| Monica contacts created:  {mCC} |\n" \
+        f"| Monica contacts updated:  {mCU} |\n" \
+        f"| Monica contacts deleted:  {mCD} |\n" \
+        f"| Google contacts created:  {gCC} |\n" \
+        f"+--------------------------------+"
+        print(msg)
+        self.log.info(msg)
+
+        {(4-len(str(self.google.apiRequests))) * ' '}
 
     def __createGoogleContact(self, monicaContact: dict) -> dict:
         '''Creates a new Google contact from a given Monica contact and returns it.'''
@@ -709,7 +729,7 @@ class Sync():
             return
 
         # Upload contact
-        self.monica.updateContact(id=monicaContact["id"], data=googleForm.data)
+        self.monica.updateContact(monicaId=monicaContact["id"], data=googleForm.data)
 
     def __getMonicaForm(self, monicaContact: dict) -> MonicaContactUploadForm:
         '''Creates a Monica contact upload form from a given Monica contact for comparison.'''
