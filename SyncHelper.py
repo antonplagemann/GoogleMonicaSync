@@ -222,10 +222,8 @@ class Sync():
         # Sync labels
         self.__syncLabels(googleContact, monicaContact)
 
-        # Sync notes if not existent
+        # Sync notes if not existent at Monica
         self.__syncNotes(googleContact, monicaContact)
-
-        # Work in progress
 
     def __syncNotes(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs Google contact notes if there is no note present at Monica.'''
@@ -251,7 +249,6 @@ class Sync():
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error creating Monica note: {str(e)}"
             self.log.warning(msg)
-
 
     def __syncLabels(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs Google contact labels/groups/tags.'''
@@ -407,9 +404,7 @@ class Sync():
                     province = None
                     postalCode = None
                     countryCode = None
-                    street = addr.get("streetAddress", "").replace("\n", " ").strip()
-                    # Convert "" (empty string) to None
-                    street = street if street else None
+                    street = addr.get("streetAddress", "").replace("\n", " ").strip() or None
                     if self.streetReversal:
                         # Street reversal: from '13 Auenweg' to 'Auenweg 13'
                         try: 
@@ -419,18 +414,16 @@ class Sync():
                             pass
                     
                     # Get (extended) city
-                    city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip()
-                    city = city if city else None
+                    city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip() or None
                     # Get other details
                     province = addr.get("region", None)
                     postalCode = addr.get("postalCode", None)
                     countryCode = addr.get("countryCode", None)
-                    name = addr.get("formattedType", None)
+                    # Name can not be empty
+                    name = addr.get("formattedType", None) or "Other"
                     # Do not sync empty addresses
                     if not any([street, city, province, postalCode, countryCode]):
                         continue
-                    # Name can not be empty
-                    name = name if name else "Other"
                     googleAddressList.append({
                         'name': name,
                         'street': street,
@@ -570,11 +563,12 @@ class Sync():
 
     def __createGoogleContact(self, monicaContact: dict) -> dict:
         '''Creates a new Google contact from a given Monica contact and returns it.'''
-        # Get names
-        firstName = monicaContact['first_name'] if monicaContact['first_name'] else ''
-        lastName = monicaContact['last_name'] if monicaContact['last_name'] else ''
-        fullName = monicaContact['complete_name']
-        middleName = self.__getMonicaMiddleName(firstName, lastName, fullName)
+        # Get names (no nickname)
+        firstName = monicaContact['first_name'] or ''
+        lastName = monicaContact['last_name'] or ''
+        fullName = monicaContact['complete_name'] or ''
+        nickname = monicaContact['nickname'] or ''
+        middleName = self.__getMonicaMiddleName(firstName, lastName, nickname, fullName)
 
         # Get birthday details (age based birthdays are not supported by Google)
         birthday = {}
@@ -598,11 +592,12 @@ class Sync():
         # Get career info if exists
         career = {key: value for key, value in monicaContact['information']["career"].items() if value}
 
-        # Get phone numbers
-        phoneNumbers = []  # To be implemented
-
-        # Get email addresses
-        emails = []  # To be implemented
+        # Get phone numbers and email addresses
+        monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
+        emails = [field["content"] for field in monicaContactFields 
+                  if field["contact_field_type"]["type"] == "email"]
+        phoneNumbers = [field["content"] for field in monicaContactFields 
+                        if field["contact_field_type"]["type"] == "phone"]
 
         # Get tags/labels and create them if neccessary
         labelIds = [self.google.labelMapping.get(tag['name'], self.google.createLabel(tag['name']))
@@ -620,11 +615,13 @@ class Sync():
 
         return contact
 
-    def __getMonicaMiddleName(self, firstName: str, lastName: str, fullName: str) -> str:
+    def __getMonicaMiddleName(self, firstName: str, lastName: str, nickname: str, fullName: str) -> str:
         '''Monica contacts have for some reason a hidden field middlename that can be set (creation/update)
         but sadly can not retrieved later. This function computes it by using the complete_name field.'''
         try:
-            middleName = fullName[len(firstName):len(fullName) - len(lastName)].strip()
+            # If there is a nickname it will be parenthesized with a space
+            nicknameLength = len(nickname) + 3 if nickname else 0
+            middleName = fullName[len(firstName):len(fullName) - (len(lastName) + nicknameLength)].strip()
             return middleName
         except:
             return ''
@@ -691,10 +688,11 @@ class Sync():
     def __getMonicaForm(self, monicaContact: dict) -> MonicaContactUploadForm:
         '''Creates a Monica contact upload form from a given Monica contact for comparison.'''
         # Get names
-        firstName = monicaContact['first_name'] if monicaContact['first_name'] else ''
-        lastName = monicaContact['last_name'] if monicaContact['last_name'] else ''
-        fullName = monicaContact['complete_name']
-        middleName = self.__getMonicaMiddleName(firstName, lastName, fullName)
+        firstName = monicaContact['first_name'] or ''
+        lastName = monicaContact['last_name'] or ''
+        fullName = monicaContact['complete_name'] or ''
+        nickname = monicaContact['nickname'] or ''
+        middleName = self.__getMonicaMiddleName(firstName, lastName, nickname, fullName)
 
         # Get birthday details
         birthdayTimestamp = monicaContact['information']["dates"]["birthdate"]["date"]

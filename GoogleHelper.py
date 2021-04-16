@@ -227,7 +227,7 @@ class GoogleContactUploadForm():
             self.data["phoneNumbers"] = [
                 {
                     "value": number,
-                    "type": "main",
+                    "type": "other",
                 }
                 for number in phoneNumbers
             ]
