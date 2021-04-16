@@ -111,10 +111,11 @@ STREET_REVERSAL = False
   - [x] phone numbers
   - [x] emails
 - [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
-- [ ] Database consistency check function
-- [ ] Maybe an additional (pretty printed) sync summary
-- [ ] Implement sync procedure using python threads (propably much faster with multithreading)
+
+- [x] Maybe an additional (pretty printed) sync summary
 - [x] Add sync include/exclude labels on both sides
-- [ ] ~~Think about two-way sync~~ (too involving, not really needed)
-- [ ] Think about a pip package
 - [x] Extend config to allow user choice of synced fields
+- [ ] ~~Think about two-way sync~~ (too involving, not really needed)
+- [ ] Database consistency check function
+- [ ] Think about a pip package
+- [ ] Implement sync procedure using python threads (propably much faster with multithreading)

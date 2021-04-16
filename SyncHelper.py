@@ -16,6 +16,7 @@ class Sync():
                  deleteMonicaContactsOnSync: bool, streetReversalOnAddressSync: bool,
                  syncingFields: dict) -> None:
         self.log = log
+        self.startTime = datetime.now()
         self.monica = monicaHandler
         self.google = googleHandler
         self.database = databaseHandler
@@ -580,22 +581,24 @@ class Sync():
 
     def __printSyncStatistics(self) -> None:
         '''Prints a pretty sync statistic of the last sync.'''
-        gAp = str(self.google.apiRequests) + (4-len(str(self.google.apiRequests))) * ' '
-        mAp = str(self.monica.apiRequests) + (4-len(str(self.monica.apiRequests))) * ' '
-        mCC = str(len(self.monica.createdContacts)) + (4-len(str(len(self.monica.createdContacts)))) * ' '
-        mCU = str(len(self.monica.updatedContacts)) + (4-len(str(len(self.monica.updatedContacts)))) * ' '
-        mCD = str(len(self.monica.deletedContacts)) + (4-len(str(len(self.monica.deletedContacts)))) * ' '
-        gCC = str(len(self.google.createdContacts)) + (4-len(str(len(self.google.createdContacts)))) * ' '
+        tme = str(datetime.now() - self.startTime).split(".")[0] + "h"
+        gAp = str(self.google.apiRequests) + (8-len(str(self.google.apiRequests))) * ' '
+        mAp = str(self.monica.apiRequests) + (8-len(str(self.monica.apiRequests))) * ' '
+        mCC = str(len(self.monica.createdContacts)) + (8-len(str(len(self.monica.createdContacts)))) * ' '
+        mCU = str(len(self.monica.updatedContacts)) + (8-len(str(len(self.monica.updatedContacts)))) * ' '
+        mCD = str(len(self.monica.deletedContacts)) + (8-len(str(len(self.monica.deletedContacts)))) * ' '
+        gCC = str(len(self.google.createdContacts)) + (8-len(str(len(self.google.createdContacts)))) * ' '
         msg = "\n" \
         f"Statistics: \n" \
-        f"+--------------------------------+\n" \
-        f"| Google api calls used:    {gAp} |\n" \
-        f"| Monica api calls used:    {mAp} |\n" \
-        f"| Monica contacts created:  {mCC} |\n" \
-        f"| Monica contacts updated:  {mCU} |\n" \
-        f"| Monica contacts deleted:  {mCD} |\n" \
-        f"| Google contacts created:  {gCC} |\n" \
-        f"+--------------------------------+"
+        f"+-------------------------------------+\n" \
+        f"| Syncing time:             {tme   }  |\n" \
+        f"| Google api calls used:    {gAp   }  |\n" \
+        f"| Monica api calls used:    {mAp   }  |\n" \
+        f"| Monica contacts created:  {mCC   }  |\n" \
+        f"| Monica contacts updated:  {mCU   }  |\n" \
+        f"| Monica contacts deleted:  {mCD   }  |\n" \
+        f"| Google contacts created:  {gCC   }  |\n" \
+        f"+-------------------------------------+"
         print(msg)
         self.log.info(msg)
 

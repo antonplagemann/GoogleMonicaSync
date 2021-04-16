@@ -8,7 +8,7 @@ from GoogleHelper import Google
 from SyncHelper import Sync
 import sys
 import argparse
-VERSION = "v2.0.1"
+VERSION = "v2.0.2"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
