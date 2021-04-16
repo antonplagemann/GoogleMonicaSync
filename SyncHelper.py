@@ -11,8 +11,8 @@ import sys
 class Sync():
     '''Handles all syncing and merging issues with Google, Monica and the database.'''
 
-    def __init__(self, log: Logger, monicaHandler: Monica, googleHandler: Google,
-                 databaseHandler: Database, syncBackToGoogle: bool, 
+    def __init__(self, log: Logger, databaseHandler: Database, 
+                 monicaHandler: Monica, googleHandler: Google, syncBackToGoogle: bool, 
                  deleteMonicaContactsOnSync: bool, streetReversalOnAddressSync: bool) -> None:
         self.log = log
         self.monica = monicaHandler
