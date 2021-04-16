@@ -123,19 +123,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Dev files
 .vscode/**
 token.pickle
 credentials.json
-auth.py
-
+conf.py
 token.pickle*
-
-
-
-
 syncState.db
 syncState.db-journal
-
 GoogleSampleData.json
-
 MonicaSampleData.json
