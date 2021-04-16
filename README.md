@@ -9,11 +9,11 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), note (add only, see [limits](#limits))
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (add only, see [limits](#limits))
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
-  - Syncs the following details: first name, last name, middle name, birthday, company, job title, labels (tags), addresses
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags)
 - Extensive logging of every change, warning, or error including the affected contact ids and names (File: `Sync.log`)
 
 ## Limits
@@ -22,6 +22,7 @@ That being said: Be welcome to use it, fork and develop it, copy it for your pro
 - **Do not delete contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - No support for custom Monica gender types. Will be overwritten with standard type O (other)
+- No support for Monica nicknames (will not be used or synced as there is no Google field for it)
 - A label itself won't be deleted automatically if it has been removed from the last contact
 - A Google contact note will *only* be synced *once* if there are no notes already in the corresponding Monica contact. This means **you can update and create as many notes as you want at Monica**, they will not be overwritten.
 
@@ -96,18 +97,18 @@ DELETE_ON_SYNC = True
 STREET_REVERSAL = False
 ```
 
-## Feature roadmap (working on it)
+## Feature roadmap
 
-- Add more sync fields:
+- ~~Add more sync fields:~~
   - [x] company and jobtitle
   - [x] labels
   - [x] address
   - [x] phone numbers
   - [x] emails
   - [x] notes
-- Add more sync-back fields:
-  - [ ] phone numbers
-  - [ ] emails
+- ~~Add more sync-back fields:~~
+  - [x] phone numbers
+  - [x] emails
 - [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
 - [ ] Database consistency check function
 - [ ] Maybe an additional (pretty printed) sync summary
