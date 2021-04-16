@@ -1,13 +1,14 @@
 # pylint: disable=import-error
 import logging
-from conf import TOKEN, BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, STREET_REVERSAL
+from conf import TOKEN, BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, \
+                 STREET_REVERSAL, GOOGLE_LABELS, MONICA_LABELS, FIELDS
 from DatabaseHelper import Database
 from MonicaHelper import Monica
 from GoogleHelper import Google
 from SyncHelper import Sync
 import sys
 import argparse
-VERSION = "v1.7.0"
+VERSION = "v2.0.2"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
@@ -34,8 +35,8 @@ def updateTestingData(filename: str, contactList: list) -> None:
 def fetchAndSaveTestingData() -> None:
     '''Only for developing purposes. Fetches new data from Monica and Google and saves it to a json file.'''
     database = Database(log, 'syncState.db')
-    monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
-    google = Google(log, database)
+    monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
+    google = Google(log, database, GOOGLE_LABELS)
     updateTestingData('MonicaSampleData.json', monica.getContacts())
     updateTestingData('GoogleSampleData.json', google.getContacts())
 
@@ -69,9 +70,9 @@ def main() -> None:
 
         # Create sync object
         database = Database(log, 'syncState.db')
-        google = Google(log, database)
-        monica = Monica(log, TOKEN, BASE_URL, CREATE_REMINDERS, database)
-        sync = Sync(log, monica, google, database, args.syncback, DELETE_ON_SYNC, STREET_REVERSAL)
+        google = Google(log, database, GOOGLE_LABELS)
+        monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
+        sync = Sync(log, database, monica, google, args.syncback, DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
 
         # A newline makes things more beautiful
         print("")

@@ -13,17 +13,18 @@ import sys
 class Google():
     '''Handles all Google related (api) stuff.'''
 
-    def __init__(self, log: Logger, databaseHandler: Database, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, databaseHandler: Database, labelFilter: dict, sampleData: list = None) -> None:
         self.log = log
+        self.labelFilter = labelFilter
         self.database = databaseHandler
+        self.apiRequests = 0
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
         self.reversedLabelMapping = {id: name for name, id in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
-        self.updatedContacts = []
-        self.createdContacts = []
-        self.syncFields = 'addresses,ageRanges,biographies,birthdays,calendarUrls,clientData,coverPhotos,emailAddresses,events,externalIds,genders,imClients,interests,locales,locations,memberships,metadata,miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,sipAddresses,skills,urls,userDefined'
+        self.createdContacts = {}
+        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
 
         # Debugging area :-)
         self.sampleData = sampleData
@@ -51,6 +52,24 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
+    def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
+        '''Filters a contact list by include/exclude labels.'''
+        if self.labelFilter["include"]:
+            return [contact for contact in contactList
+                    if any([contactLabel["contactGroupMembership"]["contactGroupId"] 
+                            in self.labelFilter["include"] 
+                            for contactLabel in contact["memberships"]])
+                    and all([contactLabel["contactGroupMembership"]["contactGroupId"] 
+                            not in self.labelFilter["exclude"] 
+                            for contactLabel in contact["memberships"]])]
+        elif self.labelFilter["exclude"]:
+            return [contact for contact in contactList
+                    if all([contactLabel["contactGroupMembership"]["contactGroupId"] 
+                            not in self.labelFilter["exclude"] 
+                            for contactLabel in contact["memberships"]])]
+        else:
+            return contactList
+
     def removeContactFromList(self, googleContact: dict) -> None:
         '''Removes a Google contact internally to avoid further processing 
         (e.g. if it has been deleted on both sides)'''
@@ -73,6 +92,7 @@ class Google():
             return self.contacts
 
         # Start fetching
+        contacts = []
         msg = "Fetching Google contacts..."
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
@@ -81,11 +101,13 @@ class Google():
             while True:
                 # pylint: disable=no-member
                 result = self.service.people().connections().list(**parameters).execute()
+                self.apiRequests += 1
                 nextPageToken = result.get('nextPageToken', False)
-                self.contacts += result.get('connections', [])
+                contacts += result.get('connections', [])
                 if nextPageToken:
                     parameters['pageToken'] = nextPageToken
                 else:
+                    self.contacts = self.__filterContactsByLabel(contacts)
                     break
         except HttpError as error:
             if 'Sync token' in error._get_reason():
@@ -93,14 +115,17 @@ class Google():
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
+                contacts = []
                 while True:
                     # pylint: disable=no-member
                     result = self.service.people().connections().list(**parameters).execute()
+                    self.apiRequests += 1
                     nextPageToken = result.get('nextPageToken', False)
-                    self.contacts += result.get('connections', [])
+                    contacts += result.get('connections', [])
                     if nextPageToken:
                         parameters['pageToken'] = nextPageToken
                     else:
+                        self.contacts = self.__filterContactsByLabel(contacts)
                         break
             else:
                 raise Exception(error._get_reason())
@@ -119,6 +144,7 @@ class Google():
         # Get all contact groups
         # pylint: disable=no-member
         response = self.service.contactGroups().list().execute()
+        self.apiRequests += 1
         groups = response.get('contactGroups', [])
 
         # Initialize mapping for all user groups and allowed system groups
@@ -144,6 +170,8 @@ class Google():
         # Upload group object
         # pylint: disable=no-member
         response = self.service.contactGroups().create(body=newGroup).execute()
+        self.apiRequests += 1
+
         groupId = response.get('resourceName', 'contactGroups/myContacts')
         self.labelMapping.update({labelName: groupId})
         return groupId
@@ -153,8 +181,8 @@ class Google():
         # Upload contact
         try:
             # pylint: disable=no-member
-            result = self.service.people().createContact(
-                personFields=self.syncFields, body=data).execute()
+            result = self.service.people().createContact(personFields=self.syncFields, body=data).execute()
+            self.apiRequests += 1
         except HttpError as error:
             reason = error._get_reason()
             msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
@@ -165,7 +193,7 @@ class Google():
         # Process result
         id = result.get('resourceName', '-')
         name = result.get('names', [{}])[0].get('displayName', 'error')
-        self.createdContacts.append(result)
+        self.createdContacts[id] = True
         self.contacts.append(result)
         self.log.info(
             f"'{name}': Contact with id '{id}' created successfully")
