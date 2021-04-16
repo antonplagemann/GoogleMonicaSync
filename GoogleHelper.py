@@ -13,8 +13,9 @@ import sys
 class Google():
     '''Handles all Google related (api) stuff.'''
 
-    def __init__(self, log: Logger, databaseHandler: Database, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, databaseHandler: Database, labelFilter: dict, sampleData: list = None) -> None:
         self.log = log
+        self.labelFilter = labelFilter
         self.database = databaseHandler
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
@@ -51,6 +52,24 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
+    def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
+        '''Filters a contact list by include/exclude labels.'''
+        if self.labelFilter["include"]:
+            return [contact for contact in contactList
+                    if any([contactLabel["contactGroupMembership"]["contactGroupId"] 
+                            in self.labelFilter["include"] 
+                            for contactLabel in contact["memberships"]])
+                    and all([contactLabel["contactGroupMembership"]["contactGroupId"] 
+                            not in self.labelFilter["exclude"] 
+                            for contactLabel in contact["memberships"]])]
+        elif self.labelFilter["exclude"]:
+            return [contact for contact in contactList
+                    if all([contactLabel["contactGroupMembership"]["contactGroupId"] 
+                            not in self.labelFilter["exclude"] 
+                            for contactLabel in contact["memberships"]])]
+        else:
+            return contactList
+
     def removeContactFromList(self, googleContact: dict) -> None:
         '''Removes a Google contact internally to avoid further processing 
         (e.g. if it has been deleted on both sides)'''
@@ -73,6 +92,7 @@ class Google():
             return self.contacts
 
         # Start fetching
+        contacts = []
         msg = "Fetching Google contacts..."
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
@@ -82,10 +102,11 @@ class Google():
                 # pylint: disable=no-member
                 result = self.service.people().connections().list(**parameters).execute()
                 nextPageToken = result.get('nextPageToken', False)
-                self.contacts += result.get('connections', [])
+                contacts += result.get('connections', [])
                 if nextPageToken:
                     parameters['pageToken'] = nextPageToken
                 else:
+                    self.contacts = self.__filterContactsByLabel(contacts)
                     break
         except HttpError as error:
             if 'Sync token' in error._get_reason():
@@ -93,14 +114,16 @@ class Google():
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
+                contacts = []
                 while True:
                     # pylint: disable=no-member
                     result = self.service.people().connections().list(**parameters).execute()
                     nextPageToken = result.get('nextPageToken', False)
-                    self.contacts += result.get('connections', [])
+                    contacts += result.get('connections', [])
                     if nextPageToken:
                         parameters['pageToken'] = nextPageToken
                     else:
+                        self.contacts = self.__filterContactsByLabel(contacts)
                         break
             else:
                 raise Exception(error._get_reason())

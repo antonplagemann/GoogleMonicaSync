@@ -8,10 +8,11 @@ import sys
 class Monica():
     '''Handles all Monica related (api) stuff.'''
 
-    def __init__(self, log: Logger, token: str, base_url: str, createReminders: bool, databaseHandler: Database, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, databaseHandler: Database, token: str, base_url: str, createReminders: bool, labelFilter: dict, sampleData: list = None) -> None:
         self.log = log
         self.database = databaseHandler
         self.base_url = base_url
+        self.labelFilter = labelFilter
         self.header = {'Authorization': f'Bearer {token}'}
         self.parameters = {'limit': 100}
         self.dataAlreadyFetched = False
@@ -22,6 +23,24 @@ class Monica():
 
         # Debugging area :-)
         self.sampleData = sampleData
+
+    def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
+        '''Filters a contact list by include/exclude labels.'''
+        if self.labelFilter["include"]:
+            return [contact for contact in contactList
+                    if any([contactLabel["name"]
+                            in self.labelFilter["include"] 
+                            for contactLabel in contact["tags"]])
+                    and all([contactLabel["name"] 
+                            not in self.labelFilter["exclude"] 
+                            for contactLabel in contact["tags"]])]
+        elif self.labelFilter["exclude"]:
+            return [contact for contact in contactList
+                    if all([contactLabel["name"]
+                            not in self.labelFilter["exclude"] 
+                            for contactLabel in contact["tags"]])]
+        else:
+            return contactList
 
     def updateContact(self, id: str, data: dict) -> None:
         '''Updates a given contact and its id via api call.'''
@@ -96,6 +115,7 @@ class Monica():
             # Start fetching
             maxPage = '?'
             page = 1
+            contacts = []
             self.log.info("Fetching all Monica contacts...")
             while True:
                 sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {maxPage})")
@@ -105,9 +125,10 @@ class Monica():
                 # If successful
                 if response.status_code == 200:
                     data = response.json()
-                    self.contacts += data['data']
+                    contacts += data['data']
                     maxPage = data['meta']['last_page']
                     if page == maxPage:
+                        self.contacts = self.__filterContactsByLabel(contacts)
                         break
                     page += 1
                 else:
