@@ -110,7 +110,7 @@ FIELDS = {
     "career": True,     # Company and job title
     "address": True,
     "phone": True,
-    "email": False,
+    "email": True,
     "labels": True,
     "notes": True
 }
