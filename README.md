@@ -37,7 +37,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 0. Install Python 3.9 or newer
 1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/002b835f81e2042083bb7de9dff157989ad63c4e/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
+3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/3db88905eeaf4093cb82e5a2a6fc3c979910e85b/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 
