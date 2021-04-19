@@ -220,6 +220,25 @@ class Monica():
             error = response.json()['error']['message']
             raise Exception(f"'{name}' ('{monicaId}'): Error creating Monica note: {error}")
 
+    def updateNote(self, noteId: str, data: dict, name: str) -> None:
+        '''Creates a new note for a given contact id via api call.'''
+        # Initialization
+        monicaId = data['contact_id']
+
+        # Create address
+        response = requests.put(self.base_url + f"/notes/{noteId}", headers=self.header, params=self.parameters, json=data)
+        self.apiRequests += 1
+
+        # If successful
+        if response.status_code == 200:
+            self.updatedContacts[monicaId] = True
+            note = response.json()['data']
+            id = note["id"]
+            self.log.info(f"'{name}' ('{monicaId}'): Note '{id}' updated successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error updating Monica note: {error}")
+
     def removeTags(self, data: dict, monicaId: str, name: str) -> None:
         '''Removes all tags given by id from a given contact id via api call.'''
 
