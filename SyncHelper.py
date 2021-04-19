@@ -237,24 +237,41 @@ class Sync():
     def __syncNotes(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs Google contact notes if there is no note present at Monica.'''
         try:
-            # Get Google notes
-            googleNotes = [
-                {
-                "body": note["value"],
+            identifier = "\n\n*This note is synced from your Google contacts. Do not edit here.*"
+            if googleContact.get("biographies", []):
+                # Get Google note
+                googleNote = {
+                "body": googleContact["biographies"][0].get("value", "").strip(),
                 "contact_id": monicaContact["id"],
                 "is_favorited": False
                 }
-                for note in googleContact.get("biographies", [])
-            ]
-
-            if googleNotes:
                 # Get Monica notes
                 monicaNotes = self.monica.getNotes(monicaContact["id"], monicaContact["complete_name"])
                 if not monicaNotes:
-                    # If there is no Monica note sync the Google notes
-                    for note in googleNotes:
-                        self.monica.addNote(note, monicaContact["complete_name"])
-            
+                    # If there is no Monica note sync the Google note
+                    googleNote["body"] += identifier
+                    self.monica.addNote(googleNote, monicaContact["complete_name"])
+                else:
+                    updated = False
+                    for monicaNote in monicaNotes:
+                        if monicaNote["body"] == googleNote["body"]:
+                            # If there is a note with the same content update it and add the identifier
+                            googleNote["body"] += identifier
+                            self.monica.updateNote(monicaNote["id"], googleNote, monicaContact["complete_name"])
+                            updated = True
+                            break
+                        elif identifier in monicaNote["body"]:
+                            # Found identifier, update this note if changed
+                            googleNote["body"] += identifier
+                            if monicaNote["body"] != googleNote["body"]:
+                                self.monica.updateNote(monicaNote["id"], googleNote, monicaContact["complete_name"])
+                            updated = True
+                            break
+                    if not updated:
+                        # No note with same content or identifier found so create a new one
+                        googleNote["body"] += identifier
+                        self.monica.addNote(googleNote, monicaContact["complete_name"])
+
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error creating Monica note: {str(e)}"
             self.log.warning(msg)

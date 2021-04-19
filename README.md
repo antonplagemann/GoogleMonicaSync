@@ -9,7 +9,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 ## Features
 
 - One-way sync (Google -> Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (add only, see [limits](#limits))
+  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (see [limits](#limits))
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
@@ -24,12 +24,13 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 - No support for custom Monica gender types. Will be overwritten with standard type O (other) during sync.
 - No support for nickname and gender sync (support can be added, file an issue if you want it). Nicknames and genders will be overwritten during sync
 - A label itself won't be deleted automatically if it has been removed from the last contact
-- A Google contact note will *only* be synced *once* if there are no notes already in the corresponding Monica contact. This means **you can update and create as many notes as you want at Monica**, they will not be overwritten.
+- If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many additional notes as you want at Monica**, they will not be overwritten.
 
 ## Known bugs
 
 - Sometimes the Google api returns more contacts than neccessary. This is not an issue because the sync will match the last known update timestamps and skip the contact if nothing has changed.
 - Birthdays on 29. Feb will be synced as 01. March :-)
+- Pay attention when you *merge* Google contacts in the web gui. In this case the contact will get recreated at Monica during sync (because Google assigns a new contact id). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand).
 
 ## Get started
 
