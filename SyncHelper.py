@@ -236,6 +236,7 @@ class Sync():
 
     def __syncNotes(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs Google contact notes if there is no note present at Monica.'''
+        monicaNotes = self.monica.getNotes(monicaContact["id"], monicaContact["complete_name"])
         try:
             identifier = "\n\n*This note is synced from your Google contacts. Do not edit here.*"
             if googleContact.get("biographies", []):
@@ -245,8 +246,6 @@ class Sync():
                 "contact_id": monicaContact["id"],
                 "is_favorited": False
                 }
-                # Get Monica notes
-                monicaNotes = self.monica.getNotes(monicaContact["id"], monicaContact["complete_name"])
                 if not monicaNotes:
                     # If there is no Monica note sync the Google note
                     googleNote["body"] += identifier
@@ -271,6 +270,12 @@ class Sync():
                         # No note with same content or identifier found so create a new one
                         googleNote["body"] += identifier
                         self.monica.addNote(googleNote, monicaContact["complete_name"])
+            elif monicaNotes:
+                for monicaNote in monicaNotes:
+                    if identifier in monicaNote["body"]:
+                        # Found identifier, delete this note
+                        self.monica.deleteNote(monicaNote["id"], monicaNote["contact"]["id"], monicaContact["complete_name"])
+                        break
 
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error creating Monica note: {str(e)}"
@@ -598,6 +603,7 @@ class Sync():
 
     def __printSyncStatistics(self) -> None:
         '''Prints a pretty sync statistic of the last sync.'''
+        self.monica.updateStatistics()
         tme = str(datetime.now() - self.startTime).split(".")[0] + "h"
         gAp = str(self.google.apiRequests) + (8-len(str(self.google.apiRequests))) * ' '
         mAp = str(self.monica.apiRequests) + (8-len(str(self.monica.apiRequests))) * ' '
