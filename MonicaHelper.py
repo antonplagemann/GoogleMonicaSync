@@ -44,6 +44,12 @@ class Monica():
         else:
             return contactList
 
+    def updateStatistics(self) -> None:
+        '''Updates internal statistics for printing.'''
+        # A contact should only count as updated if it has not been created during sync
+        self.updatedContacts = {key: value for key, value in self.updatedContacts.items()
+                                if key not in self.createdContacts}
+
     def updateContact(self, monicaId: str, data: dict) -> None:
         '''Updates a given contact and its id via api call.'''
         name = f"{data['first_name']} {data['last_name']}"
@@ -238,6 +244,21 @@ class Monica():
         else:
             error = response.json()['error']['message']
             raise Exception(f"'{name}' ('{monicaId}'): Error updating Monica note: {error}")
+
+    def deleteNote(self, noteId: str, monicaId: str, name: str) -> None:
+        '''Creates a new note for a given contact id via api call.'''
+
+        # Create address
+        response = requests.delete(self.base_url + f"/notes/{noteId}", headers=self.header, params=self.parameters)
+        self.apiRequests += 1
+
+        # If successful
+        if response.status_code == 200:
+            self.updatedContacts[monicaId] = True
+            self.log.info(f"'{name}' ('{monicaId}'): Note '{noteId}' deleted successfully")
+        else:
+            error = response.json()['error']['message']
+            raise Exception(f"'{name}' ('{monicaId}'): Error deleting Monica note: {error}")
 
     def removeTags(self, data: dict, monicaId: str, name: str) -> None:
         '''Removes all tags given by id from a given contact id via api call.'''
