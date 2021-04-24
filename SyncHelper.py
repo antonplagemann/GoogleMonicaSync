@@ -309,10 +309,8 @@ class Sync():
 
     def __syncPhoneEmail(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs phone and email fields.'''
-        monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
-        monicaContactPhones = [
-            field for field in monicaContactFields if field["contact_field_type"]["type"] == "phone"]
-        googleContactPhones = googleContact.get("phoneNumbers", [])
+        if self.sync["email"] or self.sync["phone"]:
+            monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
         try:
             if self.sync["email"]:
                 # Email processing
@@ -393,10 +391,10 @@ class Sync():
                         for googlePhone in googlePhones:
                             self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
 
-            elif monicaContactPhones:
-                # Delete Monica contact phone numbers
-                for monicaPhone in monicaContactPhones:
-                    self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
+                elif monicaContactPhones:
+                    # Delete Monica contact phone numbers
+                    for monicaPhone in monicaContactPhones:
+                        self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
 
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact phone: {str(e)}"
