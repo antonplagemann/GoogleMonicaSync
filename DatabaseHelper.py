@@ -1,8 +1,27 @@
 import sqlite3
-from logging import Logger
-from typing import Union
 from datetime import datetime
+from logging import Logger
+from typing import Tuple, Union, List
 
+
+class DatabaseRow():
+    '''Creates a database row object for inserting into the database. 
+    Needs at least a Monica id AND a Google id.'''
+
+    def __init__(self, googleId: str, monicaId: str, googleFullName: str = 'NULL',
+                   monicaFullName: str = 'NULL', googleLastChanged: str = 'NULL',
+                   monicaLastChanged: str = 'NULL') -> None:
+        insertSql = '''
+        INSERT INTO sync(googleId, monicaId, googleFullName, monicaFullName,
+                        googleLastChanged, monicaLastChanged)
+        VALUES(?,?,?,?,?,?)
+        '''
+        self.insertStatement = insertSql, (googleId, str(monicaId), 
+                                googleFullName, monicaFullName,
+                                googleLastChanged, monicaLastChanged)
+
+    def getInsertStatement(self) -> Tuple[str, tuple]:
+        return self.insertStatement
 
 class Database():
     '''Handles all database related stuff.'''
@@ -47,17 +66,9 @@ class Database():
         self.cursor.execute(createConfigTableSql)
         self.connection.commit()
 
-    def insertData(self, googleId: str, monicaId: str, googleFullName: str = 'NULL',
-                   monicaFullName: str = 'NULL', googleLastChanged: str = 'NULL',
-                   monicaLastChanged: str = 'NULL') -> None:
-        '''Inserts the given data into the database. Needs at least a Monica id AND a Google id'''
-        insertSql = '''
-        INSERT INTO sync(googleId, monicaId, googleFullName, monicaFullName,
-                        googleLastChanged, monicaLastChanged)
-        VALUES(?,?,?,?,?,?)
-        '''
-        self.cursor.execute(insertSql, (googleId, str(monicaId), googleFullName, monicaFullName,
-                                        googleLastChanged, monicaLastChanged))
+    def insertData(self, databaseRow: DatabaseRow) -> None:
+        '''Inserts the given data into the database.'''
+        self.cursor.execute(databaseRow.getInsertStatement())
         self.connection.commit()
 
     def update(self, googleId: str = None, monicaId: str = None,
@@ -68,8 +79,7 @@ class Database():
             if monicaFullName:
                 self.__updateFullNameByMonicaId(str(monicaId), monicaFullName)
             if monicaLastChanged:
-                self.__updateMonicaLastChanged(
-                    str(monicaId), monicaLastChanged)
+                self.__updateMonicaLastChanged(str(monicaId), monicaLastChanged)
             else:
                 self.log.error("Unknown database update arguments!")
         if googleId:
@@ -124,12 +134,12 @@ class Database():
                    for googleId, monicaId in self.cursor.fetchall()}
         return mapping
 
-    def __findByMonicaId(self, monicaId: str) -> list:
+    def __findByMonicaId(self, monicaId: str) -> List[tuple]:
         findSql = "SELECT * FROM sync WHERE monicaId=?"
         self.cursor.execute(findSql, (str(monicaId),))
         return self.cursor.fetchone()
 
-    def __findByGoogleId(self, googleId: str) -> list:
+    def __findByGoogleId(self, googleId: str) -> List[tuple]:
         findSql = "SELECT * FROM sync WHERE googleId=?"
         self.cursor.execute(findSql, (googleId,))
         return self.cursor.fetchone()

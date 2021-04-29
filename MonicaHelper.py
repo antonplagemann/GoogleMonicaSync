@@ -1,8 +1,10 @@
-import requests
+import sys
 from logging import Logger
 from typing import List, Tuple
+
+import requests
+
 from DatabaseHelper import Database
-import sys
 
 
 class Monica():
@@ -113,7 +115,7 @@ class Monica():
             self.log.info(f"'{name}': Error creating Monica contact: {error}")
             raise Exception("Error creating Monica contact!")
 
-    def getContacts(self) -> list:
+    def getContacts(self) -> List[dict]:
         '''Fetches all contacts from Monica if not already fetched.'''
         try:
             # Return sample data if present (debugging)

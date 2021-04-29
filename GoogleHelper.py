@@ -1,13 +1,15 @@
-import pickle
 import os.path
-from googleapiclient.discovery import build, Resource
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.errors import HttpError
+import pickle
+import sys
 from logging import Logger
 from typing import List
+
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import Resource, build
+from googleapiclient.errors import HttpError
+
 from DatabaseHelper import Database
-import sys
 
 
 class Google():
@@ -92,51 +94,44 @@ class Google():
             return self.contacts
 
         # Start fetching
-        contacts = []
         msg = "Fetching Google contacts..."
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
         try:
-            while True:
-                # pylint: disable=no-member
-                result = self.service.people().connections().list(**parameters).execute()
-                self.apiRequests += 1
-                nextPageToken = result.get('nextPageToken', False)
-                contacts += result.get('connections', [])
-                if nextPageToken:
-                    parameters['pageToken'] = nextPageToken
-                else:
-                    self.contacts = self.__filterContactsByLabel(contacts)
-                    break
+            self.__fetchContacts(parameters)
         except HttpError as error:
             if 'Sync token' in error._get_reason():
                 msg = "Sync token expired or invalid. Fetching again without token (full sync)..."
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
-                contacts = []
-                while True:
-                    # pylint: disable=no-member
-                    result = self.service.people().connections().list(**parameters).execute()
-                    self.apiRequests += 1
-                    nextPageToken = result.get('nextPageToken', False)
-                    contacts += result.get('connections', [])
-                    if nextPageToken:
-                        parameters['pageToken'] = nextPageToken
-                    else:
-                        self.contacts = self.__filterContactsByLabel(contacts)
-                        break
+                self.__fetchContacts(parameters)
             else:
                 raise Exception(error._get_reason())
-        nextSyncToken = result.get('nextSyncToken', None)
-        if nextSyncToken:
-            self.database.updateGoogleNextSyncToken(nextSyncToken)
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
         self.dataAlreadyFetched = True
         return self.contacts
+
+    def __fetchContacts(self, parameters: dict) -> None:
+        contacts = []
+        while True:
+            # pylint: disable=no-member
+            result = self.service.people().connections().list(**parameters).execute()
+            self.apiRequests += 1
+            nextPageToken = result.get('nextPageToken', False)
+            contacts += result.get('connections', [])
+            if nextPageToken:
+                parameters['pageToken'] = nextPageToken
+            else:
+                self.contacts = self.__filterContactsByLabel(contacts)
+                break
+
+        nextSyncToken = result.get('nextSyncToken', None)
+        if nextSyncToken:
+            self.database.updateGoogleNextSyncToken(nextSyncToken)
 
     def __getLabelMapping(self) -> dict:
         '''Fetches all contact groups from Google (aka labels) and

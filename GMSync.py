@@ -1,13 +1,16 @@
 # pylint: disable=import-error
-import logging
-from conf import TOKEN, BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, \
-                 STREET_REVERSAL, GOOGLE_LABELS, MONICA_LABELS, FIELDS
-from DatabaseHelper import Database
-from MonicaHelper import Monica
-from GoogleHelper import Google
-from SyncHelper import Sync
-import sys
 import argparse
+import logging
+import sys
+from typing import List
+
+from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
+                  GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
+from DatabaseHelper import Database
+from GoogleHelper import Google
+from MonicaHelper import Monica
+from SyncHelper import Sync
+
 VERSION = "v2.2.2"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
@@ -17,7 +20,7 @@ VERSION = "v2.2.2"
 log = logging.getLogger('GMSync')
 
 
-def getTestingData(filename: str) -> list:
+def getTestingData(filename: str) -> List[dict]:
     '''Only for developing purposes. Returns sample data from a json file to avoid intensive api penetration.'''
     import json
     with open(filename) as handle:
@@ -25,7 +28,7 @@ def getTestingData(filename: str) -> list:
     return data
 
 
-def updateTestingData(filename: str, contactList: list) -> None:
+def updateTestingData(filename: str, contactList: List[dict]) -> None:
     '''Only for developing purposes. Creates sample data saved as json file to avoid intensive api penetration.'''
     import json
     with open(filename, 'w') as handle:

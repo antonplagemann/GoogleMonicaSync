@@ -1,11 +1,12 @@
 # pylint: disable=import-error
-from DatabaseHelper import Database
-from MonicaHelper import Monica, MonicaContactUploadForm
-from GoogleHelper import Google, GoogleContactUploadForm
-from logging import Logger
-from datetime import datetime
-from typing import Tuple, Union
 import sys
+from datetime import datetime
+from logging import Logger
+from typing import Tuple, Union
+
+from DatabaseHelper import Database, DatabaseRow
+from GoogleHelper import Google, GoogleContactUploadForm
+from MonicaHelper import Monica, MonicaContactUploadForm
 
 
 class Sync():
@@ -26,9 +27,6 @@ class Sync():
         self.deleteMonicaContacts = deleteMonicaContactsOnSync
         self.streetReversal = streetReversalOnAddressSync
         self.sync = syncingFields
-
-        # Debugging area :-)
-        self.fakeNum = 1
 
     def startSync(self, syncType: str = '') -> None:
         '''Starts the next sync type depending on database data.'''
@@ -165,12 +163,13 @@ class Sync():
                 print(msg)
 
                 # Update database and mapping
-                self.database.insertData(googleContact['resourceName'],
-                                         monicaContact['id'],
-                                         gContactDisplayName,
-                                         monicaContact['complete_name'],
-                                         googleContact['metadata']['sources'][0]['updateTime'],
-                                         monicaContact['updated_at'])
+                databaseEntry = DatabaseRow(googleContact['resourceName'],
+                                            monicaContact['id'],
+                                            gContactDisplayName,
+                                            monicaContact['complete_name'],
+                                            googleContact['metadata']['sources'][0]['updateTime'],
+                                            monicaContact['updated_at'])
+                self.database.insertData(databaseEntry)
                 self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
                 msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
                 self.log.info(msg)
@@ -311,90 +310,97 @@ class Sync():
         '''Syncs phone and email fields.'''
         if self.sync["email"] or self.sync["phone"]:
             monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
+        if self.sync["email"]:
+            self.__syncEmail(googleContact, monicaContact, monicaContactFields)
+        if self.sync["phone"]:
+            self.__syncPhone(googleContact, monicaContact, monicaContactFields)
+
+    def __syncEmail(self, googleContact: dict, monicaContact: dict, monicaContactFields: dict) -> None:
+        '''Syncs email fields.'''
         try:
-            if self.sync["email"]:
-                # Email processing
-                monicaContactEmails = [
-                    field for field in monicaContactFields 
-                    if field["contact_field_type"]["type"] == "email"]
-                googleContactEmails = googleContact.get("emailAddresses", [])
+            # Email processing
+            monicaContactEmails = [
+                field for field in monicaContactFields 
+                if field["contact_field_type"]["type"] == "email"]
+            googleContactEmails = googleContact.get("emailAddresses", [])
 
-                if googleContactEmails:
-                    googleEmails = [
-                        {
-                        "contact_field_type_id": 1,
-                        "data": email["value"].strip(),
-                        "contact_id": monicaContact["id"]
-                        } 
-                        for email in googleContactEmails
-                    ]
-                    if monicaContactEmails:
-                        # There is Google and Monica data: Check and recreate emails
-                        for monicaEmail in monicaContactEmails:
-                            # Check if there are emails to be deleted
-                            if monicaEmail["content"] in [googleEmail["data"] for googleEmail in googleEmails]:
-                                continue
-                            else:
-                                self.monica.deleteContactField(monicaEmail["id"], monicaContact["id"], monicaContact["complete_name"])
-                        for googleEmail in googleEmails:
-                            # Check if there are emails to be created
-                            if googleEmail["data"] in [monicaEmail["content"] for monicaEmail in monicaContactEmails]:
-                                continue
-                            else:
-                                self.monica.createContactField(monicaContact["id"], googleEmail, monicaContact["complete_name"])
-                    else:
-                        # There is only Google data: Create emails
-                        for googleEmail in googleEmails:
-                            self.monica.createContactField(monicaContact["id"], googleEmail, monicaContact["complete_name"])
-
-                elif monicaContactEmails:
-                    # Delete Monica contact emails
+            if googleContactEmails:
+                googleEmails = [
+                    {
+                    "contact_field_type_id": 1,
+                    "data": email["value"].strip(),
+                    "contact_id": monicaContact["id"]
+                    } 
+                    for email in googleContactEmails
+                ]
+                if monicaContactEmails:
+                    # There is Google and Monica data: Check and recreate emails
                     for monicaEmail in monicaContactEmails:
-                        self.monica.deleteContactField(monicaEmail["id"], monicaContact["id"], monicaContact["complete_name"])
+                        # Check if there are emails to be deleted
+                        if monicaEmail["content"] in [googleEmail["data"] for googleEmail in googleEmails]:
+                            continue
+                        else:
+                            self.monica.deleteContactField(monicaEmail["id"], monicaContact["id"], monicaContact["complete_name"])
+                    for googleEmail in googleEmails:
+                        # Check if there are emails to be created
+                        if googleEmail["data"] in [monicaEmail["content"] for monicaEmail in monicaContactEmails]:
+                            continue
+                        else:
+                            self.monica.createContactField(monicaContact["id"], googleEmail, monicaContact["complete_name"])
+                else:
+                    # There is only Google data: Create emails
+                    for googleEmail in googleEmails:
+                        self.monica.createContactField(monicaContact["id"], googleEmail, monicaContact["complete_name"])
+
+            elif monicaContactEmails:
+                # Delete Monica contact emails
+                for monicaEmail in monicaContactEmails:
+                    self.monica.deleteContactField(monicaEmail["id"], monicaContact["id"], monicaContact["complete_name"])
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact email: {str(e)}"
             self.log.warning(msg)
 
+    def __syncPhone(self, googleContact: dict, monicaContact: dict, monicaContactFields: dict) -> None:
+        '''Syncs phone fields.'''
         try:
-            if self.sync["phone"]:
-                # Phone number processing
-                monicaContactPhones = [
-                    field for field in monicaContactFields 
-                    if field["contact_field_type"]["type"] == "phone"]
-                googleContactPhones = googleContact.get("phoneNumbers", [])
+            # Phone number processing
+            monicaContactPhones = [
+                field for field in monicaContactFields 
+                if field["contact_field_type"]["type"] == "phone"]
+            googleContactPhones = googleContact.get("phoneNumbers", [])
 
-                if googleContactPhones:
-                    googlePhones = [
-                        {
-                        "contact_field_type_id": 2,
-                        "data": number["value"].strip(),
-                        "contact_id": monicaContact["id"]
-                        } 
-                        for number in googleContactPhones
-                    ]
-                    if monicaContactPhones:
-                        # There is Google and Monica data: Check and recreate phone numbers
-                        for monicaPhone in monicaContactPhones:
-                            # Check if there are phone numbers to be deleted
-                            if monicaPhone["content"] in [googlePhone["data"] for googlePhone in googlePhones]:
-                                continue
-                            else:
-                                self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
-                        for googlePhone in googlePhones:
-                            # Check if there are phone numbers to be created
-                            if googlePhone["data"] in [monicaPhone["content"] for monicaPhone in monicaContactPhones]:
-                                continue
-                            else:
-                                self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
-                    else:
-                        # There is only Google data: Create phone numbers
-                        for googlePhone in googlePhones:
-                            self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
-
-                elif monicaContactPhones:
-                    # Delete Monica contact phone numbers
+            if googleContactPhones:
+                googlePhones = [
+                    {
+                    "contact_field_type_id": 2,
+                    "data": number["value"].strip(),
+                    "contact_id": monicaContact["id"]
+                    } 
+                    for number in googleContactPhones
+                ]
+                if monicaContactPhones:
+                    # There is Google and Monica data: Check and recreate phone numbers
                     for monicaPhone in monicaContactPhones:
-                        self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
+                        # Check if there are phone numbers to be deleted
+                        if monicaPhone["content"] in [googlePhone["data"] for googlePhone in googlePhones]:
+                            continue
+                        else:
+                            self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
+                    for googlePhone in googlePhones:
+                        # Check if there are phone numbers to be created
+                        if googlePhone["data"] in [monicaPhone["content"] for monicaPhone in monicaContactPhones]:
+                            continue
+                        else:
+                            self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
+                else:
+                    # There is only Google data: Create phone numbers
+                    for googlePhone in googlePhones:
+                        self.monica.createContactField(monicaContact["id"], googlePhone, monicaContact["complete_name"])
+
+            elif monicaContactPhones:
+                # Delete Monica contact phone numbers
+                for monicaPhone in monicaContactPhones:
+                    self.monica.deleteContactField(monicaPhone["id"], monicaContact["id"], monicaContact["complete_name"])
 
         except Exception as e:
             msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): Error updating Monica contact phone: {str(e)}"
@@ -578,10 +584,11 @@ class Sync():
                 gContactDisplayName = googleContact['names'][0].get("displayName", '')
 
                 # Update database and mapping
-                self.database.insertData(googleContact['resourceName'],
+                databaseEntry = DatabaseRow(googleContact['resourceName'],
                                             monicaContact['id'],
                                             gContactDisplayName,
                                             monicaContact['complete_name'])
+                self.database.insertData(databaseEntry)
                 msg = f"'{gContactDisplayName}' ('{googleContact['resourceName']}'): New google contact created (sync back)"
                 print("\n" + msg)
                 self.log.info(msg)
@@ -699,12 +706,6 @@ class Sync():
     def __checkDatabaseConsistency(self) -> None:
         '''Checks if there are orphaned database entries which need to be resolved.'''
         # To be implemented
-
-    def __generateFakeId(self, idList: list) -> str:
-        '''Used to generate nonsense ids for debugging and testing'''
-        while "fake_" + str(self.fakeNum) in idList:
-            self.fakeNum += 1
-        return "fake_" + str(self.fakeNum)
 
     def __mergeAndUpdateNBD(self, monicaContact: dict, googleContact: dict) -> dict:
         '''Updates names, birthday and deceased date by merging an existing Monica contact with
@@ -837,7 +838,6 @@ class Sync():
         at least one candidate has been found. Creates a new Monica contact
         if neccessary or chosen by User. Returns Monica contact id.'''
         # Initialization
-        resolved = False
         candidates = []
         gContactGivenName = googleContact['names'][0].get("givenName", False)
         gContactFamilyName = googleContact['names'][0].get("familyName", False)
@@ -869,25 +869,25 @@ class Sync():
         if not candidates:
             # Create a new Monica contact
             monicaContact = self.__createMonicaContact(googleContact)
-            msg = f"'{gContactDisplayName}' ('{monicaContact['id']}'): Conflict resolved: New Monica contact created"
-            self.log.info(msg)
-            print(msg)
-            resolved = True
+            msg = f"Conflict resolved: '{gContactDisplayName}' ('{monicaContact['id']}'): New Monica contact created"
 
         # There must be exactly one candidate from user vote
         else:
             monicaContact = candidates[0]
 
         # Update database and mapping
-        self.database.insertData(googleContact['resourceName'],
-                                 monicaContact['id'],
-                                 gContactDisplayName,
-                                 monicaContact['complete_name'])
+        databaseEntry = DatabaseRow(googleContact['resourceName'],
+                                    monicaContact['id'],
+                                    gContactDisplayName,
+                                    monicaContact['complete_name'])
+        self.database.insertData(databaseEntry)
         self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+
+        # Print success
         msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
         self.log.info(msg)
-        if not resolved:
-            print("Conflict resolved: " + msg)
+        print("Conflict resolved: " + msg)
+
         return str(monicaContact['id'])
 
     # pylint: disable=unsubscriptable-object
@@ -916,10 +916,11 @@ class Sync():
             monicaContact = candidates[0]
 
             # Update database and mapping
-            self.database.insertData(googleContact['resourceName'],
-                                     monicaContact['id'],
-                                     googleContact['names'][0]["displayName"],
-                                     monicaContact['complete_name'])
+            databaseEntry = DatabaseRow(googleContact['resourceName'],
+                                        monicaContact['id'],
+                                        googleContact['names'][0]["displayName"],
+                                        monicaContact['complete_name'])
+            self.database.insertData(databaseEntry)
             self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
             return str(monicaContact['id'])
 
