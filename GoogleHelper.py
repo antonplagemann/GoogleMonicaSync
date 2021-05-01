@@ -83,6 +83,7 @@ class Google():
         parameters = {'resourceName': 'people/me',
                       'pageSize': 1000,
                       'personFields': self.syncFields,
+                      'requestSyncToken': True,
                       **params}
 
         # Return sample data if present (debugging)

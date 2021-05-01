@@ -4,7 +4,7 @@ from logging import Logger
 from typing import Tuple, Union, List
 
 
-class DatabaseRow():
+class DatabaseEntry():
     '''Creates a database row object for inserting into the database. 
     Needs at least a Monica id AND a Google id.'''
 
@@ -66,9 +66,9 @@ class Database():
         self.cursor.execute(createConfigTableSql)
         self.connection.commit()
 
-    def insertData(self, databaseRow: DatabaseRow) -> None:
+    def insertData(self, databaseEntry: DatabaseEntry) -> None:
         '''Inserts the given data into the database.'''
-        self.cursor.execute(databaseRow.getInsertStatement())
+        self.cursor.execute(databaseEntry.getInsertStatement())
         self.connection.commit()
 
     def update(self, googleId: str = None, monicaId: str = None,
