@@ -120,13 +120,14 @@ class Sync():
             isDeleted = googleContact.get('metadata', {}).get('deleted', False)
             if isDeleted and self.deleteMonicaContacts:
                 self.__deleteMonicaContact(googleContact)
+                # Skip further processing
                 continue
 
             # Skip all contacts which have not changed according to the database lastChanged date (if present)
             try:
-                if dateBasedSync:
-                    # Get timestamps
-                    databaseTimestamp = self.database.findById(googleId=googleContact["resourceName"])[4]
+                # Get Monica id and timestamp
+                monicaId, _, _, databaseTimestamp = self.database.findById(googleId=googleContact["resourceName"])[1:5]
+                if dateBasedSync and not databaseTimestamp == 'NULL':
                     databaseDate = self.__convertGoogleTimestamp(databaseTimestamp)
                     contactTimestamp = googleContact['metadata']['sources'][0]["updateTime"]
                     contactDate = self.__convertGoogleTimestamp(contactTimestamp)
@@ -135,14 +136,7 @@ class Sync():
                     if databaseDate == contactDate:
                         continue
             except:
-                # Continue if there is no lastChanged date
-                pass
-
-            try:
-                # Get Monica id from database (index 1 in returned row)
-                monicaId = self.database.findById(googleId=googleContact["resourceName"])[1]
-            except:
-                # That must be a new Google contact
+                # Create a new Google contact if there's nothing in the database yet
                 googleId = googleContact['resourceName']
                 gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
                 msg = f"'{gContactDisplayName}' ('{googleId}'): No Monica id found': Creating new Monica contact..."
@@ -306,8 +300,7 @@ class Sync():
 
     def __syncPhoneEmail(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs phone and email fields.'''
-        if self.sync["email"] or self.sync["phone"]:
-            monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
+        monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
         if self.sync["email"]:
             self.__syncEmail(googleContact, monicaContact, monicaContactFields)
         if self.sync["phone"]:
