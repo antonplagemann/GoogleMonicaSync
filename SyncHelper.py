@@ -67,43 +67,30 @@ class Sync():
         self.mapping.clear()
         self.__buildSyncDatabase()
         self.mapping = self.database.getIdMapping()
-        self.__sync('full')
+        self.__sync('full', dateBasedSync=False)
 
-    def __deleteRemovedContacts(self, googleContacts: List[dict]) -> None:
-        '''Fetches every contact from Google that has changed since the last sync including deleted ones.'''
-        msg = "Searching for deleted contacts..."
+    def __deleteMonicaContact(self, googleContact: dict) -> None:
+        '''Deletes a Monica contact given a corresponding Google contact.'''
+        # Initialization
+        googleId = googleContact["resourceName"]
+        gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
+        msg = f"'{gContactDisplayName}' ('{googleId}'): Found deleted Google contact. Deleting Monica contact..."
         self.log.info(msg)
-        print("\n" + msg)
-        contactCount = len(googleContacts)
 
-        # Process every Google contact and search for deleted ones
-        for num, googleContact in enumerate(googleContacts):
-            sys.stdout.write(f"\rProcessing Google contact {num+1} of {contactCount}")
-            sys.stdout.flush()
-            isDeleted = googleContact.get('metadata', {}).get('deleted', False)
-            if isDeleted:
-                googleId = googleContact["resourceName"]
-                try:
-                    # Try to delete the corresponding contact
-                    gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
-                    msg = f"'{gContactDisplayName}' ('{googleId}'): Found deleted Google contact. Deleting Monica contact..."
-                    self.log.info(msg)
-                    monicaId = self.database.findById(googleId=googleId)[1]
-                    self.monica.deleteContact(monicaId, gContactDisplayName)
-                    self.database.delete(googleId, monicaId)
-                    self.mapping.pop(googleId)
-                    self.google.removeContactFromList(googleContact)
-                    msg = f"'{gContactDisplayName}' ('{monicaId}'): Monica contact deleted successfully"
-                    self.log.info(msg)
-                except:
-                    msg = f"'{gContactDisplayName}' ('{googleId}'): Failed deleting corresponding Monica contact! Please delete manually!"
-                    self.google.removeContactFromList(googleContact)
-                    self.log.error(msg)
-                    print(msg)
-
-        msg = "Search finished!"
-        self.log.info(msg)
-        print("\n" + msg)
+        try:
+            # Try to delete the corresponding contact
+            monicaId = self.database.findById(googleId=googleId)[1]
+            self.monica.deleteContact(monicaId, gContactDisplayName)
+            self.database.delete(googleId, monicaId)
+            self.mapping.pop(googleId)
+            self.google.removeContactFromList(googleContact)
+            msg = f"'{gContactDisplayName}' ('{monicaId}'): Monica contact deleted successfully"
+            self.log.info(msg)
+        except:
+            msg = f"'{gContactDisplayName}' ('{googleId}'): Failed deleting corresponding Monica contact! Please delete manually!"
+            self.google.removeContactFromList(googleContact)
+            self.log.error(msg)
+            print(msg)
 
     def __sync(self, syncType: str, dateBasedSync: bool = True) -> None:
         '''Fetches every contact from Google and Monica and does a full sync.'''
@@ -111,12 +98,8 @@ class Sync():
         msg = f"Starting {syncType} sync..."
         self.log.info(msg)
         print("\n" + msg)
-        if syncType == 'full':
-            googleContacts = self.google.getContacts()
-        elif syncType == 'delta':
+        if syncType == 'delta':
             googleContacts = self.google.getContacts(syncToken=self.nextSyncToken)
-            if self.deleteMonicaContacts:
-                self.__deleteRemovedContacts(googleContacts)
         else:
             googleContacts = self.google.getContacts()
         contactCount = len(googleContacts)
@@ -132,6 +115,12 @@ class Sync():
             sys.stdout.write(
                 f"\rProcessing Google contact {num+1} of {contactCount}")
             sys.stdout.flush()
+
+            # Delete Monica contact if Google contact was deleted (if chosen by user; delta sync only)
+            isDeleted = googleContact.get('metadata', {}).get('deleted', False)
+            if isDeleted and self.deleteMonicaContacts:
+                self.__deleteMonicaContact(googleContact)
+                continue
 
             # Skip all contacts which have not changed according to the database lastChanged date (if present)
             try:

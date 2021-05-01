@@ -68,7 +68,7 @@ class Database():
 
     def insertData(self, databaseEntry: DatabaseEntry) -> None:
         '''Inserts the given data into the database.'''
-        self.cursor.execute(databaseEntry.getInsertStatement())
+        self.cursor.execute(*databaseEntry.getInsertStatement())
         self.connection.commit()
 
     def update(self, googleId: str = None, monicaId: str = None,
