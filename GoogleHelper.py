@@ -54,6 +54,11 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
+    def getLabelId(self, name:str) -> str:
+        '''Returns the Google label id for a given tag name.
+        Creates a new label if it has not been found.'''
+        return self.labelMapping.get(name, self.createLabel(name))
+
     def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
         if self.labelFilter["include"]:
@@ -77,7 +82,7 @@ class Google():
         (e.g. if it has been deleted on both sides)'''
         self.contacts.remove(googleContact)
 
-    def getContacts(self, refetchData: bool = False, **params) -> List[dict]:
+    def getContacts(self, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
         # Build GET parameters
         parameters = {'resourceName': 'people/me',
@@ -91,7 +96,7 @@ class Google():
             return self.sampleData
 
         # Avoid multiple fetches
-        if self.dataAlreadyFetched and not refetchData:
+        if self.dataAlreadyFetched:
             return self.contacts
 
         # Start fetching
@@ -275,3 +280,7 @@ class GoogleContactUploadForm():
                 }
                 for labelId in labelIds
             ]
+
+    def getData(self) -> dict:
+        '''Returns the Google contact form data.'''
+        return self.data

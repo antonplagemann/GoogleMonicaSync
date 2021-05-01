@@ -202,9 +202,6 @@ class Sync():
     def __syncDetails(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs additional details, such as company, jobtitle, labels, 
         address, phone numbers, emails, notes, contact picture, etc.'''
-        # If you do not want to sync certain fields you can safely
-        # comment out the following functions
-        
         if self.sync["career"]:
             # Sync career info
             self.__syncCareerInfo(googleContact, monicaContact)
@@ -515,7 +512,7 @@ class Sync():
             self.log.warning(msg)
 
     def __buildSyncDatabase(self) -> None:
-        '''Builds a Google <-> Monica contact id mapping and saves it to the database.'''
+        '''Builds a Google <-> Monica 1:1 contact id mapping and saves it to the database.'''
         # Initialization
         conflicts = []
         googleContacts = self.google.getContacts()
@@ -621,8 +618,6 @@ class Sync():
         print(msg)
         self.log.info(msg)
 
-        {(4-len(str(self.google.apiRequests))) * ' '}
-
     def __createGoogleContact(self, monicaContact: dict) -> dict:
         '''Creates a new Google contact from a given Monica contact and returns it.'''
         # Get names (no nickname)
@@ -656,18 +651,19 @@ class Sync():
                 if value and self.sync["career"]}
 
         # Get phone numbers and email addresses
-        monicaContactFields = []
         if self.sync["phone"] or self.sync["email"]:   
             monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
-        emails = [field["content"] for field in monicaContactFields 
-                if field["contact_field_type"]["type"] == "email"
-                and self.sync["email"]]
-        phoneNumbers = [field["content"] for field in monicaContactFields 
-                        if field["contact_field_type"]["type"] == "phone"
-                        and self.sync["phone"]]
+            # Get email addresses
+            emails = [field["content"] for field in monicaContactFields 
+                    if field["contact_field_type"]["type"] == "email"
+                    and self.sync["email"]]
+            # Get phone numbers
+            phoneNumbers = [field["content"] for field in monicaContactFields 
+                            if field["contact_field_type"]["type"] == "phone"
+                            and self.sync["phone"]]
 
         # Get tags/labels and create them if neccessary
-        labelIds = [self.google.labelMapping.get(tag['name'], self.google.createLabel(tag['name']))
+        labelIds = [self.google.getLabelId(tag['name'])
             for tag in monicaContact["tags"]
             if self.sync["labels"]]
 
@@ -679,7 +675,7 @@ class Sync():
                                        addresses=addresses)
 
         # Upload contact
-        contact = self.google.createContact(data=form.data)
+        contact = self.google.createContact(data=form.getData())
 
         return contact
 
