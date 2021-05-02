@@ -11,7 +11,7 @@ from GoogleHelper import Google
 from MonicaHelper import Monica
 from SyncHelper import Sync
 
-VERSION = "v2.2.2"
+VERSION = "v2.3.0"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
@@ -56,8 +56,8 @@ def main() -> None:
                             required=False, help="do a delta sync of new or changed Google contacts")
         parser.add_argument('-f', '--full', action='store_true',
                             required=False, help="do a full sync and request a new delta sync token")
-        #parser.add_argument('-c', '--check', action='store_true',
-        #                    required=False, help="not implemented yet")
+        parser.add_argument('-c', '--check', action='store_true',
+                            required=False, help="check database consistency and report all errors")
 
         # Parse arguments
         args = parser.parse_args()
@@ -69,15 +69,16 @@ def main() -> None:
         handler.setLevel(logging.INFO)
         handler.setFormatter(format)
         log.addHandler(handler)
-        log.info(f"Sync started ({VERSION})")
+        log.info(f"Script started ({VERSION})")
 
         # Create sync object
         database = Database(log, 'syncState.db')
         google = Google(log, database, GOOGLE_LABELS)
         monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
-        sync = Sync(log, database, monica, google, args.syncback, DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
+        sync = Sync(log, database, monica, google, args.syncback, args.check, 
+                    DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
 
-        # A newline makes things more beautiful
+        # A newline makes console printing more beautiful
         print("")
 
         if args.initial:
@@ -92,6 +93,9 @@ def main() -> None:
         elif args.syncback:
             # Start sync back from Monica to Google
             sync.startSync('syncBack')
+        elif args.check:
+            # Check database for errors
+            sync.checkDatabase()
         else:
             # Wrong arguments
             print("Unknown sync arguments, check your input!\n")
@@ -99,10 +103,10 @@ def main() -> None:
             sys.exit(2)
 
         # Its over now
-        log.info("Sync ended\n")
+        log.info("Script ended\n")
 
     except Exception as e:
-        msg = f"Sync aborted: {str(e)}\n"
+        msg = f"Script aborted: {str(e)}\n"
         log.error(msg)
         print("\n" + msg)
         sys.exit(1)

@@ -180,14 +180,12 @@ class Monica():
             # If successful
             if response.status_code == 200:
                 monicaContact = response.json()['data']
-                monicaContact = self.__filterContactsByLabel([monicaContact][0])
+                monicaContact = self.__filterContactsByLabel([monicaContact])[0]
                 self.contacts.append(monicaContact)
                 return monicaContact
             else:
                 error = response.json()['error']['message']
-                msg = f"Error fetching Monica contact '{id}': {error}"
-                self.log.error(msg)
-                raise Exception(msg)
+                raise Exception(error)
 
         except IndexError:
             msg = f"Contact processing of '{id}' not allowed by label filter"
@@ -195,7 +193,7 @@ class Monica():
             raise Exception(msg)
 
         except Exception as e:
-            msg = f"Failed to fetch Monica contact '{id}' (maybe connection issue): {str(e)}"
+            msg = f"Failed to fetch Monica contact '{id}': {str(e)}"
             self.log.error(msg)
             raise Exception(msg)
 

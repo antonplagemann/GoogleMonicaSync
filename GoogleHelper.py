@@ -86,7 +86,47 @@ class Google():
         (e.g. if it has been deleted on both sides)'''
         self.contacts.remove(googleContact)
 
-    def getContacts(self, **params) -> List[dict]:
+    def getContact(self, id: str) -> dict:
+        '''Fetches a single contact by id from Google.'''
+        try:
+            # Check if contact is already fetched
+            if self.contacts:
+                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(id)]
+                if googleContactList: 
+                    return googleContactList[0]
+
+            # Build GET parameters
+            parameters = {
+                'resourceName': id,
+                'personFields': self.syncFields,
+            }
+
+            # Fetch contact
+            # pylint: disable=no-member
+            result = self.service.people().get(**parameters).execute()
+            self.apiRequests += 1
+
+            # Return contact
+            googleContact = self.__filterContactsByLabel([result])[0]
+            self.contacts.append(googleContact)
+            return googleContact
+
+        except HttpError as e:
+            msg = f"Failed to fetch Google contact '{id}': {str(e._get_reason())}"
+            self.log.error(msg)
+            raise Exception(msg)
+
+        except IndexError:
+            msg = f"Contact processing of '{id}' not allowed by label filter"
+            self.log.info(msg)
+            raise Exception(msg)
+
+        except Exception as e:
+            msg = f"Failed to fetch Google contact '{id}': {str(e)}"
+            self.log.error(msg)
+            raise Exception(msg)
+
+    def getContacts(self, refetchData : bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
         # Build GET parameters
         parameters = {'resourceName': 'people/me',
@@ -100,7 +140,7 @@ class Google():
             return self.sampleData
 
         # Avoid multiple fetches
-        if self.dataAlreadyFetched:
+        if self.dataAlreadyFetched and not refetchData:
             return self.contacts
 
         # Start fetching

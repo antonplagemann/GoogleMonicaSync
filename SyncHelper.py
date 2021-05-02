@@ -13,20 +13,27 @@ class Sync():
     '''Handles all syncing and merging issues with Google, Monica and the database.'''
 
     def __init__(self, log: Logger, databaseHandler: Database, 
-                 monicaHandler: Monica, googleHandler: Google, syncBackToGoogle: bool, 
-                 deleteMonicaContactsOnSync: bool, streetReversalOnAddressSync: bool,
-                 syncingFields: dict) -> None:
+                 monicaHandler: Monica, googleHandler: Google, syncBackToGoogle: bool,
+                 checkDatabase: bool, deleteMonicaContactsOnSync: bool, 
+                 streetReversalOnAddressSync: bool, syncingFields: dict) -> None:
         self.log = log
         self.startTime = datetime.now()
         self.monica = monicaHandler
         self.google = googleHandler
         self.database = databaseHandler
         self.mapping = self.database.getIdMapping()
+        self.reverseMapping = {monicaId: googleId for googleId, monicaId in self.mapping.items()}
         self.nextSyncToken = self.database.getGoogleNextSyncToken()
         self.syncBack = syncBackToGoogle
+        self.check = checkDatabase
         self.deleteMonicaContacts = deleteMonicaContactsOnSync
         self.streetReversal = streetReversalOnAddressSync
         self.sync = syncingFields
+
+    def __updateMapping(self, googleId: str, monicaId: str) -> None:
+        '''Updates the internal Google <-> Monica id mapping dictionary.'''
+        self.mapping.update({googleId: monicaId})
+        self.reverseMapping.update({monicaId: googleId})
 
     def startSync(self, syncType: str = '') -> None:
         '''Starts the next sync cycle depending on the requested type 
@@ -58,8 +65,13 @@ class Sync():
         elif syncType == 'syncBack':
             # Sync back to Google requested
             self.__syncBack()
-
+        
+        # Print statistics
         self.__printSyncStatistics()
+
+        if self.check:
+            # Database check requested
+            self.checkDatabase()
 
     def __initialSync(self) -> None:
         '''Builds the syncing database and starts a full sync. Needs user interaction!'''
@@ -157,7 +169,7 @@ class Sync():
                                             googleContact['metadata']['sources'][0]['updateTime'],
                                             monicaContact['updated_at'])
                 self.database.insertData(databaseEntry)
-                self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+                self.__updateMapping(googleContact['resourceName'], str(monicaContact['id']))
                 msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
                 self.log.info(msg)
 
@@ -549,11 +561,11 @@ class Sync():
 
     def __syncBack(self) -> None:
         '''Sync lonely Monica contacts back to Google by creating a new contact there.'''
-        monicaContacts = self.monica.getContacts()
-        contactCount = len(monicaContacts)
         msg = "Starting sync back..."
         self.log.info(msg)
         print("\n" + msg)
+        monicaContacts = self.monica.getContacts()
+        contactCount = len(monicaContacts)
 
         # Process every Monica contact
         for num, monicaContact in enumerate(monicaContacts):
@@ -580,7 +592,7 @@ class Sync():
                 msg = f"'{gContactDisplayName}' ('{googleContact['resourceName']}'): New google contact created (sync back)"
                 print("\n" + msg)
                 self.log.info(msg)
-                self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+                self.__updateMapping(googleContact['resourceName'], str(monicaContact['id']))
                 msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
                 self.log.info(msg)
 
@@ -592,10 +604,10 @@ class Sync():
         # Finished
         msg = "Sync back finished!"
         self.log.info(msg)
-        print("\n" + msg)
+        print(msg)
 
     def __printSyncStatistics(self) -> None:
-        '''Prints a pretty sync statistic of the last sync.'''
+        '''Prints and logs a pretty sync statistic of the last sync.'''
         self.monica.updateStatistics()
         tme = str(datetime.now() - self.startTime).split(".")[0] + "h"
         gAp = str(self.google.apiRequests) + (8-len(str(self.google.apiRequests))) * ' '
@@ -605,7 +617,7 @@ class Sync():
         mCD = str(len(self.monica.deletedContacts)) + (8-len(str(len(self.monica.deletedContacts)))) * ' '
         gCC = str(len(self.google.createdContacts)) + (8-len(str(len(self.google.createdContacts)))) * ' '
         msg = "\n" \
-        f"Statistics: \n" \
+        f"Sync statistics: \n" \
         f"+-------------------------------------+\n" \
         f"| Syncing time:             {tme   }  |\n" \
         f"| Google api calls used:    {gAp   }  |\n" \
@@ -690,9 +702,153 @@ class Sync():
         except:
             return ''
 
-    def __checkDatabaseConsistency(self) -> None:
-        '''Checks if there are orphaned database entries which need to be resolved.'''
-        # To be implemented
+    def checkDatabase(self) -> None:
+        '''Checks if there are orphaned database entries which need to be resolved.
+        The following checks and assumptions will be made:
+        1. Google contact id NOT IN database
+           -> Info: contact is currently not in sync
+        2. Google contact id IN database BUT Monica contact not found
+           -> Error: deleted Monica contact or wrong id
+        3. Monica contact id NOT IN database
+           -> Info: contact is currently not in sync
+        4. Monica contact id IN database BUT Google contact not found
+           -> Error: deleted Google contact or wrong id
+        5. Google contact id IN database BUT Monica AND Google contact not found
+           -> Warning: orphaned database entry'''
+        # Initialization
+        startTime = datetime.now()
+        googleContactsNotSynced = []
+        googleContactsSynced = []
+        monicaContactsNotSynced = []
+        monicaContactsSynced = []
+        errors = 0
+        msg = f"Starting database check..."
+        self.log.info(msg)
+        print("\n" + msg)
+
+        # Get contacts
+        googleContacts = self.google.getContacts(refetchData=True, requestSyncToken=False)
+        googleContactsCount = len(googleContacts)
+        monicaContacts = self.monica.getContacts()
+        monicaContactsCount = len(monicaContacts)
+
+        # Check every Google contact
+        for num, googleContact in enumerate(googleContacts):
+            sys.stdout.write(
+                f"\rProcessing Google contact {num+1} of {googleContactsCount}")
+            sys.stdout.flush()
+
+            # Get monica id
+            monicaId = self.mapping.get(googleContact['resourceName'], None)
+            if not monicaId:
+                googleContactsNotSynced.append(googleContact)
+                continue
+
+            # Get monica contact
+            try:
+                monicaContact = self.monica.getContact(monicaId)
+                assert monicaContact
+                monicaContactsSynced.append(monicaContact)
+            except:
+                errors += 1
+                msg = f"'{googleContact['names'][0]['displayName']}' ('{googleContact['resourceName']}'): " \
+                      f"Wrong id or missing Monica contact for id '{monicaId}'."
+                self.log.error(msg)
+                print("\nError: " + msg)
+
+        # Print a newline to avoid overwriting console output
+        print("")
+
+        # Check every Monica contact
+        for num, monicaContact in enumerate(monicaContacts):
+            sys.stdout.write(
+                f"\rProcessing Monica contact {num+1} of {monicaContactsCount}")
+            sys.stdout.flush()
+
+            # Get monica id
+            googleId = self.reverseMapping.get(str(monicaContact["id"]), None)
+            if not googleId:
+                monicaContactsNotSynced.append(monicaContact)
+                continue
+
+            # Get Monica contact
+            try:
+                googleContact = self.google.getContact(googleId)
+                assert googleContact
+                googleContactsSynced.append(googleContact)
+            except:
+                errors += 1
+                msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): " \
+                      f"Wrong id or missing Google contact for id '{googleId}'."
+                self.log.error(msg)
+                print("\nError: " + msg)
+
+        # Check for orphaned database entrys
+        googleIds = [c['resourceName'] for c in googleContacts]
+        monicaIds = [str(c['id']) for c in monicaContacts]
+        orphanedEntrys = [googleId for googleId, monicaId in self.mapping.items()
+                          if googleId not in googleIds
+                          and monicaId not in monicaIds]
+
+        # Log results
+        if orphanedEntrys:
+            self.log.info("The following database entrys are orphaned:")
+            for googleId in orphanedEntrys:
+                monicaId, googleFullName, monicaFullName = self.database.findById(googleId)[1:4]
+                self.log.warning(f"'{googleId}' <-> '{monicaId}' ('{googleFullName}' <-> '{monicaFullName}')")
+                self.log.info("This doesn't cause sync errors, but you can fix it doing initial sync '-i'")
+        if not monicaContactsNotSynced and not googleContactsNotSynced:
+            self.log.info("All contacts are currently in sync")
+        elif monicaContactsNotSynced:
+            self.log.info("The following Monica contacts are currently not in sync:")
+            for monicaContact in monicaContactsNotSynced:
+                self.log.info(f"'{monicaContact['complete_name']}' ('{monicaContact['id']}')")
+            self.log.info("You can do a sync back '-sb' to fix that")
+        if googleContactsNotSynced:
+            self.log.info("The following Google contacts are currently not in sync:")
+            for googleContact in googleContactsNotSynced:
+                googleId = googleContact['resourceName']
+                gContactDisplayName = googleContact.get('names', [{}])[0].get('displayName', "")
+                self.log.info(f"'{gContactDisplayName}' ('{googleId}')")
+            self.log.info("You can do a full sync '-f' to fix that")
+
+        # Finished
+        if errors:
+            msg = f"Database check failed. Consider doing initial sync '-i' again!"
+        else:
+            msg = f"Database check finished, no errors found!"
+        self.log.info(msg)
+        print("\n" + msg)
+
+        # Print and log statistics
+        self.__printCheckStatistics(startTime, errors, len(orphanedEntrys),
+                                    len(monicaContactsNotSynced), len(googleContactsNotSynced),
+                                    monicaContactsCount, googleContactsCount)
+
+    def __printCheckStatistics(self, startTime: str, errors: int, orphaned: int,
+                               monicaContactsNotSyncedCount: int, googleContactsNotSyncedCount: int,
+                               monicaContactsCount: int, googleContactsCount: int) -> None:
+        '''Prints and logs a pretty check statistic of the last database check.'''
+        tme = str(datetime.now() - startTime).split(".")[0] + "h"
+        err = str(errors) + (8-len(str(errors))) * ' '
+        oph = str(orphaned) + (8-len(str(orphaned))) * ' '
+        mNS = str(monicaContactsNotSyncedCount) + (8-len(str(monicaContactsNotSyncedCount))) * ' '
+        gNS = str(googleContactsNotSyncedCount) + (8-len(str(googleContactsNotSyncedCount))) * ' '
+        cMC = str(monicaContactsCount) + (8-len(str(monicaContactsCount))) * ' '
+        cGC = str(googleContactsCount) + (8-len(str(googleContactsCount))) * ' '
+        msg = "\n" \
+        f"Check statistics: \n" \
+        f"+-----------------------------------------+\n" \
+        f"| Check time:                   {tme   }  |\n" \
+        f"| Errors:                       {err   }  |\n" \
+        f"| Orphaned database entrys:     {oph   }  |\n" \
+        f"| Monica contacts not in sync:  {mNS   }  |\n" \
+        f"| Google contacts not in sync:  {gNS   }  |\n" \
+        f"| Checked Monica contacts:      {cMC   }  |\n" \
+        f"| Checked Google contacts:      {cGC   }  |\n" \
+        f"+-----------------------------------------+"
+        print(msg)
+        self.log.info(msg)
 
     def __mergeAndUpdateNBD(self, monicaContact: dict, googleContact: dict) -> dict:
         '''Updates names, birthday and deceased date by merging an existing Monica contact with
@@ -868,7 +1024,7 @@ class Sync():
                                     gContactDisplayName,
                                     monicaContact['complete_name'])
         self.database.insertData(databaseEntry)
-        self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+        self.__updateMapping(googleContact['resourceName'], str(monicaContact['id']))
 
         # Print success
         msg = f"'{googleContact['resourceName']}' <-> '{monicaContact['id']}': New sync connection added"
@@ -908,7 +1064,7 @@ class Sync():
                                         googleContact['names'][0]["displayName"],
                                         monicaContact['complete_name'])
             self.database.insertData(databaseEntry)
-            self.mapping.update({googleContact['resourceName']: str(monicaContact['id'])})
+            self.__updateMapping(googleContact['resourceName'], str(monicaContact['id']))
             return str(monicaContact['id'])
 
         # Simple search failed
