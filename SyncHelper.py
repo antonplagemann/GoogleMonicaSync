@@ -29,6 +29,7 @@ class Sync():
         self.deleteMonicaContacts = deleteMonicaContactsOnSync
         self.streetReversal = streetReversalOnAddressSync
         self.sync = syncingFields
+        self.skipCreationPrompt = False
 
     def __updateMapping(self, googleId: str, monicaId: str) -> None:
         '''Updates the internal Google <-> Monica id mapping dictionary.'''
@@ -78,7 +79,16 @@ class Sync():
         self.database.deleteAndInitialize()
         self.mapping.clear()
         self.__buildSyncDatabase()
-        self.mapping = self.database.getIdMapping()
+        print("\nThe following fields will be overwritten with Google data:")
+        for field, choice in list(self.sync.items())[:-1]:
+            if choice:
+                print(f"- {field}")
+        print("Start full sync now?")
+        print("\t0: No (abort initial sync)")
+        print("\t1: Yes")
+        choice = int(input("Enter your choice (number only): "))
+        if not choice:
+            raise Exception("Sync aborted by user choice")
         self.__sync('full', dateBasedSync=False)
 
     def __deleteMonicaContact(self, googleContact: dict) -> None:
@@ -998,6 +1008,7 @@ class Sync():
                     candidates.append(mContact)
 
         # If there is at least one candidate let the user choose
+        choice = None
         if candidates:
             print("\nPossible syncing conflict, please choose your alternative by number:")
             print(f"\tWhich Monica contact should be connected to '{gContactDisplayName}'?")
@@ -1010,7 +1021,21 @@ class Sync():
 
         # If there are no candidates (user vote or nothing found) create a new Monica contact
         if not candidates:
-            # Create a new Monica contact
+            # Ask user if not done before
+            if not choice and not self.skipCreationPrompt:
+                print(f"\nNo Monica contact has been found for '{gContactDisplayName}'")
+                print(f"\tCreate a new Monica contact?")
+                print("\t0: No (abort initial sync)")
+                print("\t1: Yes")
+                print("\t2: Yes to all")
+                choice = int(input("Enter your choice (number only): "))
+                if not choice:
+                    raise Exception("Sync aborted by user choice")
+                if choice == 2:
+                    # Skip further contact creation prompts 
+                    self.skipCreationPrompt = True
+
+            # Create new Monica contact
             monicaContact = self.__createMonicaContact(googleContact)
             msg = f"Conflict resolved: '{gContactDisplayName}' ('{monicaContact['id']}'): New Monica contact created"
 

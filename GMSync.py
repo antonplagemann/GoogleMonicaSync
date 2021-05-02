@@ -11,7 +11,7 @@ from GoogleHelper import Google
 from MonicaHelper import Monica
 from SyncHelper import Sync
 
-VERSION = "v2.3.0"
+VERSION = "v2.4.0"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
@@ -78,23 +78,33 @@ def main() -> None:
         sync = Sync(log, database, monica, google, args.syncback, args.check, 
                     DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
 
-        # A newline makes console printing more beautiful
-        print("")
+        # Print chosen sync arguments (optional ones first)
+        print("\nYour choice (unordered):")
+        if args.syncback:
+            print("- sync back")
+        if args.check:
+            print("- database check")
 
+        # Start
         if args.initial:
             # Start initial sync
+            print("- initial sync\n")
             sync.startSync('initial')
         elif args.delta:
             # Start initial sync
+            print("- delta sync\n")
             sync.startSync('delta')
         elif args.full:
             # Start initial sync
+            print("- full sync\n")
             sync.startSync('full')
         elif args.syncback:
             # Start sync back from Monica to Google
+            print("")
             sync.startSync('syncBack')
         elif args.check:
-            # Check database for errors
+            # Start database error check
+            print("")
             sync.checkDatabase()
         else:
             # Wrong arguments
