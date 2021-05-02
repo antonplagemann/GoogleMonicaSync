@@ -274,8 +274,8 @@ class Sync():
         try:
             # Get google labels information
             googleLabels = [
-                self.google.reversedLabelMapping[
-                    label["contactGroupMembership"]["contactGroupResourceName"]]
+                self.google.getLabelName(
+                    label["contactGroupMembership"]["contactGroupResourceName"])
                 for label in googleContact.get("memberships", [])
             ]
 

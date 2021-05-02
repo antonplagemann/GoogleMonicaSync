@@ -22,7 +22,7 @@ class Google():
         self.apiRequests = 0
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
-        self.reversedLabelMapping = {id: name for name, id in self.labelMapping.items()}
+        self.reverseLabelMapping = {id: name for name, id in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}
@@ -58,6 +58,10 @@ class Google():
         '''Returns the Google label id for a given tag name.
         Creates a new label if it has not been found.'''
         return self.labelMapping.get(name, self.createLabel(name))
+
+    def getLabelName(self, labelId: str) -> str:
+        '''Returns the Google label name for a given label id.'''
+        return self.reverseLabelMapping[labelId]
 
     def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
