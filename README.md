@@ -30,7 +30,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 
 - Sometimes the Google api returns more contacts than neccessary. This is not an issue because the sync will match the last known update timestamps and skip the contact if nothing has changed.
 - Birthdays on 29. Feb will be synced as 01. March :-)
-- Pay attention when you *merge* Google contacts in the web gui. In this case the contact will get recreated at Monica during sync (because Google assigns a new contact id). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand).
+- Pay attention when you *merge* Google contacts in the web gui. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True`(because Google assigns a new contact id). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
 
 ## Get started
 
@@ -49,15 +49,16 @@ Usage:
 python GMSync.py [arguments]
 ```
 
-| Argument | Description                                                                          |
-| :------- | :----------------------------------------------------------------------------------- |
-| `-i`     | Database rebuild (interactive) and full sync                                         |
-| `-d`     | Delta sync (unattended)                                                              |
-| `-f`     | Full sync (unattended)                                                               |
-| `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments |
+| Argument | Description                                                                              |
+| :------- | :--------------------------------------------------------------------------------------- |
+| `-i`     | Database rebuild (interactive) and full sync                                             |
+| `-d`     | Delta sync (unattended)                                                                  |
+| `-f`     | Full sync (unattended)                                                                   |
+| `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments     |
+| `-c`     | Check syncing database for errors (unattended). Can be combined with all other arguments |
 
 Remark:
-Full sync and sync back require heavy api use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
+Full sync, database check and sync back require heavy api use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
 
 ## How it works
 
@@ -82,6 +83,10 @@ Delta sync is only different from full sync in two points:
 If chosen, sync back will run after a sync or standalone (if no sync was selected). To find new contacts, the script will fetch all Monica contacts and search the database if they are already known. For all unknown ones, it will create a new Google contact and update the sync database accordingly.
 
 All progress will be printed at running time and will be logged in the `Sync.log` file. If there are any errors at running time the sync will be aborted. Note that there is then a chance for an inconsistent database and you should better rebuild it using `python GMSync.py -i`. At the end the script will print some sync statistics.
+
+## Database check
+
+If you think something has gone wrong, you miss some contacts or just want a pretty database statistic, you can do a database check. This will check if every Google contact has its Monica counterpart and vice versa. It will also report orphaned database entry that do not have a contact on both sides.
 
 ## The conf.py file
 
@@ -149,6 +154,6 @@ MONICA_LABELS = {
 - [x] Add sync include/exclude labels on both sides
 - [x] Extend config to allow user choice of synced fields
 - [ ] ~~Think about two-way sync~~ (too involving, not really needed)
-- [ ] Database consistency check function
+- [x] Database consistency check function
 - [ ] Think about a pip package
 - [ ] Implement sync procedure using python threads (propably much faster with multithreading)

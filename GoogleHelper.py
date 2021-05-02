@@ -1,13 +1,15 @@
-import pickle
 import os.path
-from googleapiclient.discovery import build, Resource
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.errors import HttpError
+import pickle
+import sys
 from logging import Logger
 from typing import List
+
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import Resource, build
+from googleapiclient.errors import HttpError
+
 from DatabaseHelper import Database
-import sys
 
 
 class Google():
@@ -20,7 +22,7 @@ class Google():
         self.apiRequests = 0
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
-        self.reversedLabelMapping = {id: name for name, id in self.labelMapping.items()}
+        self.reverseLabelMapping = {id: name for name, id in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}
@@ -52,6 +54,15 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
+    def getLabelId(self, name:str) -> str:
+        '''Returns the Google label id for a given tag name.
+        Creates a new label if it has not been found.'''
+        return self.labelMapping.get(name, self.createLabel(name))
+
+    def getLabelName(self, labelId: str) -> str:
+        '''Returns the Google label name for a given label id.'''
+        return self.reverseLabelMapping[labelId]
+
     def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
         if self.labelFilter["include"]:
@@ -75,12 +86,53 @@ class Google():
         (e.g. if it has been deleted on both sides)'''
         self.contacts.remove(googleContact)
 
-    def getContacts(self, refetchData: bool = False, **params) -> List[dict]:
+    def getContact(self, id: str) -> dict:
+        '''Fetches a single contact by id from Google.'''
+        try:
+            # Check if contact is already fetched
+            if self.contacts:
+                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(id)]
+                if googleContactList: 
+                    return googleContactList[0]
+
+            # Build GET parameters
+            parameters = {
+                'resourceName': id,
+                'personFields': self.syncFields,
+            }
+
+            # Fetch contact
+            # pylint: disable=no-member
+            result = self.service.people().get(**parameters).execute()
+            self.apiRequests += 1
+
+            # Return contact
+            googleContact = self.__filterContactsByLabel([result])[0]
+            self.contacts.append(googleContact)
+            return googleContact
+
+        except HttpError as e:
+            msg = f"Failed to fetch Google contact '{id}': {str(e._get_reason())}"
+            self.log.error(msg)
+            raise Exception(msg)
+
+        except IndexError:
+            msg = f"Contact processing of '{id}' not allowed by label filter"
+            self.log.info(msg)
+            raise Exception(msg)
+
+        except Exception as e:
+            msg = f"Failed to fetch Google contact '{id}': {str(e)}"
+            self.log.error(msg)
+            raise Exception(msg)
+
+    def getContacts(self, refetchData : bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
         # Build GET parameters
         parameters = {'resourceName': 'people/me',
                       'pageSize': 1000,
                       'personFields': self.syncFields,
+                      'requestSyncToken': True,
                       **params}
 
         # Return sample data if present (debugging)
@@ -92,51 +144,44 @@ class Google():
             return self.contacts
 
         # Start fetching
-        contacts = []
         msg = "Fetching Google contacts..."
         self.log.info(msg)
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
         try:
-            while True:
-                # pylint: disable=no-member
-                result = self.service.people().connections().list(**parameters).execute()
-                self.apiRequests += 1
-                nextPageToken = result.get('nextPageToken', False)
-                contacts += result.get('connections', [])
-                if nextPageToken:
-                    parameters['pageToken'] = nextPageToken
-                else:
-                    self.contacts = self.__filterContactsByLabel(contacts)
-                    break
+            self.__fetchContacts(parameters)
         except HttpError as error:
             if 'Sync token' in error._get_reason():
                 msg = "Sync token expired or invalid. Fetching again without token (full sync)..."
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
-                contacts = []
-                while True:
-                    # pylint: disable=no-member
-                    result = self.service.people().connections().list(**parameters).execute()
-                    self.apiRequests += 1
-                    nextPageToken = result.get('nextPageToken', False)
-                    contacts += result.get('connections', [])
-                    if nextPageToken:
-                        parameters['pageToken'] = nextPageToken
-                    else:
-                        self.contacts = self.__filterContactsByLabel(contacts)
-                        break
+                self.__fetchContacts(parameters)
             else:
                 raise Exception(error._get_reason())
-        nextSyncToken = result.get('nextSyncToken', None)
-        if nextSyncToken:
-            self.database.updateGoogleNextSyncToken(nextSyncToken)
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
         self.dataAlreadyFetched = True
         return self.contacts
+
+    def __fetchContacts(self, parameters: dict) -> None:
+        contacts = []
+        while True:
+            # pylint: disable=no-member
+            result = self.service.people().connections().list(**parameters).execute()
+            self.apiRequests += 1
+            nextPageToken = result.get('nextPageToken', False)
+            contacts += result.get('connections', [])
+            if nextPageToken:
+                parameters['pageToken'] = nextPageToken
+            else:
+                self.contacts = self.__filterContactsByLabel(contacts)
+                break
+
+        nextSyncToken = result.get('nextSyncToken', None)
+        if nextSyncToken:
+            self.database.updateGoogleNextSyncToken(nextSyncToken)
 
     def __getLabelMapping(self) -> dict:
         '''Fetches all contact groups from Google (aka labels) and
@@ -279,3 +324,7 @@ class GoogleContactUploadForm():
                 }
                 for labelId in labelIds
             ]
+
+    def getData(self) -> dict:
+        '''Returns the Google contact form data.'''
+        return self.data
