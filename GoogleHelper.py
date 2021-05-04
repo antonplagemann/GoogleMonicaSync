@@ -15,7 +15,7 @@ from DatabaseHelper import Database
 class Google():
     '''Handles all Google related (api) stuff.'''
 
-    def __init__(self, log: Logger, databaseHandler: Database, labelFilter: dict, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, databaseHandler: Database, labelFilter: dict) -> None:
         self.log = log
         self.labelFilter = labelFilter
         self.database = databaseHandler
@@ -26,10 +26,8 @@ class Google():
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}
-        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
-
-        # Debugging area :-)
-        self.sampleData = sampleData
+        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,' \
+                          'memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
 
     def __buildService(self) -> Resource:
         creds = None
@@ -134,10 +132,6 @@ class Google():
                       'personFields': self.syncFields,
                       'requestSyncToken': True,
                       **params}
-
-        # Return sample data if present (debugging)
-        if self.sampleData:
-            return self.sampleData
 
         # Avoid multiple fetches
         if self.dataAlreadyFetched and not refetchData:
