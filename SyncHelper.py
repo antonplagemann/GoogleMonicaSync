@@ -872,6 +872,9 @@ class Sync():
         if not firstName:
             firstName = displayName
             lastName = ''
+        if not any([firstName, lastName, middleName, displayName]):
+            self.log.info(f"Empty name for '{googleContact['resourceName']}' detected -> using Monica name instead.")
+            firstName = monicaContact['first_name']
 
         # Get birthday
         birthday = googleContact.get("birthdays", None)
@@ -1069,6 +1072,11 @@ class Sync():
         gContactDisplayName = self.__getGoogleContactNames(googleContact)[3]
         candidates = []
 
+        # Handle empty names
+        if not any([gContactGivenName, gContactFamilyName, gContactDisplayName]):
+            self.log.info(f"Empty name for '{googleContact['resourceName']}' detected, starting resolving procedure...")
+            gContactGivenName = self.__handleEmptyGoogleNames(googleContact)
+
         # Process every Monica contact
         for monicaContact in self.monica.getContacts():
             if str(monicaContact['id']) not in self.mapping.values():
@@ -1116,3 +1124,8 @@ class Sync():
         prefix = names.get("honorificPrefix", '')
         suffix = names.get("honorificSuffix", '')
         return givenName, middleName, familyName, displayName, prefix, suffix
+
+    def __handleEmptyGoogleNames(self, googleContact: dict) -> str:
+        '''Ask the user for a new given name.'''
+
+        return ''

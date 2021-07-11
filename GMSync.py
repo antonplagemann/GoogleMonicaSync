@@ -11,7 +11,7 @@ from GoogleHelper import Google
 from MonicaHelper import Monica
 from SyncHelper import Sync
 
-VERSION = "v2.4.1"
+VERSION = "v2.4.3"
 DATABASE_FILENAME = "syncState.db"
 LOG_FILENAME = 'Sync.log'
 # Google -> Monica contact syncing script
