@@ -93,7 +93,7 @@ class Monica():
 
     def createContact(self, data: dict) -> dict:
         '''Creates a given Monica contact via api call and returns the created contact.'''
-        name = f"{data['first_name']} {data['last_name']}"
+        name = f"{data['first_name']} {data['last_name']}".strip()
 
         # Create contact
         response = requests.post(self.base_url + f"/contacts",
