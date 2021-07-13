@@ -1,25 +1,27 @@
+[comment]: <> "LTeX: language=en-US"
+
 # Google to Monica contact syncing script
 
 ## Introduction
 
-This script does a contact syncing from a Google account to a [Monica](https://github.com/monicahq/monica) account. This script is intended for personal use only. It can contain all kinds of bugs, errors, and unhandled exceptions, so please do a backup before using it. It was programmed very carefully not to do bad things and delete everything but it`s your own risk trusting my words.
+This script does a contact syncing from a Google account to a [Monica](https://github.com/monicahq/monica) account. This script is intended for personal use only. It can contain all kinds of bugs, errors, and unhandled exceptions, so please do a backup before using it. It was programmed very carefully not to do bad things and delete everything, but it's your own risk trusting my words.
 
 That being said: Be welcome to use it, fork it, copy it for your own projects, and file issues for bug fixes or improvements.
 
 ## Features
 
-- One-way sync (Google -> Monica)
+- One-way sync (Google → Monica)
   - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (see [limits](#limits))
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - User choice prompt before any modification to your Monica data during initial sync (you can choose to abort before the script makes any change).
 - Fast delta sync using Google sync tokens
-- Optional sync-back (Monica -> Google) of new Monica contacts that do not have a corresponding Google contact yet
+- Optional sync-back (Monica → Google) of new Monica contacts that do not have a corresponding Google contact yet
   - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags)
-- Extensive logging of every change, warning, or error including the affected contact id and name (File: `Sync.log`)
+- Extensive logging of every change, warning, or error including the affected contact ID and name (File: `Sync.log`)
 
 ## Limits
 
-- **Do not update [*synced*](#features) details at Monica.** As this is a one-way sync, it will overwrite all Monica changes to this fields! Of course you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
+- **Do not update [*synced*](#features) details at Monica.** As this is a one-way sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - No support for custom Monica gender types. Will be overwritten with standard type O (other) during sync.
@@ -29,16 +31,16 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 
 ## Known bugs
 
-- Sometimes the Google api returns more contacts than neccessary. This is not an issue because the sync will match the last known update timestamps and skip the contact if nothing has changed.
+- Sometimes the Google API returns more contacts than necessary. This is not an issue because the sync will match the last known update timestamps and skip the contact if nothing has changed.
 - Birthdays on 29. Feb will be synced as 01. March :-)
-- Pay attention when you *merge* Google contacts in the web gui. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True`(because Google assigns a new contact id). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
+- Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True`(because Google assigns a new contact ID). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
 
 ## Get started
 
 0. Install Python 3.9 or newer
-1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
+1. Get the [official Python Quick-start script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/3db88905eeaf4093cb82e5a2a6fc3c979910e85b/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no Oauth client needed).
+3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/3db88905eeaf4093cb82e5a2a6fc3c979910e85b/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 
@@ -59,7 +61,7 @@ python GMSync.py [arguments]
 | `-c`     | Check syncing database for errors (unattended). Can be combined with all other arguments |
 
 Remark:
-Full sync, database check and sync back require heavy api use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
+Full sync, database check and sync back require heavy API use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
 
 ## How it works
 
@@ -67,8 +69,8 @@ At first, the script builds an SQLite syncing database named `syncState.db`. To 
 all Google contacts and all Monica contacts (can take some time) and tries to match them by name.
 If there is ambiguity you will be asked whether to link an existing contact or create a new one at Monica. The following details will be stored in the database file:
 
-- Google contact id (unique)
-- Monica contact id (unique)
+- Google contact ID (unique)
+- Monica contact ID (unique)
 - Google display name
 - Monica complete name
 - Google last updated timestamp
@@ -76,7 +78,7 @@ If there is ambiguity you will be asked whether to link an existing contact or c
 - Google delta sync token
 - Google delta sync token timestamp
 
-After building the database, full sync starts. This sync merges every Google and Monica contact according to the sync database and updates it on Monica *if neccessary*. Name and birthday will be overwritten by the Google data, the deceased date will be preserved. Full sync also requests a sync token from Google that is used for every following delta sync.
+After building the database, full sync starts. This sync merges every Google and Monica contact according to the sync database and updates it on Monica *if necessary*. Name and birthday will be overwritten by the Google data, the deceased date will be preserved. Full sync also requests a sync token from Google that is used for every following delta sync.
 
 Delta sync is only different from full sync in two points:
 
@@ -89,7 +91,7 @@ All progress will be printed at running time and will be logged in the `Sync.log
 
 ## Database check
 
-If you think something has gone wrong, you miss some contacts or just want a pretty database statistic, you can do a database check. This will check if every Google contact has its Monica counterpart and vice versa. It will also report orphaned database entrys that do not have a contact on both sides.
+If you think something has gone wrong, you miss some contacts or just want a pretty database statistic, you can do a database check. This will check if every Google contact has its Monica counterpart and vice versa. It will also report orphaned database entries that do not have a contact on both sides.
 
 ## The conf.py file
 
@@ -112,6 +114,9 @@ DELETE_ON_SYNC = True
 # Do a street reversal in address sync if the first character is a number? 
 # (e.g. from '13 Auenweg' to 'Auenweg 13')
 STREET_REVERSAL = False
+# Every Monica contact needs a name, but a Google contact doesn't always have one
+# This name will be set at Monica during sync if a name is missing at Google
+NAME_IF_UNNAMED = 'Unnamed contact'
 
 # What fields should be synced? (both directions)
 # Names and birthday are mandatory
@@ -143,7 +148,7 @@ MONICA_LABELS = {
 ## Feature roadmap
 
 - ~~Add more sync fields:~~
-  - [x] company and jobtitle
+  - [x] company and job title
   - [x] labels
   - [x] address
   - [x] phone numbers
