@@ -963,6 +963,10 @@ class Sync():
         if not firstName:
             firstName = displayName
             lastName = ''
+        if not any([firstName, lastName, middleName, displayName]):
+            self.log.warning(f"Empty name for '{googleContact['resourceName']}' detected -> using 'Unnamed contact' as name instead.")
+            self.log.info(f"Contact details:\n{self.__getGoogleContactAsString(googleContact)}")
+            firstName = 'Unnamed contact'
 
         # Get birthday
         birthday = googleContact.get("birthdays", None)
