@@ -15,7 +15,8 @@ class Sync():
     def __init__(self, log: Logger, databaseHandler: Database, 
                  monicaHandler: Monica, googleHandler: Google, syncBackToGoogle: bool,
                  checkDatabase: bool, deleteMonicaContactsOnSync: bool, 
-                 streetReversalOnAddressSync: bool, syncingFields: dict) -> None:
+                 streetReversalOnAddressSync: bool, syncingFields: dict,
+                 nameIfUnnamed: str) -> None:
         self.log = log
         self.startTime = datetime.now()
         self.monica = monicaHandler
@@ -29,6 +30,7 @@ class Sync():
         self.deleteMonicaContacts = deleteMonicaContactsOnSync
         self.streetReversal = streetReversalOnAddressSync
         self.sync = syncingFields
+        self.nameIfUnnamed = nameIfUnnamed
         self.skipCreationPrompt = False
         self.skipUnnamedPrompt = False
         self.unnamedContactsMapping = {}
@@ -974,9 +976,9 @@ class Sync():
             firstName = self.unnamedContactsMapping.get(googleContact['resourceName'], '')
             if not firstName:
                 # Use default name if not
-                self.log.warning(f"Empty name for '{googleContact['resourceName']}' detected -> using 'Unnamed contact' as name instead")
+                self.log.warning(f"Empty name for '{googleContact['resourceName']}' detected -> using '{self.nameIfUnnamed}' as name instead")
                 self.log.info(f"Contact details:\n{self.__getGoogleContactAsString(googleContact)[2:-1]}")
-                firstName = 'Unnamed contact'
+                firstName = self.nameIfUnnamed
 
         # Get birthday
         birthday = googleContact.get("birthdays", None)
