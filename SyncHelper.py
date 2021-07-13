@@ -1156,28 +1156,32 @@ class Sync():
             print("\t0: Abort initial sync")
             print("\t1: Input a custom name for this very contact")
             print("\t2: Input a default name for all contacts without a name")
+            print(f"\t3: Use '{self.nameIfUnnamed}' as custom name for this very contact")
+            print(f"\t4: Use '{self.nameIfUnnamed}' as default name for all contacts without a name")
             print("\t- Hint: all names set here will be overwritten during sync once you add a name at Google")
             choice = int(input("Enter your choice (number only): "))
             if choice == 0:
                 raise Exception("Sync aborted by user choice")
             elif choice == 1:
                 name = input("Input a custom name for this very contact: ")
-                # Store mapping choice for future use
-                self.unnamedContactsMapping[googleContact['resourceName']] = name
-                return name
             elif choice == 2:
                 name = input("Input a default name for all contacts without a name: ")
                 # Skip further contact creation prompts 
                 self.skipUnnamedPrompt = True
                 self.nameIfUnnamed = name
-                # Store mapping choice for future use
-                self.unnamedContactsMapping[googleContact['resourceName']] = name
-                return name
+            elif choice == 3:
+                name = self.nameIfUnnamed
+            elif choice == 4:
+                name = self.nameIfUnnamed
+                # Skip further contact creation prompts 
+                self.skipUnnamedPrompt = True
             else:
                 raise Exception("Wrong user input, sync aborted")
+        else:
+            name = self.nameIfUnnamed
         # Store mapping choice for future use
-        self.unnamedContactsMapping[googleContact['resourceName']] = self.nameIfUnnamed
-        return self.nameIfUnnamed
+        self.unnamedContactsMapping[googleContact['resourceName']] = name
+        return name
 
     def __getGoogleContactAsString(self, googleContact: dict) -> str:
         '''Get some content from a Google contact to identify it as a user and return it as string.'''
