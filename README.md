@@ -40,7 +40,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 0. Install Python 3.9 or newer
 1. Get the [official Python Quick-start script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/3db88905eeaf4093cb82e5a2a6fc3c979910e85b/conf.py) the `conf.py` file, fill in your desired settings and copy it inside the main directory (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
+3. Create a new `conf.py` file inside the main repository directory with [this content](#Config).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 
@@ -93,9 +93,11 @@ All progress will be printed at running time and will be logged in the `Sync.log
 
 If you think something has gone wrong, you miss some contacts or just want a pretty database statistic, you can do a database check. This will check if every Google contact has its Monica counterpart and vice versa. It will also report orphaned database entries that do not have a contact on both sides.
 
-## The conf.py file
+## Config
 
-In case the link above no longer works, this is the sample `conf.py` file.
+This is the sample `conf.py` file.
+Copy the content below and create a new `conf.py` file inside the main repository directory.
+Then fill in your desired settings (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
 
 ```python
 # General: 
