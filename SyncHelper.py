@@ -1131,42 +1131,63 @@ class Sync():
 
     def __handleEmptyGoogleNames(self, googleContact: dict) -> str:
         '''Ask the user for a new given name.'''
+        # Ask user if not done before
+        if not self.skipUnnamedPrompt:
+            print(self.__getGoogleContactAsString(googleContact))
+            print(f"\nThe contact above has no name, but Monica needs at least a first name.")
+            print(f"\tWhat would you like to do?")
+            print("\t0: Abort initial sync")
+            print("\t1: Input a custom name for this contact (will be overwritten once you add a name at Google)")
+            print("\t2: Input a default name for all contacts without a name (will be overwritten once you add a name at Google)")
+            print("\t- Hint: all names will be overwritten during sync once you add a name at Google")
+            choice = int(input("Enter your choice (number only): "))
+            if choice == 0:
+                raise Exception("Sync aborted by user choice")
+            elif choice == 1:
+                name = input("Input a custom name for this very contact: ")
+                return name
+            elif choice == 2:
+                name = input("Input a default name for all contacts without a name: ")
+                # Skip further contact creation prompts 
+                self.skipUnnamedPrompt = True
+                self.nameIfUnnamed = name
+                return name
+            else:
+                raise Exception("Wrong user input, sync aborted")
+        return self.nameIfUnnamed
 
-        return ''
-
-    def __printGoogleContact(self, googleContact: dict) -> None:
-        '''Print all content from a Google contact that is needed to identify it.'''
-        print(f"\nContact id:\t{googleContact['resourceName']}")
-
+    def __getGoogleContactAsString(self, googleContact: dict) -> str:
+        '''Get some content from a Google contact to identify it as a user and return it as string.'''
+        string = f"\nContact id:\t{googleContact['resourceName']}\n"
         for obj in googleContact.get('names', []):
             for key, value in obj.items():
                 if key == 'displayName':
-                    print(f"Display name:\t{value}")
+                    string += f"Display name:\t{value}\n"
         for obj in googleContact.get('birthdays', []):
             for key, value in obj.items():
                 if key == 'value':
-                    print(f"Birthday:\t{value}")
+                    string += f"Birthday:\t{value}\n"
         for obj in googleContact.get('organizations', []):
             for key, value in obj.items():
                 if key == 'name':
-                    print(f"Company:\t{value}")
+                    string += f"Company:\t{value}\n"
                 if key == 'department':
-                    print(f"Department:\t{value}")
+                    string += f"Department:\t{value}\n"
                 if key == 'title':
-                    print(f"Job title:\t{value}")
+                    string += f"Job title:\t{value}\n"
         for obj in googleContact.get('addresses', []):
             for key, value in obj.items():
                 if key == 'formattedValue':
                     value = value.replace('\n', ' ')
-                    print(f"Address:\t{value}")
+                    string += f"Address:\t{value}\n"
         for obj in googleContact.get('phoneNumbers', []):
             for key, value in obj.items():
                 if key == 'value':
-                    print(f"Phone number:\t{value}")
+                    string += f"Phone number:\t{value}\n"
         for obj in googleContact.get('emailAddresses', []):
             for key, value in obj.items():
                 if key == 'value':
-                    print(f"Email:\t\t{value}")
+                    string += f"Email:\t\t{value}\n"
         labels = []
         for obj in googleContact.get('memberships', []):
             for key, value in obj.items():
@@ -1174,4 +1195,5 @@ class Sync():
                     name = self.google.getLabelName(value['contactGroupResourceName'])
                     labels.append(name)
         if labels:        
-            print(f"Labels:\t\t{', '.join(labels)}")
+            string += f"Labels:\t\t{', '.join(labels)}\n"
+        return string
