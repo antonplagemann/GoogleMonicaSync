@@ -1129,3 +1129,45 @@ class Sync():
         '''Ask the user for a new given name.'''
 
         return ''
+
+    def __printGoogleContact(self, googleContact: dict) -> None:
+        '''Print all content from a Google contact that is needed to identify it.'''
+        print(f"\nContact id:\t{googleContact['resourceName']}")
+
+        for obj in googleContact.get('names', []):
+            for key, value in obj.items():
+                if key == 'displayName':
+                    print(f"Display name:\t{value}")
+        for obj in googleContact.get('birthdays', []):
+            for key, value in obj.items():
+                if key == 'value':
+                    print(f"Birthday:\t{value}")
+        for obj in googleContact.get('organizations', []):
+            for key, value in obj.items():
+                if key == 'name':
+                    print(f"Company:\t{value}")
+                if key == 'department':
+                    print(f"Department:\t{value}")
+                if key == 'title':
+                    print(f"Job title:\t{value}")
+        for obj in googleContact.get('addresses', []):
+            for key, value in obj.items():
+                if key == 'formattedValue':
+                    value = value.replace('\n', ' ')
+                    print(f"Address:\t{value}")
+        for obj in googleContact.get('phoneNumbers', []):
+            for key, value in obj.items():
+                if key == 'value':
+                    print(f"Phone number:\t{value}")
+        for obj in googleContact.get('emailAddresses', []):
+            for key, value in obj.items():
+                if key == 'value':
+                    print(f"Email:\t\t{value}")
+        labels = []
+        for obj in googleContact.get('memberships', []):
+            for key, value in obj.items():
+                if key == 'contactGroupMembership':
+                    name = self.google.getLabelName(value['contactGroupResourceName'])
+                    labels.append(name)
+        if labels:        
+            print(f"Labels:\t\t{', '.join(labels)}")
