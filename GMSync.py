@@ -2,14 +2,14 @@
 import argparse
 import logging
 import sys
-from typing import List
 
 try:
-    from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS, NAME_IF_UNNAMED,
-                  GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
+    from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
+                      GOOGLE_LABELS, MONICA_LABELS, NAME_IF_UNNAMED,
+                      STREET_REVERSAL, TOKEN)
 except ImportError:
     print("\nFailed to import config settings!\n" \
-          "Please verify that you have the latest version of the config file " \
+          "Please verify that you have the latest version of the conf.py file " \
           "available on GitHub and check for possible typos!")
     sys.exit(1)
 

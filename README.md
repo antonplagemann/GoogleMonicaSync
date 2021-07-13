@@ -95,7 +95,7 @@ If you think something has gone wrong, you miss some contacts or just want a pre
 
 ## Config
 
-This is the sample `conf.py` file.
+This is config file.
 Copy the content below and create a new `conf.py` file inside the main repository directory.
 Then fill in your desired settings (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
 
