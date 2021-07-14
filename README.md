@@ -95,7 +95,7 @@ If you think something has gone wrong, you miss some contacts or just want a pre
 
 ## Config
 
-This is config file.
+This is the config file.
 Copy the content below and create a new `conf.py` file inside the main repository directory.
 Then fill in your desired settings (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
 
@@ -159,7 +159,7 @@ MONICA_LABELS = {
 - ~~Add more sync-back fields:~~
   - [x] phone numbers
   - [x] emails
-- [x] Implement a sync-back cmd-line switch for regularily sync-backs (not only on initial sync)
+- [x] Implement a sync-back cmd-line switch for regularly sync-backs (not only on initial sync)
 - [x] Maybe an additional (pretty printed) sync summary
 - [x] Add sync include/exclude labels on both sides
 - [x] Extend config to allow user choice of synced fields
