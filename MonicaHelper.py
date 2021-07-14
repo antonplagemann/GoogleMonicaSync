@@ -25,9 +25,6 @@ class Monica():
         self.apiRequests = 0
         self.createReminders = createReminders
 
-        # Debugging area :-)
-        self.sampleData = sampleData
-
     def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
         if self.labelFilter["include"]:
@@ -96,7 +93,7 @@ class Monica():
 
     def createContact(self, data: dict) -> dict:
         '''Creates a given Monica contact via api call and returns the created contact.'''
-        name = f"{data['first_name']} {data['last_name']}"
+        name = f"{data['first_name']} {data['last_name']}".strip()
 
         # Create contact
         response = requests.post(self.base_url + f"/contacts",
@@ -118,10 +115,6 @@ class Monica():
     def getContacts(self) -> List[dict]:
         '''Fetches all contacts from Monica if not already fetched.'''
         try:
-            # Return sample data if present (debugging)
-            if self.sampleData:
-                return self.sampleData
-
             # Avoid multiple fetches
             if self.dataAlreadyFetched:
                 return self.contacts

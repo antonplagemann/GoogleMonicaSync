@@ -15,9 +15,10 @@ from DatabaseHelper import Database
 class Google():
     '''Handles all Google related (api) stuff.'''
 
-    def __init__(self, log: Logger, databaseHandler: Database, labelFilter: dict, sampleData: list = None) -> None:
+    def __init__(self, log: Logger, databaseHandler: Database = None, 
+                 labelFilter: dict = None) -> None:
         self.log = log
-        self.labelFilter = labelFilter
+        self.labelFilter = labelFilter or {"include": [], "exclude": []}
         self.database = databaseHandler
         self.apiRequests = 0
         self.service = self.__buildService()
@@ -26,10 +27,12 @@ class Google():
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}
-        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
-
-        # Debugging area :-)
-        self.sampleData = sampleData
+        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,' \
+                          'memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
+        self.updateFields = 'addresses,biographies,birthdays,clientData,emailAddresses,' \
+                            'events,externalIds,genders,imClients,interests,locales,locations,memberships,' \
+                            'miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,relations,' \
+                            'sipAddresses,urls,userDefined'
 
     def __buildService(self) -> Resource:
         creds = None
@@ -54,10 +57,13 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
-    def getLabelId(self, name:str) -> str:
+    def getLabelId(self, name:str, createOnError:bool = True) -> str:
         '''Returns the Google label id for a given tag name.
         Creates a new label if it has not been found.'''
-        return self.labelMapping.get(name, self.createLabel(name))
+        if createOnError:
+            return self.labelMapping.get(name, self.createLabel(name))
+        else:
+            return self.labelMapping.get(name, '')
 
     def getLabelName(self, labelId: str) -> str:
         '''Returns the Google label name for a given label id.'''
@@ -135,10 +141,6 @@ class Google():
                       'requestSyncToken': True,
                       **params}
 
-        # Return sample data if present (debugging)
-        if self.sampleData:
-            return self.sampleData
-
         # Avoid multiple fetches
         if self.dataAlreadyFetched and not refetchData:
             return self.contacts
@@ -180,7 +182,7 @@ class Google():
                 break
 
         nextSyncToken = result.get('nextSyncToken', None)
-        if nextSyncToken:
+        if nextSyncToken and self.database:
             self.database.updateGoogleNextSyncToken(nextSyncToken)
 
     def __getLabelMapping(self) -> dict:
@@ -198,6 +200,26 @@ class Google():
                         or group['name'] in ['myContacts', 'starred']}
 
         return labelMapping
+
+    def deleteLabel(self, groupId) -> None:
+        '''Deletes a contact group from Google (aka label). Does not delete assigned contacts.'''
+        try:
+            # pylint: disable=no-member
+            response = self.service.contactGroups().delete(resourceName=groupId).execute()
+            self.apiRequests += 1
+        except HttpError as error:
+            reason = error._get_reason()
+            msg = f"Failed to delete Google contact group. Reason: {reason}"
+            self.log.warning(msg)
+            print("\n" + msg)
+            return
+
+        if response:
+            msg = f"Non-empty response received, please check carefully: {response}"
+            self.log.warning(msg)
+            print("\n" + msg)
+            return
+        return
 
     def createLabel(self, labelName: str) -> str:
         '''Creates a new Google contacts label and returns its id.'''
@@ -242,6 +264,28 @@ class Google():
         self.contacts.append(result)
         self.log.info(
             f"'{name}': Contact with id '{id}' created successfully")
+        return result
+
+    def updateContact(self, data) -> dict:
+        '''Updates a given Google contact via api call and returns the created contact.'''
+        # Upload contact
+        try:
+            # pylint: disable=no-member
+            result = self.service.people().updateContact(resourceName=data['resourceName'], updatePersonFields=self.updateFields, body=data).execute()
+            self.apiRequests += 1
+        except HttpError as error:
+            reason = error._get_reason()
+            msg = f"'{data['names'][0]}':Failed to update Google contact. Reason: {reason}"
+            self.log.warning(msg)
+            print("\n" + msg)
+            return
+
+        # Process result
+        id = result.get('resourceName', '-')
+        name = result.get('names', [{}])[0].get('displayName', 'error')
+        self.log.info('Contact has not been saved internally!')
+        self.log.info(
+            f"'{name}': Contact with id '{id}' updated successfully")
         return result
 
 

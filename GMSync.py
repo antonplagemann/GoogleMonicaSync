@@ -2,46 +2,30 @@
 import argparse
 import logging
 import sys
-from typing import List
 
-from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
-                  GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
+try:
+    from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
+                      GOOGLE_LABELS, MONICA_LABELS, NAME_IF_UNNAMED,
+                      STREET_REVERSAL, TOKEN)
+except ImportError:
+    print("\nFailed to import config settings!\n" \
+          "Please verify that you have the latest version of the conf.py file " \
+          "available on GitHub and check for possible typos!")
+    sys.exit(1)
+
 from DatabaseHelper import Database
 from GoogleHelper import Google
 from MonicaHelper import Monica
 from SyncHelper import Sync
 
-VERSION = "v2.4.0"
+VERSION = "v3.0.0"
+DATABASE_FILENAME = "syncState.db"
+LOG_FILENAME = 'Sync.log'
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
-
 # Get module specific logger
 log = logging.getLogger('GMSync')
-
-
-def getTestingData(filename: str) -> List[dict]:
-    '''Only for developing purposes. Returns sample data from a json file to avoid intensive api penetration.'''
-    import json
-    with open(filename) as handle:
-        data = json.load(handle)
-    return data
-
-
-def updateTestingData(filename: str, contactList: List[dict]) -> None:
-    '''Only for developing purposes. Creates sample data saved as json file to avoid intensive api penetration.'''
-    import json
-    with open(filename, 'w') as handle:
-        json.dump(contactList, handle, indent=4)
-
-
-def fetchAndSaveTestingData() -> None:
-    '''Only for developing purposes. Fetches new data from Monica and Google and saves it to a json file.'''
-    database = Database(log, 'syncState.db')
-    monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
-    google = Google(log, database, GOOGLE_LABELS)
-    updateTestingData('MonicaSampleData.json', monica.getContacts())
-    updateTestingData('GoogleSampleData.json', google.getContacts())
 
 
 def main() -> None:
@@ -51,32 +35,34 @@ def main() -> None:
         parser.add_argument('-i', '--initial', action='store_true',
                             required=False, help="build the syncing database and do a full sync")
         parser.add_argument('-sb', '--syncback', action='store_true',
-                            required=False, help="sync new Monica contacts back to Google. Can be combined with other arguments")
+                            required=False, help="sync new Monica contacts back to Google. " \
+                                                 "Can be combined with other arguments")
         parser.add_argument('-d', '--delta', action='store_true',
                             required=False, help="do a delta sync of new or changed Google contacts")
         parser.add_argument('-f', '--full', action='store_true',
                             required=False, help="do a full sync and request a new delta sync token")
         parser.add_argument('-c', '--check', action='store_true',
-                            required=False, help="check database consistency and report all errors")
+                            required=False, help="check database consistency and report all errors. " \
+                                                 "Can be combined with other arguments")
 
         # Parse arguments
         args = parser.parse_args()
 
         # Logging configuration
         log.setLevel(logging.INFO)
-        format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        handler = logging.FileHandler(filename='Sync.log', mode='a', encoding="utf8")
+        loggingFormat = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        handler = logging.FileHandler(filename=LOG_FILENAME, mode='a', encoding="utf8")
         handler.setLevel(logging.INFO)
-        handler.setFormatter(format)
+        handler.setFormatter(loggingFormat)
         log.addHandler(handler)
         log.info(f"Script started ({VERSION})")
 
         # Create sync object
-        database = Database(log, 'syncState.db')
+        database = Database(log, DATABASE_FILENAME)
         google = Google(log, database, GOOGLE_LABELS)
         monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
         sync = Sync(log, database, monica, google, args.syncback, args.check, 
-                    DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
+                    DELETE_ON_SYNC, STREET_REVERSAL, FIELDS, NAME_IF_UNNAMED)
 
         # Print chosen sync arguments (optional ones first)
         print("\nYour choice (unordered):")
