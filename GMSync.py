@@ -102,8 +102,8 @@ def main() -> None:
         log.info("Script ended\n")
 
     except Exception as e:
-        msg = f"Script aborted: {str(e)}\n"
-        log.error(msg)
+        msg = f"Script aborted: {type(e).__name__}: {str(e)}\n"
+        log.exception(e)
         print("\n" + msg)
         sys.exit(1)
 
