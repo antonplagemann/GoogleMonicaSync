@@ -28,6 +28,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 - No support for nickname and gender sync (support can be added, file an issue if you want it). Nicknames and genders will be overwritten during sync
 - A label itself won't be deleted automatically if it has been removed from the last contact
 - If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many *additional* notes as you want at Monica**, they will not be overwritten.
+- Monica contacts require a first name. If a Google contact does not have any name, it will be skipped.
 
 ## Known bugs
 
@@ -116,9 +117,6 @@ DELETE_ON_SYNC = True
 # Do a street reversal in address sync if the first character is a number? 
 # (e.g. from '13 Auenweg' to 'Auenweg 13')
 STREET_REVERSAL = False
-# Every Monica contact needs a name, but a Google contact doesn't always have one
-# This name will be set at Monica during sync if a name is missing at Google
-NAME_IF_UNNAMED = 'Unnamed contact'
 
 # What fields should be synced? (both directions)
 # Names and birthday are mandatory
