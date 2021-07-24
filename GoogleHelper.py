@@ -2,7 +2,7 @@ import os.path
 import pickle
 import sys
 from logging import Logger
-from typing import List
+from typing import List, Tuple
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -65,9 +65,10 @@ class Google():
         else:
             return self.labelMapping.get(name, '')
 
-    def getLabelName(self, labelId: str) -> str:
+    def getLabelName(self, labelString: str) -> str:
         '''Returns the Google label name for a given label id.'''
-        return self.reverseLabelMapping[labelId]
+        labelId = labelString.split("/")[1]
+        return self.reverseLabelMapping.get(labelString, labelId)
 
     def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
@@ -86,6 +87,74 @@ class Google():
                             for contactLabel in contact["memberships"]])]
         else:
             return contactList
+
+    def __filterUnnamedContacts(self, contactList: List[dict]) -> List[dict]:
+        '''Exclude contacts without name.'''
+        filteredContactList = []
+        for googleContact in contactList:
+            # Look for empty names
+            if not any(self.getContactNames(googleContact)) or not googleContact.get('names', False):
+                self.log.info(f"Skipped the following unnamed google contact during sync:")
+                self.log.info(f"Contact details:\n{self.getContactAsString(googleContact)[2:-1]}")
+            else:
+                filteredContactList.append(googleContact)
+        if len(filteredContactList) != len(contactList):
+            print("\nSkipped one or more unnamed google contacts, see log for details")
+
+        return filteredContactList
+
+    def getContactNames(self, googleContact: dict) -> Tuple[str, str, str, str, str, str]:
+        '''Returns the given, family and display name of a Google contact.'''
+        names = googleContact.get('names', [{}])[0]
+        givenName = names.get("givenName", '')
+        familyName = names.get("familyName", '')
+        displayName = names.get("displayName", '')
+        middleName = names.get("middleName", '')
+        prefix = names.get("honorificPrefix", '')
+        suffix = names.get("honorificSuffix", '')
+        return givenName, middleName, familyName, displayName, prefix, suffix
+
+    def getContactAsString(self, googleContact: dict) -> str:
+        '''Get some content from a Google contact to identify it as a user and return it as string.'''
+        string = f"\n\nContact id:\t{googleContact['resourceName']}\n"
+        for obj in googleContact.get('names', []):
+            for key, value in obj.items():
+                if key == 'displayName':
+                    string += f"Display name:\t{value}\n"
+        for obj in googleContact.get('birthdays', []):
+            for key, value in obj.items():
+                if key == 'value':
+                    string += f"Birthday:\t{value}\n"
+        for obj in googleContact.get('organizations', []):
+            for key, value in obj.items():
+                if key == 'name':
+                    string += f"Company:\t{value}\n"
+                if key == 'department':
+                    string += f"Department:\t{value}\n"
+                if key == 'title':
+                    string += f"Job title:\t{value}\n"
+        for obj in googleContact.get('addresses', []):
+            for key, value in obj.items():
+                if key == 'formattedValue':
+                    value = value.replace('\n', ' ')
+                    string += f"Address:\t{value}\n"
+        for obj in googleContact.get('phoneNumbers', []):
+            for key, value in obj.items():
+                if key == 'value':
+                    string += f"Phone number:\t{value}\n"
+        for obj in googleContact.get('emailAddresses', []):
+            for key, value in obj.items():
+                if key == 'value':
+                    string += f"Email:\t\t{value}\n"
+        labels = []
+        for obj in googleContact.get('memberships', []):
+            for key, value in obj.items():
+                if key == 'contactGroupMembership':
+                    name = self.getLabelName(value['contactGroupResourceName'])
+                    labels.append(name)
+        if labels:        
+            string += f"Labels:\t\t{', '.join(labels)}\n"
+        return string
 
     def removeContactFromList(self, googleContact: dict) -> None:
         '''Removes a Google contact internally to avoid further processing 
@@ -114,6 +183,7 @@ class Google():
 
             # Return contact
             googleContact = self.__filterContactsByLabel([result])[0]
+            googleContact = self.__filterUnnamedContacts([result])[0]
             self.contacts.append(googleContact)
             return googleContact
 
@@ -179,6 +249,7 @@ class Google():
                 parameters['pageToken'] = nextPageToken
             else:
                 self.contacts = self.__filterContactsByLabel(contacts)
+                self.contacts = self.__filterUnnamedContacts(contacts)
                 break
 
         nextSyncToken = result.get('nextSyncToken', None)

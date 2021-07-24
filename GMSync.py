@@ -5,8 +5,7 @@ import sys
 
 try:
     from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
-                      GOOGLE_LABELS, MONICA_LABELS, NAME_IF_UNNAMED,
-                      STREET_REVERSAL, TOKEN)
+                      GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
 except ImportError:
     print("\nFailed to import config settings!\n" \
           "Please verify that you have the latest version of the conf.py file " \
@@ -18,7 +17,7 @@ from GoogleHelper import Google
 from MonicaHelper import Monica
 from SyncHelper import Sync
 
-VERSION = "v3.0.0"
+VERSION = "v3.1.1"
 DATABASE_FILENAME = "syncState.db"
 LOG_FILENAME = 'Sync.log'
 # Google -> Monica contact syncing script
@@ -62,7 +61,7 @@ def main() -> None:
         google = Google(log, database, GOOGLE_LABELS)
         monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
         sync = Sync(log, database, monica, google, args.syncback, args.check, 
-                    DELETE_ON_SYNC, STREET_REVERSAL, FIELDS, NAME_IF_UNNAMED)
+                    DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
 
         # Print chosen sync arguments (optional ones first)
         print("\nYour choice (unordered):")
@@ -102,8 +101,8 @@ def main() -> None:
         log.info("Script ended\n")
 
     except Exception as e:
-        msg = f"Script aborted: {str(e)}\n"
-        log.error(msg)
+        msg = f"Script aborted: {type(e).__name__}: {str(e)}\n"
+        log.exception(e)
         print("\n" + msg)
         sys.exit(1)
 
