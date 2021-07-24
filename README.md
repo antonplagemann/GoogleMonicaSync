@@ -23,6 +23,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 
 - **Do not update [*synced*](#features) details at Monica.** As this is a one-way sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
+- Monica limits API calls to 60 per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - No support for custom Monica gender types. Will be overwritten with standard type O (other) during sync.
 - No support for nickname and gender sync (support can be added, file an issue if you want it). Nicknames and genders will be overwritten during sync
