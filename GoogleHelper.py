@@ -65,9 +65,10 @@ class Google():
         else:
             return self.labelMapping.get(name, '')
 
-    def getLabelName(self, labelId: str) -> str:
+    def getLabelName(self, labelString: str) -> str:
         '''Returns the Google label name for a given label id.'''
-        return self.reverseLabelMapping[labelId]
+        labelId = labelString.split("/")[1]
+        return self.reverseLabelMapping.get(labelString, labelId)
 
     def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
