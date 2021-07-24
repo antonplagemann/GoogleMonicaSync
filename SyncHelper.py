@@ -28,7 +28,7 @@ class Sync():
         self.check = checkDatabase
         self.deleteMonicaContacts = deleteMonicaContactsOnSync
         self.streetReversal = streetReversalOnAddressSync
-        self.sync = syncingFields
+        self.syncingFields = syncingFields
         self.skipCreationPrompt = False
 
     def __updateMapping(self, googleId: str, monicaId: str) -> None:
@@ -80,7 +80,7 @@ class Sync():
         self.mapping.clear()
         self.__buildSyncDatabase()
         print("\nThe following fields will be overwritten with Google data:")
-        for field, choice in list(self.sync.items())[:-1]:
+        for field, choice in list(self.syncingFields.items())[:-1]:
             if choice:
                 print(f"- {field}")
         print("Start full sync now?")
@@ -108,7 +108,7 @@ class Sync():
             self.google.removeContactFromList(googleContact)
             msg = f"'{gContactDisplayName}' ('{monicaId}'): Monica contact deleted successfully"
             self.log.info(msg)
-        except:
+        except Exception:
             msg = f"'{gContactDisplayName}' ('{googleId}'): Failed deleting corresponding Monica contact! Please delete manually!"
             self.google.removeContactFromList(googleContact)
             self.log.error(msg)
@@ -157,7 +157,7 @@ class Sync():
                     # Skip if nothing has changed
                     if databaseDate == contactDate:
                         continue
-            except:
+            except Exception:
                 # Create a new Google contact if there's nothing in the database yet
                 googleId = googleContact['resourceName']
                 gContactDisplayName = self.google.getContactNames(googleContact)[3]
@@ -224,23 +224,23 @@ class Sync():
     def __syncDetails(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs additional details, such as company, jobtitle, labels, 
         address, phone numbers, emails, notes, contact picture, etc.'''
-        if self.sync["career"]:
+        if self.syncingFields["career"]:
             # Sync career info
             self.__syncCareerInfo(googleContact, monicaContact)
 
-        if self.sync["address"]:
+        if self.syncingFields["address"]:
             # Sync address info
             self.__syncAddress(googleContact, monicaContact)
 
-        if self.sync["phone"] or self.sync["email"]:
+        if self.syncingFields["phone"] or self.syncingFields["email"]:
             # Sync phone and email
             self.__syncPhoneEmail(googleContact, monicaContact)
 
-        if self.sync["labels"]:
+        if self.syncingFields["labels"]:
             # Sync labels
             self.__syncLabels(googleContact, monicaContact)
 
-        if self.sync["notes"]:
+        if self.syncingFields["notes"]:
             # Sync notes if not existent at Monica
             self.__syncNotes(googleContact, monicaContact)
 
@@ -320,9 +320,9 @@ class Sync():
     def __syncPhoneEmail(self, googleContact: dict, monicaContact: dict) -> None:
         '''Syncs phone and email fields.'''
         monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
-        if self.sync["email"]:
+        if self.syncingFields["email"]:
             self.__syncEmail(googleContact, monicaContact, monicaContactFields)
-        if self.sync["phone"]:
+        if self.syncingFields["phone"]:
             self.__syncPhone(googleContact, monicaContact, monicaContactFields)
 
     def __syncEmail(self, googleContact: dict, monicaContact: dict, monicaContactFields: dict) -> None:
@@ -468,7 +468,7 @@ class Sync():
                         try: 
                             if street and street[0].isdigit():
                                 street = f'{street[street.index(" ")+1:]} {street[:street.index(" ")]}'.strip()
-                        except:
+                        except Exception:
                             pass
                     
                     # Get (extended) city
@@ -666,28 +666,28 @@ class Sync():
             })
 
         # Get addresses
-        addresses = monicaContact["addresses"] if self.sync["address"] else []
+        addresses = monicaContact["addresses"] if self.syncingFields["address"] else []
 
         # Get career info if exists
         career = {key: value for key, value in monicaContact['information']["career"].items()
-                if value and self.sync["career"]}
+                if value and self.syncingFields["career"]}
 
         # Get phone numbers and email addresses
-        if self.sync["phone"] or self.sync["email"]:   
+        if self.syncingFields["phone"] or self.syncingFields["email"]:   
             monicaContactFields = self.monica.getContactFields(monicaContact['id'], monicaContact['complete_name'])
             # Get email addresses
             emails = [field["content"] for field in monicaContactFields 
                     if field["contact_field_type"]["type"] == "email"
-                    and self.sync["email"]]
+                    and self.syncingFields["email"]]
             # Get phone numbers
             phoneNumbers = [field["content"] for field in monicaContactFields 
                             if field["contact_field_type"]["type"] == "phone"
-                            and self.sync["phone"]]
+                            and self.syncingFields["phone"]]
 
         # Get tags/labels and create them if neccessary
         labelIds = [self.google.getLabelId(tag['name'])
             for tag in monicaContact["tags"]
-            if self.sync["labels"]]
+            if self.syncingFields["labels"]]
 
         # Create contact upload form
         form = GoogleContactUploadForm(firstName=firstName, lastName=lastName,
@@ -709,7 +709,7 @@ class Sync():
             nicknameLength = len(nickname) + 3 if nickname else 0
             middleName = fullName[len(firstName):len(fullName) - (len(lastName) + nicknameLength)].strip()
             return middleName
-        except:
+        except Exception:
             return ''
 
     def checkDatabase(self) -> None:
@@ -759,7 +759,7 @@ class Sync():
                 monicaContact = self.monica.getContact(monicaId)
                 assert monicaContact
                 monicaContactsSynced.append(monicaContact)
-            except:
+            except Exception:
                 errors += 1
                 msg = f"'{self.google.getContactNames(googleContact)[3]}' ('{googleContact['resourceName']}'): " \
                       f"Wrong id or missing Monica contact for id '{monicaId}'."
@@ -786,7 +786,7 @@ class Sync():
                 googleContact = self.google.getContact(googleId)
                 assert googleContact
                 googleContactsSynced.append(googleContact)
-            except:
+            except Exception:
                 errors += 1
                 msg = f"'{monicaContact['complete_name']}' ('{monicaContact['id']}'): " \
                       f"Wrong id or missing Google contact for id '{googleId}'."
@@ -860,7 +860,7 @@ class Sync():
         print(msg)
         self.log.info(msg)
 
-    def __mergeAndUpdateNBD(self, monicaContact: dict, googleContact: dict) -> dict:
+    def __mergeAndUpdateNBD(self, monicaContact: dict, googleContact: dict) -> None:
         '''Updates names, birthday and deceased date by merging an existing Monica contact with
         a given Google contact.'''
         # Get names
@@ -1007,13 +1007,11 @@ class Sync():
 
         # Process every Monica contact
         for mContact in self.monica.getContacts():
-            if str(mContact['id']) not in self.mapping.values():
-                if gContactGivenName == mContact['first_name']:
-                    # If the id isnt in the database and first name matches add potential candidate to list
-                    candidates.append(mContact)
-                elif gContactFamilyName == mContact['last_name']:
-                    # If the id isnt in the database and last name matches add potential candidate to list
-                    candidates.append(mContact)
+            if (str(mContact['id']) not in self.mapping.values()
+                and (gContactGivenName == mContact['first_name']
+                     or gContactFamilyName == mContact['last_name'])):
+                # If the id isnt in the database and first or last name matches add potential candidate to list
+                candidates.append(mContact)
 
         # If there is at least one candidate let the user choose
         choice = None
@@ -1045,7 +1043,11 @@ class Sync():
 
             # Create new Monica contact
             monicaContact = self.__createMonicaContact(googleContact)
-            msg = f"Conflict resolved: '{gContactDisplayName}' ('{monicaContact['id']}'): New Monica contact created"
+
+            # Print success
+            msg = f"'{gContactDisplayName}' ('{monicaContact['id']}'): New Monica contact created"
+            self.log.info(msg)
+            print("Conflict resolved: " + msg)
 
         # There must be exactly one candidate from user vote
         else:
@@ -1078,12 +1080,12 @@ class Sync():
 
         # Process every Monica contact
         for monicaContact in self.monica.getContacts():
-            if str(monicaContact['id']) not in self.mapping.values():
-                if gContactDisplayName == monicaContact['complete_name']:
+            if (str(monicaContact['id']) not in self.mapping.values()
+                and (gContactDisplayName == monicaContact['complete_name']
+                     or (gContactGivenName
+                         and gContactFamilyName
+                         and ' '.join([gContactGivenName, gContactFamilyName]) == monicaContact['complete_name']))):
                     # If the id isnt in the database and full name matches add potential candidate to list
-                    candidates.append(monicaContact)
-                elif (gContactGivenName and gContactFamilyName and
-                      ' '.join([gContactGivenName, gContactFamilyName]) == monicaContact['complete_name']):
                     # Sometimes Google does some strange naming things with 'honoricPrefix' etc.; try to mitigate that
                     candidates.append(monicaContact)
 

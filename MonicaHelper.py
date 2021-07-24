@@ -240,8 +240,8 @@ class Monica():
             if response.status_code == 201:
                 self.updatedContacts[monicaId] = True
                 note = response.json()['data']
-                id = note["id"]
-                self.log.info(f"'{name}' ('{monicaId}'): Note '{id}' created successfully")
+                noteId = note["id"]
+                self.log.info(f"'{name}' ('{monicaId}'): Note '{noteId}' created successfully")
                 return
             else:
                 error = response.json()['error']['message']
@@ -263,8 +263,8 @@ class Monica():
             if response.status_code == 200:
                 self.updatedContacts[monicaId] = True
                 note = response.json()['data']
-                id = note["id"]
-                self.log.info(f"'{name}' ('{monicaId}'): Note '{id}' updated successfully")
+                noteId = note["id"]
+                self.log.info(f"'{name}' ('{monicaId}'): Note '{noteId}' updated successfully")
                 return
             else:
                 error = response.json()['error']['message']
@@ -386,8 +386,8 @@ class Monica():
             if response.status_code == 201:
                 self.updatedContacts[monicaId] = True
                 address = response.json()['data']
-                id = address["id"]
-                self.log.info(f"'{name}' ('{monicaId}'): Address '{id}' created successfully")
+                addressId = address["id"]
+                self.log.info(f"'{name}' ('{monicaId}'): Address '{addressId}' created successfully")
                 return
             else:
                 error = response.json()['error']['message']

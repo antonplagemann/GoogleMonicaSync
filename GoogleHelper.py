@@ -2,7 +2,7 @@ import os.path
 import pickle
 import sys
 from logging import Logger
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -36,11 +36,12 @@ class Google():
 
     def __buildService(self) -> Resource:
         creds = None
+        FILENAME = 'token.pickle'
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
+        if os.path.exists(FILENAME):
+            with open(FILENAME, 'rb') as token:
                 creds = pickle.load(token)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
@@ -51,7 +52,7 @@ class Google():
                     'credentials.json', scopes='https://www.googleapis.com/auth/contacts')
                 creds = flow.run_local_server(port=56411)
             # Save the credentials for the next run
-            with open('token.pickle', 'wb') as token:
+            with open(FILENAME, 'wb') as token:
                 pickle.dump(creds, token)
 
         service = build('people', 'v1', credentials=creds)
@@ -157,11 +158,11 @@ class Google():
         return string
 
     def removeContactFromList(self, googleContact: dict) -> None:
-        '''Removes a Google contact internally to avoid further processing 
+        '''Removes a Google contact internally to avoid further processing
         (e.g. if it has been deleted on both sides)'''
         self.contacts.remove(googleContact)
 
-    def getContact(self, id: str) -> dict:
+    def getContact(self, googleId: str) -> dict:
         '''Fetches a single contact by id from Google.'''
         try:
             # Check if contact is already fetched
@@ -172,7 +173,7 @@ class Google():
 
             # Build GET parameters
             parameters = {
-                'resourceName': id,
+                'resourceName': googleId,
                 'personFields': self.syncFields,
             }
 
@@ -188,19 +189,19 @@ class Google():
             return googleContact
 
         except HttpError as e:
-            msg = f"Failed to fetch Google contact '{id}': {str(e._get_reason())}"
+            msg = f"Failed to fetch Google contact '{googleId}': {str(e)}"
             self.log.error(msg)
-            raise Exception(msg)
+            raise Exception(msg) from e
 
-        except IndexError:
-            msg = f"Contact processing of '{id}' not allowed by label filter"
+        except IndexError as e:
+            msg = f"Contact processing of '{googleId}' not allowed by label filter"
             self.log.info(msg)
-            raise Exception(msg)
+            raise Exception(msg) from e
 
         except Exception as e:
-            msg = f"Failed to fetch Google contact '{id}': {str(e)}"
+            msg = f"Failed to fetch Google contact '{googleId}': {str(e)}"
             self.log.error(msg)
-            raise Exception(msg)
+            raise Exception(msg) from e
 
     def getContacts(self, refetchData : bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
@@ -223,14 +224,14 @@ class Google():
         try:
             self.__fetchContacts(parameters)
         except HttpError as error:
-            if 'Sync token' in error._get_reason():
+            if 'Sync token' in str(error):
                 msg = "Sync token expired or invalid. Fetching again without token (full sync)..."
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
                 self.__fetchContacts(parameters)
             else:
-                raise Exception(error._get_reason())
+                raise Exception(str(error)) from error
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
@@ -279,18 +280,15 @@ class Google():
             response = self.service.contactGroups().delete(resourceName=groupId).execute()
             self.apiRequests += 1
         except HttpError as error:
-            reason = error._get_reason()
+            reason = str(error)
             msg = f"Failed to delete Google contact group. Reason: {reason}"
             self.log.warning(msg)
             print("\n" + msg)
-            return
 
         if response:
             msg = f"Non-empty response received, please check carefully: {response}"
             self.log.warning(msg)
             print("\n" + msg)
-            return
-        return
 
     def createLabel(self, labelName: str) -> str:
         '''Creates a new Google contacts label and returns its id.'''
@@ -314,7 +312,7 @@ class Google():
         self.labelMapping.update({labelName: groupId})
         return groupId
 
-    def createContact(self, data) -> dict:
+    def createContact(self, data) -> Union[dict, None]:
         '''Creates a given Google contact via api call and returns the created contact.'''
         # Upload contact
         try:
@@ -322,22 +320,22 @@ class Google():
             result = self.service.people().createContact(personFields=self.syncFields, body=data).execute()
             self.apiRequests += 1
         except HttpError as error:
-            reason = error._get_reason()
+            reason = str(error)
             msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
             self.log.warning(msg)
             print("\n" + msg)
             return
 
         # Process result
-        id = result.get('resourceName', '-')
+        googleId = result.get('resourceName', '-')
         name = result.get('names', [{}])[0].get('displayName', 'error')
-        self.createdContacts[id] = True
+        self.createdContacts[googleId] = True
         self.contacts.append(result)
         self.log.info(
-            f"'{name}': Contact with id '{id}' created successfully")
+            f"'{name}': Contact with id '{googleId}' created successfully")
         return result
 
-    def updateContact(self, data) -> dict:
+    def updateContact(self, data) -> Union[dict, None]:
         '''Updates a given Google contact via api call and returns the created contact.'''
         # Upload contact
         try:
@@ -345,18 +343,18 @@ class Google():
             result = self.service.people().updateContact(resourceName=data['resourceName'], updatePersonFields=self.updateFields, body=data).execute()
             self.apiRequests += 1
         except HttpError as error:
-            reason = error._get_reason()
+            reason = str(error)
             msg = f"'{data['names'][0]}':Failed to update Google contact. Reason: {reason}"
             self.log.warning(msg)
             print("\n" + msg)
             return
 
         # Process result
-        id = result.get('resourceName', '-')
+        googleId = result.get('resourceName', '-')
         name = result.get('names', [{}])[0].get('displayName', 'error')
         self.log.info('Contact has not been saved internally!')
         self.log.info(
-            f"'{name}': Contact with id '{id}' updated successfully")
+            f"'{name}': Contact with id '{googleId}' updated successfully")
         return result
 
 
