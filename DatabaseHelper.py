@@ -75,22 +75,23 @@ class Database():
                googleFullName: str = None, monicaFullName: str = None,
                googleLastChanged: str = None, monicaLastChanged: str = None) -> None:
         '''Updates a dataset in the database. Needs at least a Monica id OR a Google id and the related data.'''
+        UNKNOWN_ARGUMENTS = "Unknown database update arguments!"
         if monicaId:
             if monicaFullName:
                 self.__updateFullNameByMonicaId(str(monicaId), monicaFullName)
             if monicaLastChanged:
                 self.__updateMonicaLastChanged(str(monicaId), monicaLastChanged)
             else:
-                self.log.error("Unknown database update arguments!")
+                self.log.error(UNKNOWN_ARGUMENTS)
         if googleId:
             if googleFullName:
                 self.__updateFullNameByGoogleId(googleId, googleFullName)
             if googleLastChanged:
                 self.__updateGoogleLastChanged(googleId, googleLastChanged)
             else:
-                self.log.error("Unknown database update arguments!")
+                self.log.error(UNKNOWN_ARGUMENTS)
         if not monicaId and not googleId:
-            self.log.error("Unknown database update arguments!")
+            self.log.error(UNKNOWN_ARGUMENTS)
 
     def __updateFullNameByMonicaId(self, monicaId: str, monicaFullName: str) -> None:
         insertSql = "UPDATE sync SET monicaFullName = ? WHERE monicaId = ?"
