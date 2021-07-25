@@ -256,6 +256,9 @@ class Sync():
                 "contact_id": monicaContact["id"],
                 "is_favorited": False
                 }
+                # Convert normal newlines to markdown newlines
+                googleNote["body"] = googleNote["body"].replace("\n", "  \n")
+                
                 if not monicaNotes:
                     # If there is no Monica note sync the Google note
                     googleNote["body"] += identifier
