@@ -3,6 +3,7 @@ import pickle
 import sys
 from logging import Logger
 from typing import List, Tuple, Union
+import time
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -23,7 +24,7 @@ class Google():
         self.apiRequests = 0
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
-        self.reverseLabelMapping = {id: name for name, id in self.labelMapping.items()}
+        self.reverseLabelMapping = {labelId: name for name, labelId in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}
@@ -170,7 +171,7 @@ class Google():
         try:
             # Check if contact is already fetched
             if self.contacts:
-                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(id)]
+                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(googleId)]
                 if googleContactList: 
                     return googleContactList[0]
 
@@ -191,20 +192,33 @@ class Google():
             self.contacts.append(googleContact)
             return googleContact
 
-        except HttpError as e:
-            msg = f"Failed to fetch Google contact '{googleId}': {str(e)}"
-            self.log.error(msg)
-            raise Exception(msg) from e
+        except HttpError as error:
+            if self.__isSlowDownError(error):
+                return self.getContact(googleId)
+            else:
+                msg = f"Failed to fetch Google contact '{googleId}': {str(error)}"
+                self.log.error(msg)
+                raise Exception(msg) from error
 
-        except IndexError as e:
+        except IndexError as error:
             msg = f"Contact processing of '{googleId}' not allowed by label filter"
             self.log.info(msg)
-            raise Exception(msg) from e
+            raise Exception(msg) from error
 
-        except Exception as e:
-            msg = f"Failed to fetch Google contact '{googleId}': {str(e)}"
+        except Exception as error:
+            msg = f"Failed to fetch Google contact '{googleId}': {str(error)}"
             self.log.error(msg)
-            raise Exception(msg) from e
+            raise Exception(msg) from error
+
+    def __isSlowDownError(self, error: HttpError) -> bool:
+        '''Checks if the error is an qoate exceeded error and slows down the requests if yes.'''
+        WAITING_TIME = 60
+        if "Quota exceeded" in str(error):
+            print(f"\nToo many Google requests, waiting {WAITING_TIME} seconds...")
+            time.sleep(WAITING_TIME)
+            return True
+        else:
+            return False
 
     def getContacts(self, refetchData : bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
@@ -233,7 +247,11 @@ class Google():
                 print("\n" + msg)
                 parameters.pop('syncToken')
                 self.__fetchContacts(parameters)
+            elif self.__isSlowDownError(error):
+                return self.getContacts(refetchData, **params)
             else:
+                msg = "Failed to fetch Google contacts!"
+                self.log.error(msg)
                 raise Exception(str(error)) from error
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
@@ -263,18 +281,26 @@ class Google():
     def __getLabelMapping(self) -> dict:
         '''Fetches all contact groups from Google (aka labels) and
         returns a {name: id} mapping.'''
-        # Get all contact groups
-        # pylint: disable=no-member
-        response = self.service.contactGroups().list().execute()
-        self.apiRequests += 1
-        groups = response.get('contactGroups', [])
+        try:
+            # Get all contact groups
+            # pylint: disable=no-member
+            response = self.service.contactGroups().list().execute()
+            self.apiRequests += 1
+            groups = response.get('contactGroups', [])
 
-        # Initialize mapping for all user groups and allowed system groups
-        labelMapping = {group['name']: group['resourceName'] for group in groups
-                        if group['groupType'] == 'USER_CONTACT_GROUP'
-                        or group['name'] in ['myContacts', 'starred']}
+            # Initialize mapping for all user groups and allowed system groups
+            labelMapping = {group['name']: group['resourceName'] for group in groups
+                            if group['groupType'] == 'USER_CONTACT_GROUP'
+                            or group['name'] in ['myContacts', 'starred']}
 
-        return labelMapping
+            return labelMapping
+        except HttpError as error:
+            if self.__isSlowDownError(error):
+                return self.__getLabelMapping()
+            else:
+                msg = "Failed to fetch Google labels!"
+                self.log.error(msg)
+                raise Exception(str(error)) from error
 
     def deleteLabel(self, groupId) -> None:
         '''Deletes a contact group from Google (aka label). Does not delete assigned contacts.'''
@@ -283,10 +309,14 @@ class Google():
             response = self.service.contactGroups().delete(resourceName=groupId).execute()
             self.apiRequests += 1
         except HttpError as error:
-            reason = str(error)
-            msg = f"Failed to delete Google contact group. Reason: {reason}"
-            self.log.warning(msg)
-            print("\n" + msg)
+            if self.__isSlowDownError(error):
+                self.deleteLabel(groupId)
+            else:
+                reason = str(error)
+                msg = f"Failed to delete Google contact group. Reason: {reason}"
+                self.log.warning(msg)
+                print("\n" + msg)
+                raise Exception(reason) from error
 
         if response:
             msg = f"Non-empty response received, please check carefully: {response}"
@@ -306,14 +336,23 @@ class Google():
             }
         }
 
-        # Upload group object
-        # pylint: disable=no-member
-        response = self.service.contactGroups().create(body=newGroup).execute()
-        self.apiRequests += 1
+        try:
+            # Upload group object
+            # pylint: disable=no-member
+            response = self.service.contactGroups().create(body=newGroup).execute()
+            self.apiRequests += 1
 
-        groupId = response.get('resourceName', 'contactGroups/myContacts')
-        self.labelMapping.update({labelName: groupId})
-        return groupId
+            groupId = response.get('resourceName', 'contactGroups/myContacts')
+            self.labelMapping.update({labelName: groupId})
+            return groupId
+
+        except HttpError as error:
+            if self.__isSlowDownError(error):
+                return self.createLabel(labelName)
+            else:
+                msg = "Failed to create Google label!"
+                self.log.error(msg)
+                raise Exception(str(error)) from error
 
     def createContact(self, data) -> Union[dict, None]:
         '''Creates a given Google contact via api call and returns the created contact.'''
@@ -323,11 +362,14 @@ class Google():
             result = self.service.people().createContact(personFields=self.syncFields, body=data).execute()
             self.apiRequests += 1
         except HttpError as error:
-            reason = str(error)
-            msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
-            self.log.warning(msg)
-            print("\n" + msg)
-            return
+            if self.__isSlowDownError(error):
+                return self.createContact(data)
+            else:
+                reason = str(error)
+                msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
+                self.log.error(msg)
+                print("\n" + msg)
+                raise Exception(reason) from error
 
         # Process result
         googleId = result.get('resourceName', '-')
@@ -346,11 +388,14 @@ class Google():
             result = self.service.people().updateContact(resourceName=data['resourceName'], updatePersonFields=self.updateFields, body=data).execute()
             self.apiRequests += 1
         except HttpError as error:
-            reason = str(error)
-            msg = f"'{data['names'][0]}':Failed to update Google contact. Reason: {reason}"
-            self.log.warning(msg)
-            print("\n" + msg)
-            return
+            if self.__isSlowDownError(error):
+                return self.updateContact(data)
+            else:
+                reason = str(error)
+                msg = f"'{data['names'][0]}':Failed to update Google contact. Reason: {reason}"
+                self.log.warning(msg)
+                print("\n" + msg)
+                raise Exception(reason) from error
 
         # Process result
         googleId = result.get('resourceName', '-')
