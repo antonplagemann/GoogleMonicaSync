@@ -170,7 +170,7 @@ class Google():
         try:
             # Check if contact is already fetched
             if self.contacts:
-                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(id)]
+                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(googleId)]
                 if googleContactList: 
                     return googleContactList[0]
 
