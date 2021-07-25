@@ -23,7 +23,7 @@ class Google():
         self.apiRequests = 0
         self.service = self.__buildService()
         self.labelMapping = self.__getLabelMapping()
-        self.reverseLabelMapping = {id: name for name, id in self.labelMapping.items()}
+        self.reverseLabelMapping = {labelId: name for name, labelId in self.labelMapping.items()}
         self.contacts = []
         self.dataAlreadyFetched = False
         self.createdContacts = {}

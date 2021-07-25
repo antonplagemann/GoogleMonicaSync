@@ -171,19 +171,19 @@ class Monica():
             self.log.error(msg)
             raise Exception(msg)
 
-    def getContact(self, id: str) -> dict:
+    def getContact(self, monicaId: str) -> dict:
         '''Fetches a single contact by id from Monica.'''
         try:
             # Check if contact is already fetched
             if self.contacts:
-                monicaContactList = [c for c in self.contacts if str(c['id']) == str(id)]
+                monicaContactList = [c for c in self.contacts if str(c['id']) == str(monicaId)]
                 if monicaContactList: 
                     return monicaContactList[0]
 
             while True:
                 # Fetch contact
                 response = requests.get(
-                    self.base_url + f"/contacts/{id}", headers=self.header, params=self.parameters)
+                    self.base_url + f"/contacts/{monicaId}", headers=self.header, params=self.parameters)
                 self.apiRequests += 1
 
                 # If successful
@@ -199,12 +199,12 @@ class Monica():
                     raise Exception(error)
 
         except IndexError:
-            msg = f"Contact processing of '{id}' not allowed by label filter"
+            msg = f"Contact processing of '{monicaId}' not allowed by label filter"
             self.log.info(msg)
             raise Exception(msg)
 
         except Exception as e:
-            msg = f"Failed to fetch Monica contact '{id}': {str(e)}"
+            msg = f"Failed to fetch Monica contact '{monicaId}': {str(e)}"
             self.log.error(msg)
             raise Exception(msg)
 
@@ -354,23 +354,23 @@ class Monica():
                     continue
                 self.log.warning(f"'{name}' ('{monicaId}'): Error updating Monica contact career info: {error}")
 
-    def deleteAddress(self, id: str, monicaId: str, name: str) -> None:
+    def deleteAddress(self, addressId: str, monicaId: str, name: str) -> None:
         '''Deletes an address for a given address id via api call.'''
         while True:
             # Delete address
-            response = requests.delete(self.base_url + f"/addresses/{id}", headers=self.header, params=self.parameters)
+            response = requests.delete(self.base_url + f"/addresses/{addressId}", headers=self.header, params=self.parameters)
             self.apiRequests += 1
 
             # If successful
             if response.status_code == 200:
                 self.updatedContacts[monicaId] = True
-                self.log.info(f"'{name}' ('{monicaId}'): Address '{id}' deleted successfully")
+                self.log.info(f"'{name}' ('{monicaId}'): Address '{addressId}' deleted successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__isSlowDownError(response, error):
                     continue
-                raise Exception(f"'{name}' ('{monicaId}'): Error deleting address '{id}': {error}")
+                raise Exception(f"'{name}' ('{monicaId}'): Error deleting address '{addressId}': {error}")
 
     def createAddress(self, data: dict, name: str) -> None:
         '''Creates an address for a given contact id via api call.'''
