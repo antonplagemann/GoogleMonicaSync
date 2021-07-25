@@ -93,8 +93,11 @@ class Google():
         '''Exclude contacts without name.'''
         filteredContactList = []
         for googleContact in contactList:
-            # Look for empty names
-            if not any(self.getContactNames(googleContact)) or not googleContact.get('names', False):
+            # Look for empty names but keep deleted contacts (they too don't have a name)
+            isDeleted = googleContact.get('metadata', {}).get('deleted', False)
+            isAnyName = any(self.getContactNames(googleContact))
+            isNameKeyPresent = googleContact.get('names', False)
+            if (not isAnyName or not isNameKeyPresent) and not isDeleted:
                 self.log.info(f"Skipped the following unnamed google contact during sync:")
                 self.log.info(f"Contact details:\n{self.getContactAsString(googleContact)[2:-1]}")
             else:
