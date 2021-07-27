@@ -1077,20 +1077,37 @@ class Sync():
         Tries to find a matching Monica contact and returns its id or None if not found'''
         # Initialization
         gContactGivenName = self.google.getContactNames(googleContact)[0]
+        gContactMiddleName = self.google.getContactNames(googleContact)[1]
         gContactFamilyName = self.google.getContactNames(googleContact)[2]
         gContactDisplayName = self.google.getContactNames(googleContact)[3]
         candidates = []
 
         # Process every Monica contact
         for monicaContact in self.monica.getContacts():
-            if (str(monicaContact['id']) not in self.mapping.values()
-                and (gContactDisplayName == monicaContact['complete_name']
-                     or (gContactGivenName
-                         and gContactFamilyName
-                         and ' '.join([gContactGivenName, gContactFamilyName]) == monicaContact['complete_name']))):
-                    # If the id isnt in the database and full name matches add potential candidate to list
-                    # Sometimes Google does some strange naming things with 'honoricPrefix' etc.; try to mitigate that
-                    candidates.append(monicaContact)
+            # Get monica data
+            mContactId = str(monicaContact['id'])
+            mContactFirstName = monicaContact['first_name'] or ''
+            mContactLastName = monicaContact['last_name'] or ''
+            mContactFullName = monicaContact['complete_name'] or ''
+            mContactNickname = monicaContact['nickname'] or ''
+            mContactMiddleName = self.__getMonicaMiddleName(mContactFirstName, mContactLastName, mContactNickname, mContactFullName)
+            # Check if the Monica contact is already assigned to a Google contact
+            isMonicaContactAssigned = mContactId in self.mapping.values()
+            # Check if display names match
+            isDisplayNameMatch = (gContactDisplayName == mContactFullName)
+            # Pre-check that the Google contact has a given and a family name
+            hasNames = gContactGivenName and gContactFamilyName
+            # Check if names match when ignoring honorifix prefixes
+            isWithoutPrefixMatch = hasNames and (' '.join([gContactGivenName, gContactFamilyName]) == mContactFullName)
+            # Check if first, middle and last name matches
+            isFirstLastMiddleNameMatch = (mContactFirstName == gContactGivenName
+                                          and mContactMiddleName == gContactMiddleName
+                                          and mContactLastName == gContactFamilyName)
+            # Assemble all conditions
+            matches = [isDisplayNameMatch, isWithoutPrefixMatch, isFirstLastMiddleNameMatch]
+            if not isMonicaContactAssigned and any(matches):
+                # Add possible candidate
+                candidates.append(monicaContact)
 
         # If there is only one candidate
         if len(candidates) == 1:
