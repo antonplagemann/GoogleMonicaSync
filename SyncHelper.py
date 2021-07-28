@@ -985,7 +985,7 @@ class Sync():
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
                                        createReminders=self.monica.createReminders)
         # Upload contact
-        monicaContact = self.monica.createContact(data=form.data)
+        monicaContact = self.monica.createContact(data=form.data, referenceId=googleContact['resourceName'])
         return monicaContact
 
     def __convertGoogleTimestamp(self, timestamp: str) -> datetime:

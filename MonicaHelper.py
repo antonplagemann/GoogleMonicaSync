@@ -101,7 +101,7 @@ class Monica():
                 self.log.error(f"'{name}' ('{monicaId}'): Failed to complete delete request: {error}")
                 raise Exception("Error deleting Monica contact!")
 
-    def createContact(self, data: dict) -> dict:
+    def createContact(self, data: dict, referenceId: str) -> dict:
         '''Creates a given Monica contact via api call and returns the created contact.'''
         name = f"{data['first_name']} {data['last_name']}".strip()
 
@@ -116,13 +116,13 @@ class Monica():
                 contact = response.json()['data']
                 self.createdContacts[contact['id']] = True
                 self.contacts.append(contact)
-                self.log.info(f"'{name}' ('{contact['id']}'): Contact created successfully")
+                self.log.info(f"'{referenceId}' ('{contact['id']}'): Contact created successfully")
                 return contact
             else:
                 error = response.json()['error']['message']
                 if self.__isSlowDownError(response, error):
                     continue
-                self.log.info(f"'{name}': Error creating Monica contact: {error}")
+                self.log.info(f"'{referenceId}': Error creating Monica contact: {error}")
                 raise Exception("Error creating Monica contact!")
 
     def getContacts(self) -> List[dict]:
