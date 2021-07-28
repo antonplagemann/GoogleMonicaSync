@@ -11,7 +11,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 ## Features
 
 - One-way sync (Google → Monica)
-  - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (see [limits](#limits))
+  - Syncs the following details: first name, last name, middle name, nickname, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (see [limits](#limits))
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
 - User choice prompt before any modification to your Monica data during initial sync (you can choose to abort before the script makes any change).
 - Fast delta sync using Google sync tokens
@@ -26,7 +26,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 - Monica limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
 - No support for custom Monica gender types. Will be overwritten with standard type O (other) during sync.
-- No support for nickname and gender sync (support can be added, file an issue if you want it). Nicknames and genders will be overwritten during sync.
+- No support for gender sync (support can be added, file an issue if you want it). Genders will be overwritten during sync.
 - A label itself won't be deleted automatically if it has been removed from the last contact.
 - If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many *additional* notes as you want at Monica**, they will not be overwritten.
 - Monica contacts require a first name. If a Google contact does not have any name, it will be skipped.

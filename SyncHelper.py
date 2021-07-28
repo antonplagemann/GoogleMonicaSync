@@ -870,6 +870,7 @@ class Sync():
         firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
         middleName = self.google.getContactNames(googleContact)[1]
         displayName = self.google.getContactNames(googleContact)[3]
+        nickName = self.google.getContactNames(googleContact)[6]
         # First name is required for Monica
         if not firstName:
             firstName = displayName
@@ -894,7 +895,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        googleForm = MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+        googleForm = MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=nickName,
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
@@ -943,7 +944,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        return MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+        return MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=nickname,
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthdayTimestamp),
@@ -958,6 +959,7 @@ class Sync():
         firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
         middleName = self.google.getContactNames(googleContact)[1]
         displayName = self.google.getContactNames(googleContact)[3]
+        nickName = self.google.getContactNames(googleContact)[6]
         # First name is required for Monica
         if not firstName:
             firstName = displayName
@@ -973,8 +975,9 @@ class Sync():
 
         # Assemble form object
         form = MonicaContactUploadForm(firstName=firstName, lastName=lastName, middleName=middleName,
-                                       birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
-                                       birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
+                                       nickName=nickName, birthdateDay=birthdateDay,
+                                       birthdateMonth=birthdateMonth, birthdateYear=birthdateYear,
+                                       isBirthdateKnown=bool(birthday), 
                                        createReminders=self.monica.createReminders)
         # Upload contact
         monicaContact = self.monica.createContact(data=form.data, referenceId=googleContact['resourceName'])
@@ -1120,7 +1123,7 @@ class Sync():
     def __getMonicaNamesFromGoogleContact(self, googleContact: dict) -> Tuple[str, str]:
         '''Creates first and last name from a Google contact with respect to honoric
         suffix/prefix.'''
-        givenName, _, familyName, _, prefix, suffix = self.google.getContactNames(googleContact)
+        givenName, _, familyName, _, prefix, suffix, _ = self.google.getContactNames(googleContact)
         if prefix:
             givenName = f"{prefix} {givenName}".strip()
         if suffix:
