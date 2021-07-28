@@ -874,14 +874,6 @@ class Sync():
         if not firstName:
             firstName = displayName
             lastName = ''
-        if not any([firstName, lastName, middleName, displayName]):
-            self.log.info(f"Empty name for '{googleContact['resourceName']}' detected -> using Monica names instead.")
-            # Get all Monica names
-            firstName = monicaContact['first_name'] or ''
-            lastName = monicaContact['last_name'] or ''
-            fullName = monicaContact['complete_name'] or ''
-            nickname = monicaContact['nickname'] or ''
-            middleName = self.__getMonicaMiddleName(firstName, lastName, nickname, fullName)
 
         # Get birthday
         birthday = googleContact.get("birthdays", None)
