@@ -21,6 +21,7 @@ class Monica():
         self.parameters = {'limit': 100}
         self.dataAlreadyFetched = False
         self.contacts = []
+        self.genderMapping = {}
         self.updatedContacts = {}
         self.createdContacts = {}
         self.deletedContacts = {}
@@ -50,6 +51,31 @@ class Monica():
         # A contact should only count as updated if it has not been created during sync
         self.updatedContacts = {key: value for key, value in self.updatedContacts.items()
                                 if key not in self.createdContacts}
+
+    def getGenderMapping(self) -> dict:
+        '''Fetches all genders from Monica and saves them to a dictionary.'''
+        # Only fetch if not present yet
+        if self.genderMapping:
+            return self.genderMapping
+
+        while True:
+        # Get genders
+            response = requests.get(
+                self.base_url + f"/genders", headers=self.header, params=self.parameters)
+            self.apiRequests += 1
+
+            # If successful
+            if response.status_code == 200:
+                genders = response.json()['data']
+                genderMapping = {gender['type']: gender['id'] for gender in genders}
+                self.genderMapping = genderMapping
+                return self.genderMapping
+            else:
+                error = response.json()['error']['message']
+                if self.__isSlowDownError(response, error):
+                    continue
+                self.log.error(f"Failed to fetch genders from Monica: {error}")
+                raise Exception("Error deleting Monica contact!")
 
     def updateContact(self, monicaId: str, data: dict) -> None:
         '''Updates a given contact and its id via api call.'''
@@ -470,7 +496,7 @@ class Monica():
 class MonicaContactUploadForm():
     '''Creates json form for creating or updating Monica contacts.'''
 
-    def __init__(self, firstName: str, lastName: str = None, nickName: str = None,
+    def __init__(self, monica: Monica, firstName: str, lastName: str = None, nickName: str = None,
                  middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
                  birthdateMonth: str = None, birthdateYear: str = None,
                  birthdateAgeBased: bool = None, isBirthdateKnown: bool = False,
@@ -478,7 +504,7 @@ class MonicaContactUploadForm():
                  deceasedDay: int = None, deceasedMonth: int = None,
                  deceasedYear: int = None, deceasedAgeBased: bool = None,
                  createReminders: bool = True) -> None:
-        genderId = {'M': 1, 'F': 2, 'O': 3}.get(genderType, 3)
+        genderId = monica.getGenderMapping()[genderType]
         self.data = {
             "first_name": firstName,
             "last_name": lastName,

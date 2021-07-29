@@ -895,7 +895,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        googleForm = MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=nickName,
+        googleForm = MonicaContactUploadForm(firstName=firstName, monica=self.monica, lastName=lastName, nickName=nickName,
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
@@ -944,7 +944,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        return MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=nickname,
+        return MonicaContactUploadForm(firstName=firstName, monica=self.monica, lastName=lastName, nickName=nickname,
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthdayTimestamp),
@@ -974,7 +974,7 @@ class Sync():
             birthdateDay = birthday[0].get("date", {}).get("day", None)
 
         # Assemble form object
-        form = MonicaContactUploadForm(firstName=firstName, lastName=lastName, middleName=middleName,
+        form = MonicaContactUploadForm(firstName=firstName, monica=self.monica, lastName=lastName, middleName=middleName,
                                        nickName=nickName, birthdateDay=birthdateDay,
                                        birthdateMonth=birthdateMonth, birthdateYear=birthdateYear,
                                        isBirthdateKnown=bool(birthday), 

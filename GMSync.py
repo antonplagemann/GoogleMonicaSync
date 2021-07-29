@@ -104,7 +104,7 @@ def main() -> None:
         msg = f"Script aborted: {type(e).__name__}: {str(e)}\n"
         log.exception(e)
         print("\n" + msg)
-        sys.exit(1)
+        raise SystemExit(1) from e
 
 
 if __name__ == '__main__':
