@@ -17,7 +17,7 @@ from GoogleHelper import Google
 from MonicaHelper import Monica
 from SyncHelper import Sync
 
-VERSION = "v3.1.3"
+VERSION = "v3.2.0"
 DATABASE_FILENAME = "syncState.db"
 LOG_FILENAME = 'Sync.log'
 # Google -> Monica contact syncing script
@@ -104,7 +104,7 @@ def main() -> None:
         msg = f"Script aborted: {type(e).__name__}: {str(e)}\n"
         log.exception(e)
         print("\n" + msg)
-        sys.exit(1)
+        raise SystemExit(1) from e
 
 
 if __name__ == '__main__':

@@ -256,6 +256,9 @@ class Sync():
                 "contact_id": monicaContact["id"],
                 "is_favorited": False
                 }
+                # Convert normal newlines to markdown newlines
+                googleNote["body"] = googleNote["body"].replace("\n", "  \n")
+                
                 if not monicaNotes:
                     # If there is no Monica note sync the Google note
                     googleNote["body"] += identifier
@@ -867,18 +870,11 @@ class Sync():
         firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
         middleName = self.google.getContactNames(googleContact)[1]
         displayName = self.google.getContactNames(googleContact)[3]
+        nickName = self.google.getContactNames(googleContact)[6]
         # First name is required for Monica
         if not firstName:
             firstName = displayName
             lastName = ''
-        if not any([firstName, lastName, middleName, displayName]):
-            self.log.info(f"Empty name for '{googleContact['resourceName']}' detected -> using Monica names instead.")
-            # Get all Monica names
-            firstName = monicaContact['first_name'] or ''
-            lastName = monicaContact['last_name'] or ''
-            fullName = monicaContact['complete_name'] or ''
-            nickname = monicaContact['nickname'] or ''
-            middleName = self.__getMonicaMiddleName(firstName, lastName, nickname, fullName)
 
         # Get birthday
         birthday = googleContact.get("birthdays", None)
@@ -899,7 +895,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        googleForm = MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+        googleForm = MonicaContactUploadForm(firstName=firstName, monica=self.monica, lastName=lastName, nickName=nickName,
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
@@ -948,7 +944,7 @@ class Sync():
             deceasedDay = date.day
 
         # Assemble form object
-        return MonicaContactUploadForm(firstName=firstName, lastName=lastName, nickName=monicaContact["nickname"],
+        return MonicaContactUploadForm(firstName=firstName, monica=self.monica, lastName=lastName, nickName=nickname,
                                        middleName=middleName, genderType=monicaContact["gender_type"],
                                        birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
                                        birthdateYear=birthdateYear, isBirthdateKnown=bool(birthdayTimestamp),
@@ -963,6 +959,7 @@ class Sync():
         firstName, lastName = self.__getMonicaNamesFromGoogleContact(googleContact)
         middleName = self.google.getContactNames(googleContact)[1]
         displayName = self.google.getContactNames(googleContact)[3]
+        nickName = self.google.getContactNames(googleContact)[6]
         # First name is required for Monica
         if not firstName:
             firstName = displayName
@@ -977,12 +974,13 @@ class Sync():
             birthdateDay = birthday[0].get("date", {}).get("day", None)
 
         # Assemble form object
-        form = MonicaContactUploadForm(firstName=firstName, lastName=lastName, middleName=middleName,
-                                       birthdateDay=birthdateDay, birthdateMonth=birthdateMonth,
-                                       birthdateYear=birthdateYear, isBirthdateKnown=bool(birthday),
+        form = MonicaContactUploadForm(firstName=firstName, monica=self.monica, lastName=lastName, middleName=middleName,
+                                       nickName=nickName, birthdateDay=birthdateDay,
+                                       birthdateMonth=birthdateMonth, birthdateYear=birthdateYear,
+                                       isBirthdateKnown=bool(birthday), 
                                        createReminders=self.monica.createReminders)
         # Upload contact
-        monicaContact = self.monica.createContact(data=form.data)
+        monicaContact = self.monica.createContact(data=form.data, referenceId=googleContact['resourceName'])
         return monicaContact
 
     def __convertGoogleTimestamp(self, timestamp: str) -> datetime:
@@ -1074,20 +1072,37 @@ class Sync():
         Tries to find a matching Monica contact and returns its id or None if not found'''
         # Initialization
         gContactGivenName = self.google.getContactNames(googleContact)[0]
+        gContactMiddleName = self.google.getContactNames(googleContact)[1]
         gContactFamilyName = self.google.getContactNames(googleContact)[2]
         gContactDisplayName = self.google.getContactNames(googleContact)[3]
         candidates = []
 
         # Process every Monica contact
         for monicaContact in self.monica.getContacts():
-            if (str(monicaContact['id']) not in self.mapping.values()
-                and (gContactDisplayName == monicaContact['complete_name']
-                     or (gContactGivenName
-                         and gContactFamilyName
-                         and ' '.join([gContactGivenName, gContactFamilyName]) == monicaContact['complete_name']))):
-                    # If the id isnt in the database and full name matches add potential candidate to list
-                    # Sometimes Google does some strange naming things with 'honoricPrefix' etc.; try to mitigate that
-                    candidates.append(monicaContact)
+            # Get monica data
+            mContactId = str(monicaContact['id'])
+            mContactFirstName = monicaContact['first_name'] or ''
+            mContactLastName = monicaContact['last_name'] or ''
+            mContactFullName = monicaContact['complete_name'] or ''
+            mContactNickname = monicaContact['nickname'] or ''
+            mContactMiddleName = self.__getMonicaMiddleName(mContactFirstName, mContactLastName, mContactNickname, mContactFullName)
+            # Check if the Monica contact is already assigned to a Google contact
+            isMonicaContactAssigned = mContactId in self.mapping.values()
+            # Check if display names match
+            isDisplayNameMatch = (gContactDisplayName == mContactFullName)
+            # Pre-check that the Google contact has a given and a family name
+            hasNames = gContactGivenName and gContactFamilyName
+            # Check if names match when ignoring honorifix prefixes
+            isWithoutPrefixMatch = hasNames and (' '.join([gContactGivenName, gContactFamilyName]) == mContactFullName)
+            # Check if first, middle and last name matches
+            isFirstLastMiddleNameMatch = (mContactFirstName == gContactGivenName
+                                          and mContactMiddleName == gContactMiddleName
+                                          and mContactLastName == gContactFamilyName)
+            # Assemble all conditions
+            matches = [isDisplayNameMatch, isWithoutPrefixMatch, isFirstLastMiddleNameMatch]
+            if not isMonicaContactAssigned and any(matches):
+                # Add possible candidate
+                candidates.append(monicaContact)
 
         # If there is only one candidate
         if len(candidates) == 1:
@@ -1108,7 +1123,7 @@ class Sync():
     def __getMonicaNamesFromGoogleContact(self, googleContact: dict) -> Tuple[str, str]:
         '''Creates first and last name from a Google contact with respect to honoric
         suffix/prefix.'''
-        givenName, _, familyName, _, prefix, suffix = self.google.getContactNames(googleContact)
+        givenName, _, familyName, _, prefix, suffix, _ = self.google.getContactNames(googleContact)
         if prefix:
             givenName = f"{prefix} {givenName}".strip()
         if suffix:

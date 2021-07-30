@@ -117,7 +117,8 @@ class Google():
         middleName = names.get("middleName", '')
         prefix = names.get("honorificPrefix", '')
         suffix = names.get("honorificSuffix", '')
-        return givenName, middleName, familyName, displayName, prefix, suffix
+        nickname = googleContact.get('nicknames', [{}])[0].get('value', '')
+        return givenName, middleName, familyName, displayName, prefix, suffix, nickname
 
     def getContactAsString(self, googleContact: dict) -> str:
         '''Get some content from a Google contact to identify it as a user and return it as string.'''
