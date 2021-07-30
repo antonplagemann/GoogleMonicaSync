@@ -75,7 +75,7 @@ class Monica():
                 if self.__isSlowDownError(response, error):
                     continue
                 self.log.error(f"Failed to fetch genders from Monica: {error}")
-                raise Exception("Error deleting Monica contact!")
+                raise Exception("Error fetching genders from Monica!")
 
     def updateContact(self, monicaId: str, data: dict) -> None:
         '''Updates a given contact and its id via api call.'''
