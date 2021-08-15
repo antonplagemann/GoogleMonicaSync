@@ -105,6 +105,7 @@ class Monica():
                 if self.__isSlowDownError(response, error):
                     continue
                 self.log.error(f"'{name}' ('{monicaId}'): Error updating Monica contact: {error}. Does it exist?")
+                self.log.error(f"Monica form data: {data}")
                 raise Exception("Error updating Monica contact!")
 
     def deleteContact(self, monicaId: str, name: str) -> None:
@@ -538,7 +539,7 @@ class MonicaContactUploadForm():
     def __init__(self, monica: Monica, firstName: str, lastName: str = None, nickName: str = None,
                  middleName: str = None, genderType: str = 'O', birthdateDay: str = None,
                  birthdateMonth: str = None, birthdateYear: str = None,
-                 birthdateAgeBased: bool = None, isBirthdateKnown: bool = False,
+                 birthdateAgeBased: bool = False, isBirthdateKnown: bool = False,
                  isDeceased: bool = False, isDeceasedDateKnown: bool = False,
                  deceasedDay: int = None, deceasedMonth: int = None,
                  deceasedYear: int = None, deceasedAgeBased: bool = None,
