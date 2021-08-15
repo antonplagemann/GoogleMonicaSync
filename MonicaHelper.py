@@ -22,6 +22,7 @@ class Monica():
         self.dataAlreadyFetched = False
         self.contacts = []
         self.genderMapping = {}
+        self.contactFieldTypeMapping = {}
         self.updatedContacts = {}
         self.createdContacts = {}
         self.deletedContacts = {}
@@ -439,6 +440,44 @@ class Monica():
                 if self.__isSlowDownError(response, error):
                     continue
                 raise Exception(f"'{name}' ('{monicaId}'): Error fetching Monica contact fields: {error}")
+
+    def getContactFieldId(self, typeName: str) -> str:
+        '''Returns the id for a Monica contact field.'''
+        # Fetch if not present yet
+        if not self.contactFieldTypeMapping:
+            self.__getContactFieldTypes()
+
+        # Get contact field id
+        fieldId = self.contactFieldTypeMapping.get(typeName, None)
+
+        # No id is a serious issue
+        if not fieldId:
+            raise Exception(f"Could not find an id for contact field type '{typeName}'")
+
+        return fieldId
+            
+    def __getContactFieldTypes(self) -> dict:
+        '''Fetches all contact field types from Monica and saves them to a dictionary.'''
+
+        while True:
+        # Get genders
+            response = requests.get(
+                self.base_url + f"/contactfieldtypes", headers=self.header, params=self.parameters)
+            self.apiRequests += 1
+
+            # If successful
+            if response.status_code == 200:
+                contactFieldTypes = response.json()['data']
+                contactFieldTypeMapping = {field['type']: field['id'] for field in contactFieldTypes}
+                self.contactFieldTypeMapping = contactFieldTypeMapping
+                return self.contactFieldTypeMapping
+            else:
+                error = response.json()['error']['message']
+                if self.__isSlowDownError(response, error):
+                    continue
+                self.log.error(f"Failed to fetch contact field types from Monica: {error}")
+                raise Exception("Error fetching contact field types from Monica!")
+
 
     def createContactField(self, monicaId: str, data: dict, name: str) -> None:
         '''Creates a contact field (phone number, email, etc.) 

@@ -340,7 +340,7 @@ class Sync():
             if googleContactEmails:
                 googleEmails = [
                     {
-                    "contact_field_type_id": 1,
+                    "contact_field_type_id": self.monica.getContactFieldId('email'),
                     "data": email["value"].strip(),
                     "contact_id": monicaContact["id"]
                     } 
@@ -385,7 +385,7 @@ class Sync():
             if googleContactPhones:
                 googlePhones = [
                     {
-                    "contact_field_type_id": 2,
+                    "contact_field_type_id": self.monica.getContactFieldId('phone'),
                     "data": number["value"].strip(),
                     "contact_id": monicaContact["id"]
                     } 
