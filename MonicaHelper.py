@@ -544,7 +544,11 @@ class MonicaContactUploadForm():
                  deceasedDay: int = None, deceasedMonth: int = None,
                  deceasedYear: int = None, deceasedAgeBased: bool = None,
                  createReminders: bool = True) -> None:
-        genderId = monica.getGenderMapping()[genderType]
+        if genderType == None:
+            genderId = None
+        else:
+            genderId = monica.getGenderMapping()[genderType]
+
         self.data = {
             "first_name": firstName,
             "last_name": lastName,
