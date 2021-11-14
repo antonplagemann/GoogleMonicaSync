@@ -37,7 +37,7 @@ class Google():
 
     def __buildService(self) -> Resource:
         creds = None
-        FILENAME = 'token.pickle'
+        FILENAME = 'data/token.pickle'
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
@@ -50,7 +50,7 @@ class Google():
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', scopes='https://www.googleapis.com/auth/contacts')
+                    'data/credentials.json', scopes='https://www.googleapis.com/auth/contacts')
                 creds = flow.run_local_server(port=56411)
             # Save the credentials for the next run
             with open(FILENAME, 'wb') as token:

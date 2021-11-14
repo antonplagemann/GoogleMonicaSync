@@ -125,11 +125,9 @@ dmypy.json
 
 # Dev files
 .vscode/**
-token.pickle
-credentials.json
 conf.py
-token.pickle*
-syncState.db
-syncState.db-journal
 GoogleSampleData.json
 MonicaSampleData.json
+monica-profile
+people-api-quickstart
+Notes.txt

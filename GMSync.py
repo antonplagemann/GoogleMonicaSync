@@ -18,8 +18,8 @@ from MonicaHelper import Monica
 from SyncHelper import Sync
 
 VERSION = "v3.2.1"
-DATABASE_FILENAME = "syncState.db"
-LOG_FILENAME = 'Sync.log'
+DATABASE_FILENAME = "data/syncState.db"
+LOG_FILENAME = 'data/Sync.log'
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
