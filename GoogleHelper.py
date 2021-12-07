@@ -11,6 +11,7 @@ from googleapiclient.discovery import Resource, build
 from googleapiclient.errors import HttpError
 
 from DatabaseHelper import Database
+from Exceptions import GoogleFetchError, InternalError
 
 
 class Google():
@@ -199,17 +200,17 @@ class Google():
             else:
                 msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
                 self.log.error(msg)
-                raise Exception(msg) from error
+                raise GoogleFetchError(msg) from error
 
         except IndexError as error:
             msg = f"Contact processing of '{google_id}' not allowed by label filter"
             self.log.info(msg)
-            raise Exception(msg) from error
+            raise InternalError(msg) from error
 
         except Exception as error:
             msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
             self.log.error(msg)
-            raise Exception(msg) from error
+            raise GoogleFetchError(msg) from error
 
     def __is_slow_down_error(self, error: HttpError) -> bool:
         '''Checks if the error is an quota exceeded error and slows down the requests if yes.'''
@@ -253,7 +254,7 @@ class Google():
             else:
                 msg = "Failed to fetch Google contacts!"
                 self.log.error(msg)
-                raise Exception(str(error)) from error
+                raise GoogleFetchError(str(error)) from error
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
@@ -301,7 +302,7 @@ class Google():
             else:
                 msg = "Failed to fetch Google labels!"
                 self.log.error(msg)
-                raise Exception(str(error)) from error
+                raise GoogleFetchError(str(error)) from error
 
     def delete_label(self, group_id) -> None:
         '''Deletes a contact group from Google (aka label). Does not delete assigned contacts.'''
@@ -317,7 +318,7 @@ class Google():
                 msg = f"Failed to delete Google contact group. Reason: {reason}"
                 self.log.warning(msg)
                 print("\n" + msg)
-                raise Exception(reason) from error
+                raise GoogleFetchError(reason) from error
 
         if response:
             msg = f"Non-empty response received, please check carefully: {response}"
@@ -353,7 +354,7 @@ class Google():
             else:
                 msg = "Failed to create Google label!"
                 self.log.error(msg)
-                raise Exception(str(error)) from error
+                raise GoogleFetchError(str(error)) from error
 
     def create_contact(self, data) -> Union[dict, None]:
         '''Creates a given Google contact via api call and returns the created contact.'''
@@ -370,7 +371,7 @@ class Google():
                 msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
                 self.log.error(msg)
                 print("\n" + msg)
-                raise Exception(reason) from error
+                raise GoogleFetchError(reason) from error
 
         # Process result
         google_id = result.get('resourceName', '-')
@@ -396,7 +397,7 @@ class Google():
                 msg = f"'{data['names'][0]}':Failed to update Google contact. Reason: {reason}"
                 self.log.warning(msg)
                 print("\n" + msg)
-                raise Exception(reason) from error
+                raise GoogleFetchError(reason) from error
 
         # Process result
         google_id = result.get('resourceName', '-')

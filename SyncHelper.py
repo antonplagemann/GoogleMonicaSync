@@ -5,6 +5,7 @@ from logging import Logger
 from typing import Tuple, Union, List
 
 from DatabaseHelper import Database, DatabaseEntry
+from Exceptions import BadUserInput, InternalError, UserChoice
 from GoogleHelper import Google, GoogleContactUploadForm
 from MonicaHelper import Monica, MonicaContactUploadForm
 
@@ -47,7 +48,7 @@ class Sync():
             msg = "No sync database found, please do a initial sync first!"
             self.log.info(msg)
             print(msg + "\n")
-            raise Exception("Initial sync needed!")
+            raise BadUserInput("Initial sync needed!")
         elif sync_type == 'full':
             # As this is a full sync, get all contacts at once to save time
             self.monica.get_contacts()
@@ -88,7 +89,7 @@ class Sync():
         print("\t1: Yes")
         choice = int(input("Enter your choice (number only): "))
         if not choice:
-            raise Exception("Sync aborted by user choice")
+            raise UserChoice("Sync aborted by user choice")
         self.__sync('full', is_date_based_sync=False)
 
     def __delete_monica_contact(self, google_contact: dict) -> None:
@@ -197,7 +198,7 @@ class Sync():
                 self.log.error(msg)
                 print("\n" + msg)
                 print("Please do not delete Monica contacts manually!")
-                raise Exception("Could't connect to Monica api or Database not consistent, consider doing initial sync to rebuild.")
+                raise InternalError("Could't connect to Monica api or Database not consistent, consider doing initial sync to rebuild.")
             # Merge name, birthday and deceased date and update them
             self.__merge_and_update_nbd(monica_contact, google_contact)
 
@@ -1034,7 +1035,7 @@ class Sync():
                 print("\t2: Yes to all")
                 choice = int(input("Enter your choice (number only): "))
                 if not choice:
-                    raise Exception("Sync aborted by user choice")
+                    raise UserChoice("Sync aborted by user choice")
                 if choice == 2:
                     # Skip further contact creation prompts 
                     self.skip_creation_prompt = True
