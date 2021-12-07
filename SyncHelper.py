@@ -87,7 +87,7 @@ class Sync():
         print("Start full sync now?")
         print("\t0: No (abort initial sync)")
         print("\t1: Yes")
-        choice = int(input("Enter your choice (number only): "))
+        choice = self.__get_user_input(allowed_nums=[0, 1])
         if not choice:
             raise UserChoice("Sync aborted by user choice")
         self.__sync('full', is_date_based_sync=False)
@@ -1020,7 +1020,7 @@ class Sync():
             for num, monica_contact in enumerate(candidates):
                 print(f"\t{num}: {monica_contact['complete_name']}")
             print(f"\t{num+1}: Create a new Monica contact")
-            choice = int(input("Enter your choice (number only): "))
+            choice = self.__get_user_input(allowed_nums=list(range(len(candidates) + 1)))
             # Created a sublist with the selected candidate or an empty list if user votes for a new contact
             candidates = candidates[choice:choice+1]
 
@@ -1033,7 +1033,7 @@ class Sync():
                 print("\t0: No (abort initial sync)")
                 print("\t1: Yes")
                 print("\t2: Yes to all")
-                choice = int(input("Enter your choice (number only): "))
+                choice = choice = self.__get_user_input(allowed_nums=[0, 1, 2])
                 if not choice:
                     raise UserChoice("Sync aborted by user choice")
                 if choice == 2:
@@ -1066,6 +1066,19 @@ class Sync():
         print("Conflict resolved: " + msg)
 
         return str(monica_contact['id'])
+
+    def __get_user_input(self, allowed_nums: List[int]) -> int:
+        '''Prompts for a number entered by the user'''
+        while True:
+            try:
+                choice = int(input("Enter your choice (number only): "))
+                if choice in allowed_nums:
+                    return choice
+                else:
+                    raise BadUserInput()
+            except Exception:
+                print("Bad input, please try again!\n")
+
 
     # pylint: disable=unsubscriptable-object
     def __simple_monica_id_search(self, google_contact: dict) -> Union[str, None]:
