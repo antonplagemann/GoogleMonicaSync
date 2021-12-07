@@ -1,0 +1,18 @@
+{
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true,
+    "python.languageServer": "Pylance",
+    "python.formatting.autopep8Args": [
+        "--max-line-length=100"
+    ],
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "GMSync",
+            "database": "${workspaceFolder:GoogleMonicaSync}/syncState.db"
+        }
+    ],
+    "sqltools.useNodeRuntime": true,
+    "python.linting.flake8Enabled": true,
+}

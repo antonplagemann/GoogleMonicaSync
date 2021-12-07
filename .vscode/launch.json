@@ -1,0 +1,58 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start delta sync",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\GMSync.py",
+            "args": [
+                "-d"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Start full sync",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\GMSync.py",
+            "args": [
+                "-f"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Start initial sync",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\GMSync.py",
+            "args": [
+                "-i"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Start sync back",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\GMSync.py",
+            "args": [
+                "-sb"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Start database check",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\GMSync.py",
+            "args": [
+                "-c"
+            ],
+            "console": "integratedTerminal"
+        },
+    ]
+}

@@ -13,7 +13,8 @@ from Exceptions import MonicaFetchError, InternalError
 class Monica():
     '''Handles all Monica related (api) stuff.'''
 
-    def __init__(self, log: Logger, database_handler: Database, token: str, base_url: str, create_reminders: bool, label_filter: dict) -> None:
+    def __init__(self, log: Logger, database_handler: Database, token: str, base_url: str,
+                 create_reminders: bool, label_filter: dict) -> None:
         self.log = log
         self.database = database_handler
         self.base_url = base_url
@@ -35,15 +36,15 @@ class Monica():
         if self.label_filter["include"]:
             return [contact for contact in contact_list
                     if any([contact_label["name"]
-                            in self.label_filter["include"] 
+                            in self.label_filter["include"]
                             for contact_label in contact["tags"]])
-                    and all([contact_label["name"] 
-                            not in self.label_filter["exclude"] 
+                    and all([contact_label["name"]
+                            not in self.label_filter["exclude"]
                             for contact_label in contact["tags"]])]
         elif self.label_filter["exclude"]:
             return [contact for contact in contact_list
                     if all([contact_label["name"]
-                            not in self.label_filter["exclude"] 
+                            not in self.label_filter["exclude"]
                             for contact_label in contact["tags"]])]
         else:
             return contact_list
@@ -52,7 +53,7 @@ class Monica():
         '''Updates internal statistics for printing.'''
         # A contact should only count as updated if it has not been created during sync
         self.updated_contacts = {key: value for key, value in self.updated_contacts.items()
-                                if key not in self.created_contacts}
+                                 if key not in self.created_contacts}
 
     def get_gender_mapping(self) -> dict:
         '''Fetches all genders from Monica and saves them to a dictionary.'''
@@ -61,9 +62,9 @@ class Monica():
             return self.gender_mapping
 
         while True:
-        # Get genders
+            # Get genders
             response = requests.get(
-                self.base_url + f"/genders", headers=self.header, params=self.parameters)
+                self.base_url + "/genders", headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
@@ -88,7 +89,8 @@ class Monica():
 
         while True:
             # Update contact
-            response = requests.put(self.base_url + f"/contacts/{monica_id}", headers=self.header, params=self.parameters, json=data)
+            response = requests.put(self.base_url + f"/contacts/{monica_id}",
+                                    headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
@@ -99,13 +101,15 @@ class Monica():
                 name = contact["complete_name"]
                 self.log.info(f"'{name}' ('{monica_id}'): Contact updated successfully")
                 self.database.update(
-                    monica_id=monica_id, monica_last_changed=contact['updated_at'], monica_full_name=contact["complete_name"])
+                    monica_id=monica_id, monica_last_changed=contact['updated_at'],
+                    monica_full_name=contact["complete_name"])
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                self.log.error(f"'{name}' ('{monica_id}'): Error updating Monica contact: {error}. Does it exist?")
+                self.log.error(f"'{name}' ('{monica_id}'): "
+                               "Error updating Monica contact: {error}. Does it exist?")
                 self.log.error(f"Monica form data: {data}")
                 raise MonicaFetchError("Error updating Monica contact!")
 
@@ -127,15 +131,16 @@ class Monica():
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                self.log.error(f"'{name}' ('{monica_id}'): Failed to complete delete request: {error}")
+                self.log.error(
+                    f"'{name}' ('{monica_id}'): Failed to complete delete request: {error}")
                 raise MonicaFetchError("Error deleting Monica contact!")
 
     def create_contact(self, data: dict, reference_id: str) -> dict:
         '''Creates a given Monica contact via api call and returns the created contact.'''
         while True:
             # Create contact
-            response = requests.post(self.base_url + f"/contacts",
-                                    headers=self.header, params=self.parameters, json=data)
+            response = requests.post(self.base_url + "/contacts",
+                                     headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
@@ -168,7 +173,8 @@ class Monica():
                 sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {max_page})")
                 sys.stdout.flush()
                 response = requests.get(
-                    self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters)
+                    self.base_url + f"/contacts?page={page}",
+                    headers=self.header, params=self.parameters)
                 self.api_requests += 1
                 # If successful
                 if response.status_code == 200:
@@ -204,13 +210,14 @@ class Monica():
             # Check if contact is already fetched
             if self.contacts:
                 monica_contact_list = [c for c in self.contacts if str(c['id']) == str(monica_id)]
-                if monica_contact_list: 
+                if monica_contact_list:
                     return monica_contact_list[0]
 
             while True:
                 # Fetch contact
                 response = requests.get(
-                    self.base_url + f"/contacts/{monica_id}", headers=self.header, params=self.parameters)
+                    self.base_url + f"/contacts/{monica_id}",
+                    headers=self.header, params=self.parameters)
                 self.api_requests += 1
 
                 # If successful
@@ -240,7 +247,8 @@ class Monica():
 
         while True:
             # Get contact fields
-            response = requests.get(self.base_url + f"/contacts/{monica_id}/notes", headers=self.header, params=self.parameters)
+            response = requests.get(self.base_url + f"/contacts/{monica_id}/notes",
+                                    headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
@@ -251,7 +259,8 @@ class Monica():
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error fetching Monica notes: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error fetching Monica notes: {error}")
 
     def add_note(self, data: dict, name: str) -> None:
         '''Creates a new note for a given contact id via api call.'''
@@ -260,7 +269,8 @@ class Monica():
 
         while True:
             # Create address
-            response = requests.post(self.base_url + f"/notes", headers=self.header, params=self.parameters, json=data)
+            response = requests.post(self.base_url + "/notes",
+                                     headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
@@ -274,7 +284,8 @@ class Monica():
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error creating Monica note: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error creating Monica note: {error}")
 
     def update_note(self, note_id: str, data: dict, name: str) -> None:
         '''Creates a new note for a given contact id via api call.'''
@@ -283,7 +294,9 @@ class Monica():
 
         while True:
             # Create address
-            response = requests.put(self.base_url + f"/notes/{note_id}", headers=self.header, params=self.parameters, json=data)
+            response = requests.put(
+                self.base_url + f"/notes/{note_id}",
+                headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
@@ -297,14 +310,16 @@ class Monica():
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error updating Monica note: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error updating Monica note: {error}")
 
     def delete_note(self, note_id: str, monica_id: str, name: str) -> None:
         '''Creates a new note for a given contact id via api call.'''
 
         while True:
             # Create address
-            response = requests.delete(self.base_url + f"/notes/{note_id}", headers=self.header, params=self.parameters)
+            response = requests.delete(
+                self.base_url + f"/notes/{note_id}", headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
@@ -316,46 +331,54 @@ class Monica():
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error deleting Monica note: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error deleting Monica note: {error}")
 
     def remove_tags(self, data: dict, monica_id: str, name: str) -> None:
         '''Removes all tags given by id from a given contact id via api call.'''
 
         while True:
             # Create address
-            response = requests.post(self.base_url + f"/contacts/{monica_id}/unsetTag", headers=self.header, params=self.parameters, json=data)
+            response = requests.post(
+                self.base_url + f"/contacts/{monica_id}/unsetTag",
+                headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
             if response.status_code == 200:
                 self.updated_contacts[monica_id] = True
-                self.log.info(f"'{name}' ('{monica_id}'): Label(s) with id {data['tags']} removed successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): Label(s) with id {data['tags']} removed successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error removing Monica labels: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error removing Monica labels: {error}")
 
     def add_tags(self, data: dict, monica_id: str, name: str) -> None:
         '''Adds all tags given by name for a given contact id via api call.'''
 
         while True:
             # Create address
-            response = requests.post(self.base_url + f"/contacts/{monica_id}/setTags", headers=self.header, params=self.parameters, json=data)
+            response = requests.post(
+                self.base_url + f"/contacts/{monica_id}/setTags",
+                headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
             if response.status_code == 200:
                 self.updated_contacts[monica_id] = True
-                self.log.info(f"'{name}' ('{monica_id}'): Labels {data['tags']} assigned successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): Labels {data['tags']} assigned successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error assigning Monica labels: {error}")
-
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error assigning Monica labels: {error}")
 
     def update_career(self, monica_id: str, data: dict) -> None:
         '''Updates job title and company for a given contact id via api call.'''
@@ -365,39 +388,46 @@ class Monica():
 
         while True:
             # Update contact
-            response = requests.put(self.base_url + f"/contacts/{monica_id}/work", headers=self.header, params=self.parameters, json=data)
+            response = requests.put(
+                self.base_url + f"/contacts/{monica_id}/work",
+                headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
             if response.status_code == 200:
                 self.updated_contacts[monica_id] = True
                 contact = response.json()['data']
-                self.log.info(f"'{name}' ('{monica_id}'): Company and job title updated successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): Company and job title updated successfully")
                 self.database.update(monica_id=monica_id, monica_last_changed=contact['updated_at'])
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                self.log.warning(f"'{name}' ('{monica_id}'): Error updating Monica contact career info: {error}")
+                self.log.warning(
+                    f"'{name}' ('{monica_id}'): Error updating Monica contact career info: {error}")
 
     def delete_address(self, address_id: str, monica_id: str, name: str) -> None:
         '''Deletes an address for a given address id via api call.'''
         while True:
             # Delete address
-            response = requests.delete(self.base_url + f"/addresses/{address_id}", headers=self.header, params=self.parameters)
+            response = requests.delete(
+                self.base_url + f"/addresses/{address_id}", headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
             if response.status_code == 200:
                 self.updated_contacts[monica_id] = True
-                self.log.info(f"'{name}' ('{monica_id}'): Address '{address_id}' deleted successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): Address '{address_id}' deleted successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error deleting address '{address_id}': {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error deleting address '{address_id}': {error}")
 
     def create_address(self, data: dict, name: str) -> None:
         '''Creates an address for a given contact id via api call.'''
@@ -406,7 +436,8 @@ class Monica():
 
         while True:
             # Create address
-            response = requests.post(self.base_url + f"/addresses", headers=self.header, params=self.parameters, json=data)
+            response = requests.post(self.base_url + "/addresses",
+                                     headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
@@ -414,21 +445,25 @@ class Monica():
                 self.updated_contacts[monica_id] = True
                 address = response.json()['data']
                 address_id = address["id"]
-                self.log.info(f"'{name}' ('{monica_id}'): Address '{address_id}' created successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): Address '{address_id}' created successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error creating Monica address: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error creating Monica address: {error}")
 
     def get_contact_fields(self, monica_id: str, name: str) -> List[dict]:
-        '''Fetches all contact fields (phone numbers, emails, etc.) 
+        '''Fetches all contact fields (phone numbers, emails, etc.)
         for a given Monica contact id via api call.'''
 
         while True:
             # Get contact fields
-            response = requests.get(self.base_url + f"/contacts/{monica_id}/contactfields", headers=self.header, params=self.parameters)
+            response = requests.get(
+                self.base_url + f"/contacts/{monica_id}/contactfields",
+                headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
@@ -439,7 +474,8 @@ class Monica():
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error fetching Monica contact fields: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error fetching Monica contact fields: {error}")
 
     def get_contact_field_id(self, type_name: str) -> str:
         '''Returns the id for a Monica contact field.'''
@@ -455,20 +491,21 @@ class Monica():
             raise InternalError(f"Could not find an id for contact field type '{type_name}'")
 
         return field_id
-            
+
     def __get_contact_field_types(self) -> dict:
         '''Fetches all contact field types from Monica and saves them to a dictionary.'''
 
         while True:
-        # Get genders
+            # Get genders
             response = requests.get(
-                self.base_url + f"/contactfieldtypes", headers=self.header, params=self.parameters)
+                self.base_url + "/contactfieldtypes", headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
             if response.status_code == 200:
                 contact_field_types = response.json()['data']
-                contact_field_type_mapping = {field['type']: field['id'] for field in contact_field_types}
+                contact_field_type_mapping = {field['type']: field['id']
+                                              for field in contact_field_types}
                 self.contact_field_type_mapping = contact_field_type_mapping
                 return self.contact_field_type_mapping
             else:
@@ -478,14 +515,14 @@ class Monica():
                 self.log.error(f"Failed to fetch contact field types from Monica: {error}")
                 raise MonicaFetchError("Error fetching contact field types from Monica!")
 
-
     def create_contact_field(self, monica_id: str, data: dict, name: str) -> None:
-        '''Creates a contact field (phone number, email, etc.) 
+        '''Creates a contact field (phone number, email, etc.)
         for a given Monica contact id via api call.'''
 
         while True:
             # Create contact field
-            response = requests.post(self.base_url + f"/contactfields", headers=self.header, params=self.parameters, json=data)
+            response = requests.post(self.base_url + "/contactfields",
+                                     headers=self.header, params=self.parameters, json=data)
             self.api_requests += 1
 
             # If successful
@@ -494,33 +531,40 @@ class Monica():
                 contact_field = response.json()['data']
                 field_id = contact_field["id"]
                 type_desc = contact_field["contact_field_type"]["type"]
-                self.log.info(f"'{name}' ('{monica_id}'): Contact field '{field_id}' ({type_desc}) created successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): "
+                    f"Contact field '{field_id}' ({type_desc}) created successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error creating Monica contact field: {error}")
+                raise MonicaFetchError(
+                    f"'{name}' ('{monica_id}'): Error creating Monica contact field: {error}")
 
     def delete_contact_field(self, field_id: str, monica_id: str, name: str) -> None:
-        '''Updates a contact field (phone number, email, etc.) 
+        '''Updates a contact field (phone number, email, etc.)
         for a given Monica contact id via api call.'''
 
         while True:
             # Delete contact field
-            response = requests.delete(self.base_url + f"/contactfields/{field_id}", headers=self.header, params=self.parameters)
+            response = requests.delete(
+                self.base_url + f"/contactfields/{field_id}",
+                headers=self.header, params=self.parameters)
             self.api_requests += 1
 
             # If successful
             if response.status_code == 200:
                 self.updated_contacts[monica_id] = True
-                self.log.info(f"'{name}' ('{monica_id}'): Contact field '{field_id}' deleted successfully")
+                self.log.info(
+                    f"'{name}' ('{monica_id}'): Contact field '{field_id}' deleted successfully")
                 return
             else:
                 error = response.json()['error']['message']
                 if self.__is_slow_down_error(response, error):
                     continue
-                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error deleting Monica contact field '{field_id}': {error}")
+                raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error deleting Monica contact field"
+                                       f" '{field_id}': {error}")
 
     def __is_slow_down_error(self, response: Response, error: str) -> bool:
         '''Checks if the error is an rate limiter error and slows down the requests if yes.'''
@@ -531,6 +575,7 @@ class Monica():
             return True
         else:
             return False
+
 
 class MonicaContactUploadForm():
     '''Creates json form for creating or updating Monica contacts.'''

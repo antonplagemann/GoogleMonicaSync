@@ -5,23 +5,24 @@ from typing import Tuple, Union, List
 
 
 class DatabaseEntry():
-    '''Creates a database row object for inserting into the database. 
+    '''Creates a database row object for inserting into the database.
     Needs at least a Monica id AND a Google id.'''
 
     def __init__(self, google_id: str, monica_id: str, google_full_name: str = 'NULL',
-                   monica_full_name: str = 'NULL', google_last_changed: str = 'NULL',
-                   monica_last_changed: str = 'NULL') -> None:
+                 monica_full_name: str = 'NULL', google_last_changed: str = 'NULL',
+                 monica_last_changed: str = 'NULL') -> None:
         insert_sql = '''
         INSERT INTO sync(googleId, monicaId, googleFullName, monicaFullName,
                         googleLastChanged, monicaLastChanged)
         VALUES(?,?,?,?,?,?)
         '''
-        self.insert_statement = insert_sql, (google_id, str(monica_id), 
-                                google_full_name, monica_full_name,
-                                google_last_changed, monica_last_changed)
+        self.insert_statement = insert_sql, (google_id, str(monica_id),
+                                             google_full_name, monica_full_name,
+                                             google_last_changed, monica_last_changed)
 
     def get_insert_statement(self) -> Tuple[str, tuple]:
         return self.insert_statement
+
 
 class Database():
     '''Handles all database related stuff.'''
@@ -73,7 +74,8 @@ class Database():
     def update(self, google_id: str = None, monica_id: str = None,
                google_full_name: str = None, monica_full_name: str = None,
                google_last_changed: str = None, monica_last_changed: str = None) -> None:
-        '''Updates a dataset in the database. Needs at least a Monica id OR a Google id and the related data.'''
+        '''Updates a dataset in the database.
+        Needs at least a Monica id OR a Google id and the related data.'''
         UNKNOWN_ARGUMENTS = "Unknown database update arguments!"
         if monica_id:
             if monica_full_name:

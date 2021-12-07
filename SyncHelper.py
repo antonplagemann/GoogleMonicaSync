@@ -12,9 +12,9 @@ from MonicaHelper import Monica, MonicaContactUploadForm
 class Sync():
     '''Handles all syncing and merging issues with Google, Monica and the database.'''
 
-    def __init__(self, log: Logger, database_handler: Database, 
+    def __init__(self, log: Logger, database_handler: Database,
                  monica_handler: Monica, google_handler: Google, is_sync_back_to_google: bool,
-                 is_check_database: bool, is_delete_monica_contacts_on_sync: bool, 
+                 is_check_database: bool, is_delete_monica_contacts_on_sync: bool,
                  is_street_reversal_on_address_sync: bool, syncing_fields: dict) -> None:
         self.log = log
         self.start_time = datetime.now()
@@ -22,7 +22,9 @@ class Sync():
         self.google = google_handler
         self.database = database_handler
         self.mapping = self.database.get_id_mapping()
-        self.reverse_mapping = {monica_id: google_id for google_id, monica_id in self.mapping.items()}
+        self.reverse_mapping = {
+            monica_id: google_id for google_id, monica_id in self.mapping.items()
+        }
         self.next_sync_token = self.database.get_google_next_sync_token()
         self.is_sync_back = is_sync_back_to_google
         self.is_check = is_check_database
@@ -37,7 +39,7 @@ class Sync():
         self.reverse_mapping.update({monica_id: google_id})
 
     def start_sync(self, sync_type: str = '') -> None:
-        '''Starts the next sync cycle depending on the requested type 
+        '''Starts the next sync cycle depending on the requested type
         and the database data.'''
         if sync_type == 'initial':
             # Initial sync requested
@@ -66,7 +68,7 @@ class Sync():
         elif sync_type == 'syncBack':
             # Sync back to Google requested
             self.__sync_back()
-        
+
         # Print statistics
         self.__print_sync_statistics()
 
@@ -96,7 +98,8 @@ class Sync():
         # Initialization
         google_id = google_contact["resourceName"]
         g_contact_display_name = self.google.get_contact_names(google_contact)[3]
-        msg = f"'{g_contact_display_name}' ('{google_id}'): Found deleted Google contact. Deleting Monica contact..."
+        msg = f"'{g_contact_display_name}' ('{google_id}'): " \
+              "Found deleted Google contact. Deleting Monica contact..."
         self.log.info(msg)
 
         try:
@@ -109,7 +112,8 @@ class Sync():
             msg = f"'{g_contact_display_name}' ('{monica_id}'): Monica contact deleted successfully"
             self.log.info(msg)
         except Exception:
-            msg = f"'{g_contact_display_name}' ('{google_id}'): Failed deleting corresponding Monica contact! Please delete manually!"
+            msg = f"'{g_contact_display_name}' ('{google_id}'): " \
+                  "Failed deleting corresponding Monica contact! Please delete manually!"
             self.google.remove_contact_from_list(google_contact)
             self.log.error(msg)
             print(msg)
@@ -128,7 +132,7 @@ class Sync():
 
         # If Google hasnt returned some data
         if not google_contacts:
-            msg = f"No (changed) Google contacts found!"
+            msg = "No (changed) Google contacts found!"
             self.log.info(msg)
             print("\n" + msg)
 
@@ -145,10 +149,12 @@ class Sync():
                 # Skip further processing
                 continue
 
-            # Skip all contacts which have not changed according to the database lastChanged date (if present)
+            # Skip all contacts which have not changed
+            # according to the database lastChanged date (if present)
             try:
                 # Get Monica id and timestamp
-                monica_id, _, _, database_timestamp = self.database.find_by_id(google_id=google_contact["resourceName"])[1:5]
+                monica_id, _, _, database_timestamp = self.database.find_by_id(
+                    google_id=google_contact["resourceName"])[1:5]
                 if is_date_based_sync and not database_timestamp == 'NULL':
                     database_date = self.__convert_google_timestamp(database_timestamp)
                     contact_timestamp = google_contact['metadata']['sources'][0]["updateTime"]
@@ -161,26 +167,29 @@ class Sync():
                 # Create a new Google contact if there's nothing in the database yet
                 google_id = google_contact['resourceName']
                 g_contact_display_name = self.google.get_contact_names(google_contact)[3]
-                msg = f"'{g_contact_display_name}' ('{google_id}'): No Monica id found': Creating new Monica contact..."
+                msg = f"'{g_contact_display_name}' ('{google_id}'): " \
+                      "No Monica id found': Creating new Monica contact..."
                 self.log.info(msg)
                 print("\n" + msg)
 
                 # Create new Monica contact
                 monica_contact = self.__create_monica_contact(google_contact)
-                msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): New Monica contact created"
+                msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                      "New Monica contact created"
                 self.log.info(msg)
                 print(msg)
 
                 # Update database and mapping
                 database_entry = DatabaseEntry(google_contact['resourceName'],
-                                            monica_contact['id'],
-                                            g_contact_display_name,
-                                            monica_contact['complete_name'],
-                                            google_contact['metadata']['sources'][0]['updateTime'],
-                                            monica_contact['updated_at'])
+                                               monica_contact['id'],
+                                               g_contact_display_name,
+                                               monica_contact['complete_name'],
+                                               google_contact['metadata']['sources'][0]['updateTime'],
+                                               monica_contact['updated_at'])
                 self.database.insert_data(database_entry)
                 self.__update_mapping(google_contact['resourceName'], str(monica_contact['id']))
-                msg = f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': New sync connection added"
+                msg = f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': " \
+                      "New sync connection added"
                 self.log.info(msg)
 
                 # Sync additional details
@@ -197,14 +206,17 @@ class Sync():
                 self.log.error(msg)
                 print("\n" + msg)
                 print("Please do not delete Monica contacts manually!")
-                raise InternalError("Could't connect to Monica api or Database not consistent, consider doing initial sync to rebuild.")
+                raise InternalError(
+                    "Could't connect to Monica api or Database not consistent, "
+                    "consider doing initial sync to rebuild.")
             # Merge name, birthday and deceased date and update them
             self.__merge_and_update_nbd(monica_contact, google_contact)
 
             # Update Google contact last changed date in the database
+            google_last_changed = google_contact['metadata']['sources'][0]['updateTime']
             self.database.update(google_id=google_contact['resourceName'],
                                  google_full_name=self.google.get_contact_names(google_contact)[3],
-                                 google_last_changed=google_contact['metadata']['sources'][0]['updateTime'])
+                                 google_last_changed=google_last_changed)
 
             # Refresh Monica data (could have changed)
             monica_contact = self.monica.get_contact(monica_id)
@@ -222,7 +234,7 @@ class Sync():
             self.__sync_back()
 
     def __sync_details(self, google_contact: dict, monica_contact: dict) -> None:
-        '''Syncs additional details, such as company, jobtitle, labels, 
+        '''Syncs additional details, such as company, jobtitle, labels,
         address, phone numbers, emails, notes, contact picture, etc.'''
         if self.syncing_fields["career"]:
             # Sync career info
@@ -252,13 +264,13 @@ class Sync():
             if google_contact.get("biographies", []):
                 # Get Google note
                 google_note = {
-                "body": google_contact["biographies"][0].get("value", "").strip(),
-                "contact_id": monica_contact["id"],
-                "is_favorited": False
+                    "body": google_contact["biographies"][0].get("value", "").strip(),
+                    "contact_id": monica_contact["id"],
+                    "is_favorited": False
                 }
                 # Convert normal newlines to markdown newlines
                 google_note["body"] = google_note["body"].replace("\n", "  \n")
-                
+
                 if not monica_notes:
                     # If there is no Monica note sync the Google note
                     google_note["body"] += identifier
@@ -269,14 +281,16 @@ class Sync():
                         if monica_note["body"] == google_note["body"]:
                             # If there is a note with the same content update it and add the identifier
                             google_note["body"] += identifier
-                            self.monica.update_note(monica_note["id"], google_note, monica_contact["complete_name"])
+                            self.monica.update_note(
+                                monica_note["id"], google_note, monica_contact["complete_name"])
                             updated = True
                             break
                         elif identifier in monica_note["body"]:
                             # Found identifier, update this note if changed
                             google_note["body"] += identifier
                             if monica_note["body"] != google_note["body"]:
-                                self.monica.update_note(monica_note["id"], google_note, monica_contact["complete_name"])
+                                self.monica.update_note(
+                                    monica_note["id"], google_note, monica_contact["complete_name"])
                             updated = True
                             break
                     if not updated:
@@ -287,11 +301,14 @@ class Sync():
                 for monica_note in monica_notes:
                     if identifier in monica_note["body"]:
                         # Found identifier, delete this note
-                        self.monica.delete_note(monica_note["id"], monica_note["contact"]["id"], monica_contact["complete_name"])
+                        self.monica.delete_note(
+                            monica_note["id"], monica_note["contact"]["id"],
+                            monica_contact["complete_name"])
                         break
 
         except Exception as e:
-            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): Error creating Monica note: {str(e)}"
+            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                  f"Error creating Monica note: {str(e)}"
             self.log.warning(msg)
 
     def __sync_labels(self, google_contact: dict, monica_contact: dict) -> None:
@@ -306,129 +323,152 @@ class Sync():
 
             # Remove tags if not present in Google contact
             remove_list = [label["id"] for label in monica_contact["tags"]
-                          if label["name"] not in google_labels]
+                           if label["name"] not in google_labels]
             if remove_list:
-                self.monica.remove_tags({"tags": remove_list}, monica_contact["id"], monica_contact["complete_name"])
+                self.monica.remove_tags({"tags": remove_list},
+                                        monica_contact["id"], monica_contact["complete_name"])
 
             # Update labels if neccessary
             monica_labels = [label["name"]
-                            for label in monica_contact["tags"] if label["name"] in google_labels]
+                             for label in monica_contact["tags"] if label["name"] in google_labels]
             if sorted(google_labels) != sorted(monica_labels):
-                self.monica.add_tags({"tags": google_labels}, monica_contact["id"], monica_contact["complete_name"])
+                self.monica.add_tags({"tags": google_labels},
+                                     monica_contact["id"], monica_contact["complete_name"])
 
         except Exception as e:
-            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): Error updating Monica contact labels: {str(e)}"
+            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                  f"Error updating Monica contact labels: {str(e)}"
             self.log.warning(msg)
 
     def __sync_phone_email(self, google_contact: dict, monica_contact: dict) -> None:
         '''Syncs phone and email fields.'''
-        monica_contact_fields = self.monica.get_contact_fields(monica_contact['id'], monica_contact['complete_name'])
+        monica_contact_fields = self.monica.get_contact_fields(
+            monica_contact['id'], monica_contact['complete_name'])
         if self.syncing_fields["email"]:
             self.__sync_email(google_contact, monica_contact, monica_contact_fields)
         if self.syncing_fields["phone"]:
             self.__sync_phone(google_contact, monica_contact, monica_contact_fields)
 
-    def __sync_email(self, google_contact: dict, monica_contact: dict, monica_contact_fields: dict) -> None:
+    def __sync_email(self, google_contact: dict, monica_contact: dict,
+                     monica_contact_fields: dict) -> None:
         '''Syncs email fields.'''
         try:
             # Email processing
             monica_contact_emails = [
-                field for field in monica_contact_fields 
+                field for field in monica_contact_fields
                 if field["contact_field_type"]["type"] == "email"]
             google_contact_emails = google_contact.get("emailAddresses", [])
 
             if google_contact_emails:
                 google_emails = [
                     {
-                    "contact_field_type_id": self.monica.get_contact_field_id('email'),
-                    "data": email["value"].strip(),
-                    "contact_id": monica_contact["id"]
-                    } 
+                        "contact_field_type_id": self.monica.get_contact_field_id('email'),
+                        "data": email["value"].strip(),
+                        "contact_id": monica_contact["id"]
+                    }
                     for email in google_contact_emails
                 ]
                 if monica_contact_emails:
                     # There is Google and Monica data: Check and recreate emails
                     for monica_email in monica_contact_emails:
                         # Check if there are emails to be deleted
-                        if monica_email["content"] in [google_email["data"] for google_email in google_emails]:
+                        if monica_email["content"] in [google_email["data"]
+                                                       for google_email in google_emails]:
                             continue
                         else:
-                            self.monica.delete_contact_field(monica_email["id"], monica_contact["id"], monica_contact["complete_name"])
+                            self.monica.delete_contact_field(
+                                monica_email["id"], monica_contact["id"],
+                                monica_contact["complete_name"])
                     for google_email in google_emails:
                         # Check if there are emails to be created
-                        if google_email["data"] in [monica_email["content"] for monica_email in monica_contact_emails]:
+                        if google_email["data"] in [monica_email["content"]
+                                                    for monica_email in monica_contact_emails]:
                             continue
                         else:
-                            self.monica.create_contact_field(monica_contact["id"], google_email, monica_contact["complete_name"])
+                            self.monica.create_contact_field(
+                                monica_contact["id"], google_email, monica_contact["complete_name"])
                 else:
                     # There is only Google data: Create emails
                     for google_email in google_emails:
-                        self.monica.create_contact_field(monica_contact["id"], google_email, monica_contact["complete_name"])
+                        self.monica.create_contact_field(
+                            monica_contact["id"], google_email, monica_contact["complete_name"])
 
             elif monica_contact_emails:
                 # Delete Monica contact emails
                 for monica_email in monica_contact_emails:
-                    self.monica.delete_contact_field(monica_email["id"], monica_contact["id"], monica_contact["complete_name"])
+                    self.monica.delete_contact_field(
+                        monica_email["id"], monica_contact["id"], monica_contact["complete_name"])
         except Exception as e:
-            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): Error updating Monica contact email: {str(e)}"
+            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                  f"Error updating Monica contact email: {str(e)}"
             self.log.warning(msg)
 
-    def __sync_phone(self, google_contact: dict, monica_contact: dict, monica_contact_fields: dict) -> None:
+    def __sync_phone(self, google_contact: dict, monica_contact: dict,
+                     monica_contact_fields: dict) -> None:
         '''Syncs phone fields.'''
         try:
             # Phone number processing
             monica_contact_phones = [
-                field for field in monica_contact_fields 
+                field for field in monica_contact_fields
                 if field["contact_field_type"]["type"] == "phone"]
             google_contact_phones = google_contact.get("phoneNumbers", [])
 
             if google_contact_phones:
                 google_phones = [
                     {
-                    "contact_field_type_id": self.monica.get_contact_field_id('phone'),
-                    "data": number["value"].strip(),
-                    "contact_id": monica_contact["id"]
-                    } 
+                        "contact_field_type_id": self.monica.get_contact_field_id('phone'),
+                        "data": number["value"].strip(),
+                        "contact_id": monica_contact["id"]
+                    }
                     for number in google_contact_phones
                 ]
                 if monica_contact_phones:
                     # There is Google and Monica data: Check and recreate phone numbers
                     for monica_phone in monica_contact_phones:
                         # Check if there are phone numbers to be deleted
-                        if monica_phone["content"] in [google_phone["data"] for google_phone in google_phones]:
+                        if monica_phone["content"] in [google_phone["data"]
+                                                       for google_phone in google_phones]:
                             continue
                         else:
-                            self.monica.delete_contact_field(monica_phone["id"], monica_contact["id"], monica_contact["complete_name"])
+                            self.monica.delete_contact_field(
+                                monica_phone["id"], monica_contact["id"],
+                                monica_contact["complete_name"])
                     for google_phone in google_phones:
                         # Check if there are phone numbers to be created
-                        if google_phone["data"] in [monica_phone["content"] for monica_phone in monica_contact_phones]:
+                        if google_phone["data"] in [monica_phone["content"]
+                                                    for monica_phone in monica_contact_phones]:
                             continue
                         else:
-                            self.monica.create_contact_field(monica_contact["id"], google_phone, monica_contact["complete_name"])
+                            self.monica.create_contact_field(
+                                monica_contact["id"], google_phone, monica_contact["complete_name"])
                 else:
                     # There is only Google data: Create phone numbers
                     for google_phone in google_phones:
-                        self.monica.create_contact_field(monica_contact["id"], google_phone, monica_contact["complete_name"])
+                        self.monica.create_contact_field(
+                            monica_contact["id"], google_phone, monica_contact["complete_name"])
 
             elif monica_contact_phones:
                 # Delete Monica contact phone numbers
                 for monica_phone in monica_contact_phones:
-                    self.monica.delete_contact_field(monica_phone["id"], monica_contact["id"], monica_contact["complete_name"])
+                    self.monica.delete_contact_field(
+                        monica_phone["id"], monica_contact["id"], monica_contact["complete_name"])
 
         except Exception as e:
-            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): Error updating Monica contact phone: {str(e)}"
+            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                  f"Error updating Monica contact phone: {str(e)}"
             self.log.warning(msg)
 
     def __sync_career_info(self, google_contact: dict, monica_contact: dict) -> None:
         '''Syncs company and job title fields.'''
         try:
             is_monica_data_present = bool(monica_contact["information"]["career"]["job"] or
-                                 monica_contact["information"]["career"]["company"])
+                                          monica_contact["information"]["career"]["company"])
             is_google_data_present = bool(google_contact.get("organizations", False))
             if is_google_data_present or is_monica_data_present:
                 # Get google career information
                 company = google_contact.get("organizations", [{}])[0].get("name", "").strip()
-                department = google_contact.get("organizations", [{}])[0].get("department", "").strip()
+                department = google_contact.get("organizations", [{}])[
+                    0].get("department", "").strip()
                 if department:
                     department = f"; {department}"
                 job = google_contact.get("organizations", [{}])[0].get("title", None)
@@ -446,7 +486,8 @@ class Sync():
                 if google_data != monica_data:
                     self.monica.update_career(monica_contact["id"], google_data)
         except Exception as e:
-            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): Error updating Monica contact career: {str(e)}"
+            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                  f"Error updating Monica contact career: {str(e)}"
             self.log.warning(msg)
 
     def __sync_address(self, google_contact: dict, monica_contact: dict) -> None:
@@ -468,12 +509,13 @@ class Sync():
                     street = addr.get("streetAddress", "").replace("\n", " ").strip() or None
                     if self.is_street_reversal:
                         # Street reversal: from '13 Auenweg' to 'Auenweg 13'
-                        try: 
+                        try:
                             if street and street[0].isdigit():
-                                street = f'{street[street.index(" ")+1:]} {street[:street.index(" ")]}'.strip()
+                                street = (f'{street[street.index(" ")+1:]}'
+                                          f' {street[:street.index(" ")]}').strip()
                         except Exception:
                             pass
-                    
+
                     # Get (extended) city
                     city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip() or None
                     # Get other details
@@ -494,7 +536,7 @@ class Sync():
                         'country': country_code,
                         'contact_id': monica_contact['id']
                     })
-            
+
             if is_monica_data_present:
                 # Get Monica data
                 monica_address_list = []
@@ -510,9 +552,11 @@ class Sync():
                     }})
 
             if is_google_data_present and is_monica_data_present:
-                monica_plain_address_list = [monica_address for item in monica_address_list for monica_address in item.values()]
+                monica_plain_address_list = [
+                    monica_address for item in monica_address_list for monica_address in item.values()]
                 # Do a complete comparison
-                if all([google_address in monica_plain_address_list for google_address in google_address_list]):
+                if all([google_address in monica_plain_address_list
+                        for google_address in google_address_list]):
                     # All addresses are equal, nothing to do
                     return
                 else:
@@ -520,20 +564,23 @@ class Sync():
                     # Safest way, I don't want to code more deeper comparisons and update functions
                     for element in monica_address_list:
                         for address_id, _ in element.items():
-                            self.monica.delete_address(address_id, monica_contact["id"], monica_contact["complete_name"])
+                            self.monica.delete_address(
+                                address_id, monica_contact["id"], monica_contact["complete_name"])
             elif not is_google_data_present and is_monica_data_present:
                 # Delete all Monica addresses
                 for element in monica_address_list:
                     for address_id, _ in element.items():
-                        self.monica.delete_address(address_id, monica_contact["id"], monica_contact["complete_name"])
+                        self.monica.delete_address(
+                            address_id, monica_contact["id"], monica_contact["complete_name"])
 
             if is_google_data_present:
                 # All old Monica data (if existed) have been cleaned now, proceed with address creation
                 for google_address in google_address_list:
                     self.monica.create_address(google_address, monica_contact["complete_name"])
-                            
+
         except Exception as e:
-            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): Error updating Monica addresses: {str(e)}"
+            msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
+                  f"Error updating Monica addresses: {str(e)}"
             self.log.warning(msg)
 
     def __build_sync_database(self) -> None:
@@ -590,7 +637,8 @@ class Sync():
                 # Create Google contact
                 google_contact = self.__create_google_contact(monica_contact)
                 if not google_contact:
-                    msg = f"'{monica_contact['complete_name']}': Error encountered at creating new Google contact. Skipping..."
+                    msg = f"'{monica_contact['complete_name']}': " \
+                          "Error encountered at creating new Google contact. Skipping..."
                     self.log.warning(msg)
                     print(msg)
                     continue
@@ -598,15 +646,17 @@ class Sync():
 
                 # Update database and mapping
                 database_entry = DatabaseEntry(google_contact['resourceName'],
-                                            monica_contact['id'],
-                                            g_contact_display_name,
-                                            monica_contact['complete_name'])
+                                               monica_contact['id'],
+                                               g_contact_display_name,
+                                               monica_contact['complete_name'])
                 self.database.insert_data(database_entry)
-                msg = f"'{g_contact_display_name}' ('{google_contact['resourceName']}'): New google contact created (sync back)"
+                msg = f"'{g_contact_display_name}' ('{google_contact['resourceName']}'): " \
+                      "New google contact created (sync back)"
                 print("\n" + msg)
                 self.log.info(msg)
                 self.__update_mapping(google_contact['resourceName'], str(monica_contact['id']))
-                msg = f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': New sync connection added"
+                msg = f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': " \
+                      "New sync connection added"
                 self.log.info(msg)
 
         if not self.google.created_contacts:
@@ -625,21 +675,25 @@ class Sync():
         tme = str(datetime.now() - self.start_time).split(".")[0] + "h"
         gac = str(self.google.api_requests) + (8-len(str(self.google.api_requests))) * ' '
         mac = str(self.monica.api_requests) + (8-len(str(self.monica.api_requests))) * ' '
-        mcc = str(len(self.monica.created_contacts)) + (8-len(str(len(self.monica.created_contacts)))) * ' '
-        mcu = str(len(self.monica.updated_contacts)) + (8-len(str(len(self.monica.updated_contacts)))) * ' '
-        mcd = str(len(self.monica.deleted_contacts)) + (8-len(str(len(self.monica.deleted_contacts)))) * ' '
-        gcc = str(len(self.google.created_contacts)) + (8-len(str(len(self.google.created_contacts)))) * ' '
+        mcc = str(len(self.monica.created_contacts)) + \
+            (8-len(str(len(self.monica.created_contacts)))) * ' '
+        mcu = str(len(self.monica.updated_contacts)) + \
+            (8-len(str(len(self.monica.updated_contacts)))) * ' '
+        mcd = str(len(self.monica.deleted_contacts)) + \
+            (8-len(str(len(self.monica.deleted_contacts)))) * ' '
+        gcc = str(len(self.google.created_contacts)) + \
+            (8-len(str(len(self.google.created_contacts)))) * ' '
         msg = "\n" \
-        f"Sync statistics: \n" \
-        f"+-------------------------------------+\n" \
-        f"| Syncing time:             {tme   }  |\n" \
-        f"| Google api calls used:    {gac   }  |\n" \
-        f"| Monica api calls used:    {mac   }  |\n" \
-        f"| Monica contacts created:  {mcc   }  |\n" \
-        f"| Monica contacts updated:  {mcu   }  |\n" \
-        f"| Monica contacts deleted:  {mcd   }  |\n" \
-        f"| Google contacts created:  {gcc   }  |\n" \
-        f"+-------------------------------------+"
+            f"Sync statistics: \n" \
+            f"+-------------------------------------+\n" \
+            f"| Syncing time:             {tme   }  |\n" \
+            f"| Google api calls used:    {gac   }  |\n" \
+            f"| Monica api calls used:    {mac   }  |\n" \
+            f"| Monica contacts created:  {mcc   }  |\n" \
+            f"| Monica contacts updated:  {mcu   }  |\n" \
+            f"| Monica contacts deleted:  {mcd   }  |\n" \
+            f"| Google contacts created:  {gcc   }  |\n" \
+            f"+-------------------------------------+"
         print(msg)
         self.log.info(msg)
 
@@ -673,24 +727,25 @@ class Sync():
 
         # Get career info if exists
         career = {key: value for key, value in monica_contact['information']["career"].items()
-                if value and self.syncing_fields["career"]}
+                  if value and self.syncing_fields["career"]}
 
         # Get phone numbers and email addresses
-        if self.syncing_fields["phone"] or self.syncing_fields["email"]:   
-            monica_contact_fields = self.monica.get_contact_fields(monica_contact['id'], monica_contact['complete_name'])
+        if self.syncing_fields["phone"] or self.syncing_fields["email"]:
+            monica_contact_fields = self.monica.get_contact_fields(
+                monica_contact['id'], monica_contact['complete_name'])
             # Get email addresses
-            emails = [field["content"] for field in monica_contact_fields 
-                    if field["contact_field_type"]["type"] == "email"
-                    and self.syncing_fields["email"]]
+            emails = [field["content"] for field in monica_contact_fields
+                      if field["contact_field_type"]["type"] == "email"
+                      and self.syncing_fields["email"]]
             # Get phone numbers
-            phone_numbers = [field["content"] for field in monica_contact_fields 
-                            if field["contact_field_type"]["type"] == "phone"
-                            and self.syncing_fields["phone"]]
+            phone_numbers = [field["content"] for field in monica_contact_fields
+                             if field["contact_field_type"]["type"] == "phone"
+                             and self.syncing_fields["phone"]]
 
         # Get tags/labels and create them if neccessary
         label_ids = [self.google.get_label_id(tag['name'])
-            for tag in monica_contact["tags"]
-            if self.syncing_fields["labels"]]
+                     for tag in monica_contact["tags"]
+                     if self.syncing_fields["labels"]]
 
         # Create contact upload form
         form = GoogleContactUploadForm(first_name=first_name, last_name=last_name,
@@ -704,13 +759,15 @@ class Sync():
 
         return contact
 
-    def __get_monica_middle_name(self, first_name: str, last_name: str, nickname: str, full_name: str) -> str:
+    def __get_monica_middle_name(self, first_name: str, last_name: str,
+                                 nickname: str, full_name: str) -> str:
         '''Monica contacts have for some reason a hidden field middlename that can be set (creation/update)
         but sadly can not retrieved later. This function computes it by using the complete_name field.'''
         try:
             # If there is a nickname it will be parenthesized with a space
             nickname_length = len(nickname) + 3 if nickname else 0
-            middle_name = full_name[len(first_name):len(full_name) - (len(last_name) + nickname_length)].strip()
+            middle_name = full_name[len(first_name):len(full_name) -
+                                    (len(last_name) + nickname_length)].strip()
             return middle_name
         except Exception:
             return ''
@@ -735,7 +792,7 @@ class Sync():
         monica_contacts_not_synced = []
         monica_contacts_synced = []
         errors = 0
-        msg = f"Starting database check..."
+        msg = "Starting database check..."
         self.log.info(msg)
         print("\n" + msg)
 
@@ -764,7 +821,8 @@ class Sync():
                 monica_contacts_synced.append(monica_contact)
             except Exception:
                 errors += 1
-                msg = f"'{self.google.get_contact_names(google_contact)[3]}' ('{google_contact['resourceName']}'): " \
+                msg = f"'{self.google.get_contact_names(google_contact)[3]}'" \
+                      f" ('{google_contact['resourceName']}'): " \
                       f"Wrong id or missing Monica contact for id '{monica_id}'."
                 self.log.error(msg)
                 print("\nError: " + msg)
@@ -800,16 +858,19 @@ class Sync():
         google_ids = [c['resourceName'] for c in google_contacts]
         monica_ids = [str(c['id']) for c in monica_contacts]
         orphaned_entrys = [google_id for google_id, monica_id in self.mapping.items()
-                          if google_id not in google_ids
-                          and monica_id not in monica_ids]
+                           if google_id not in google_ids
+                           and monica_id not in monica_ids]
 
         # Log results
         if orphaned_entrys:
             self.log.info("The following database entrys are orphaned:")
             for google_id in orphaned_entrys:
-                monica_id, google_full_name, monica_full_name = self.database.find_by_id(google_id)[1:4]
-                self.log.warning(f"'{google_id}' <-> '{monica_id}' ('{google_full_name}' <-> '{monica_full_name}')")
-                self.log.info("This doesn't cause sync errors, but you can fix it doing initial sync '-i'")
+                monica_id, google_full_name, monica_full_name = self.database.find_by_id(google_id)[
+                    1:4]
+                self.log.warning(
+                    f"'{google_id}' <-> '{monica_id}' ('{google_full_name}' <-> '{monica_full_name}')")
+                self.log.info("This doesn't cause sync errors, "
+                              "but you can fix it doing initial sync '-i'")
         if not monica_contacts_not_synced and not google_contacts_not_synced:
             self.log.info("All contacts are currently in sync")
         elif monica_contacts_not_synced:
@@ -827,20 +888,21 @@ class Sync():
 
         # Finished
         if errors:
-            msg = f"Database check failed. Consider doing initial sync '-i' again!"
+            msg = "Database check failed. Consider doing initial sync '-i' again!"
         else:
-            msg = f"Database check finished, no errors found!"
+            msg = "Database check finished, no errors found!"
         self.log.info(msg)
         print("\n" + msg)
 
         # Print and log statistics
         self.__print_check_statistics(start_time, errors, len(orphaned_entrys),
-                                    len(monica_contacts_not_synced), len(google_contacts_not_synced),
-                                    monica_contacts_count, google_contacts_count)
+                                      len(monica_contacts_not_synced), len(
+                                          google_contacts_not_synced),
+                                      monica_contacts_count, google_contacts_count)
 
     def __print_check_statistics(self, start_time: str, errors: int, orphaned: int,
-                               monica_contacts_not_synced: int, google_contacts_not_synced: int,
-                               monica_contacts: int, google_contacts: int) -> None:
+                                 monica_contacts_not_synced: int, google_contacts_not_synced: int,
+                                 monica_contacts: int, google_contacts: int) -> None:
         '''Prints and logs a pretty check statistic of the last database check.'''
         tme = str(datetime.now() - start_time).split(".")[0] + "h"
         err = str(errors) + (8-len(str(errors))) * ' '
@@ -850,16 +912,16 @@ class Sync():
         cmc = str(monica_contacts) + (8-len(str(monica_contacts))) * ' '
         cgc = str(google_contacts) + (8-len(str(google_contacts))) * ' '
         msg = "\n" \
-        f"Check statistics: \n" \
-        f"+-----------------------------------------+\n" \
-        f"| Check time:                   {tme   }  |\n" \
-        f"| Errors:                       {err   }  |\n" \
-        f"| Orphaned database entrys:     {oph   }  |\n" \
-        f"| Monica contacts not in sync:  {mns   }  |\n" \
-        f"| Google contacts not in sync:  {gns   }  |\n" \
-        f"| Checked Monica contacts:      {cmc   }  |\n" \
-        f"| Checked Google contacts:      {cgc   }  |\n" \
-        f"+-----------------------------------------+"
+            f"Check statistics: \n" \
+            f"+-----------------------------------------+\n" \
+            f"| Check time:                   {tme   }  |\n" \
+            f"| Errors:                       {err   }  |\n" \
+            f"| Orphaned database entrys:     {oph   }  |\n" \
+            f"| Monica contacts not in sync:  {mns   }  |\n" \
+            f"| Google contacts not in sync:  {gns   }  |\n" \
+            f"| Checked Monica contacts:      {cmc   }  |\n" \
+            f"| Checked Google contacts:      {cgc   }  |\n" \
+            f"+-----------------------------------------+"
         print(msg)
         self.log.info(msg)
 
@@ -886,7 +948,7 @@ class Sync():
 
         # Get deceased info
         deceased_date = monica_contact["information"]["dates"]["deceased_date"]["date"]
-        is_deceased_date_age_based = monica_contact["information"]["dates"]["deceased_date"]["is_age_based"]
+        is_d_date_age_based = monica_contact["information"]["dates"]["deceased_date"]["is_age_based"]
         deceased_year, deceased_month, deceased_day = None, None, None
         if deceased_date:
             date = self.__convert_monica_timestamp(deceased_date)
@@ -895,18 +957,26 @@ class Sync():
             deceased_day = date.day
 
         # Assemble form object
-        google_form = MonicaContactUploadForm(first_name=first_name, monica=self.monica, last_name=last_name, nick_name=nick_name,
-                                       middle_name=middle_name, gender_type=monica_contact["gender_type"],
-                                       birthdate_day=birthdate_day, birthdate_month=birthdate_month,
-                                       birthdate_year=birthdate_year, is_birthdate_known=bool(birthday),
-                                       is_deceased=monica_contact["is_dead"], is_deceased_date_known=bool(deceased_date),
-                                       deceased_year=deceased_year, deceased_month=deceased_month,
-                                       deceased_day=deceased_day, deceased_age_based=is_deceased_date_age_based,
-                                       create_reminders=self.monica.create_reminders)
+        google_form = MonicaContactUploadForm(first_name=first_name,
+                                              monica=self.monica,
+                                              last_name=last_name,
+                                              nick_name=nick_name,
+                                              middle_name=middle_name,
+                                              gender_type=monica_contact["gender_type"],
+                                              birthdate_day=birthdate_day,
+                                              birthdate_month=birthdate_month,
+                                              birthdate_year=birthdate_year, is_birthdate_known=bool(
+                                                  birthday),
+                                              is_deceased=monica_contact["is_dead"],
+                                              is_deceased_date_known=bool(deceased_date),
+                                              deceased_year=deceased_year,
+                                              deceased_month=deceased_month,
+                                              deceased_day=deceased_day,
+                                              deceased_age_based=is_d_date_age_based,
+                                              create_reminders=self.monica.create_reminders)
 
         # Check if contacts are already equal
         monica_form = self.__get_monica_form(monica_contact)
-        #if all([googleForm.data[key] == monicaForm.data[key] for key in googleForm.data.keys() if key != 'birthdate_year']):
         if google_form.data == monica_form.data:
             return
 
@@ -926,16 +996,15 @@ class Sync():
         birthday_timestamp = monica_contact['information']["dates"]["birthdate"]["date"]
         birthdate_year, birthdate_month, birthdate_day = None, None, None
         if birthday_timestamp:
-            is_year_unknown = monica_contact['information']["dates"]["birthdate"]["is_year_unknown"]   
+            is_year_unknown = monica_contact['information']["dates"]["birthdate"]["is_year_unknown"]
             date = self.__convert_monica_timestamp(birthday_timestamp)
             birthdate_year = date.year if not is_year_unknown else None
             birthdate_month = date.month
             birthdate_day = date.day
 
-        
         # Get deceased info
         deceased_date = monica_contact["information"]["dates"]["deceased_date"]["date"]
-        is_deceased_date_age_based = monica_contact["information"]["dates"]["deceased_date"]["is_age_based"]
+        is_d_date_age_based = monica_contact["information"]["dates"]["deceased_date"]["is_age_based"]
         deceased_year, deceased_month, deceased_day = None, None, None
         if deceased_date:
             date = self.__convert_monica_timestamp(deceased_date)
@@ -944,13 +1013,22 @@ class Sync():
             deceased_day = date.day
 
         # Assemble form object
-        return MonicaContactUploadForm(first_name=first_name, monica=self.monica, last_name=last_name, nick_name=nickname,
-                                       middle_name=middle_name, gender_type=monica_contact["gender_type"],
-                                       birthdate_day=birthdate_day, birthdate_month=birthdate_month,
-                                       birthdate_year=birthdate_year, is_birthdate_known=bool(birthday_timestamp),
-                                       is_deceased=monica_contact["is_dead"], is_deceased_date_known=bool(deceased_date),
-                                       deceased_year=deceased_year, deceased_month=deceased_month,
-                                       deceased_day=deceased_day, deceased_age_based=is_deceased_date_age_based,
+        return MonicaContactUploadForm(first_name=first_name,
+                                       monica=self.monica,
+                                       last_name=last_name,
+                                       nick_name=nickname,
+                                       middle_name=middle_name,
+                                       gender_type=monica_contact["gender_type"],
+                                       birthdate_day=birthdate_day,
+                                       birthdate_month=birthdate_month,
+                                       birthdate_year=birthdate_year,
+                                       is_birthdate_known=bool(birthday_timestamp),
+                                       is_deceased=monica_contact["is_dead"],
+                                       is_deceased_date_known=bool(deceased_date),
+                                       deceased_year=deceased_year,
+                                       deceased_month=deceased_month,
+                                       deceased_day=deceased_day,
+                                       deceased_age_based=is_d_date_age_based,
                                        create_reminders=self.monica.create_reminders)
 
     def __create_monica_contact(self, google_contact: dict) -> dict:
@@ -974,13 +1052,15 @@ class Sync():
             birthdate_day = birthday[0].get("date", {}).get("day", None)
 
         # Assemble form object
-        form = MonicaContactUploadForm(first_name=first_name, monica=self.monica, last_name=last_name, middle_name=middle_name,
+        form = MonicaContactUploadForm(first_name=first_name, monica=self.monica,
+                                       last_name=last_name, middle_name=middle_name,
                                        nick_name=nickname, birthdate_day=birthdate_day,
                                        birthdate_month=birthdate_month, birthdate_year=birthdate_year,
-                                       is_birthdate_known=bool(birthday), 
+                                       is_birthdate_known=bool(birthday),
                                        create_reminders=self.monica.create_reminders)
         # Upload contact
-        monica_contact = self.monica.create_contact(data=form.data, reference_id=google_contact['resourceName'])
+        monica_contact = self.monica.create_contact(
+            data=form.data, reference_id=google_contact['resourceName'])
         return monica_contact
 
     def __convert_google_timestamp(self, timestamp: str) -> datetime:
@@ -992,8 +1072,8 @@ class Sync():
         return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
 
     def __interactive_monica_id_search(self, google_contact: dict) -> str:
-        '''Advanced search by first and last name for a given Google contact. 
-        Tries to find a matching Monica contact and asks for user choice if 
+        '''Advanced search by first and last name for a given Google contact.
+        Tries to find a matching Monica contact and asks for user choice if
         at least one candidate has been found. Creates a new Monica contact
         if neccessary or chosen by User. Returns Monica contact id.'''
         # Initialization
@@ -1008,7 +1088,8 @@ class Sync():
             if (str(m_contact['id']) not in self.mapping.values()
                 and (g_contact_given_name == m_contact['first_name']
                      or g_contact_family_name == m_contact['last_name'])):
-                # If the id isnt in the database and first or last name matches add potential candidate to list
+                # If the id isnt in the database and first or last name matches
+                # add potential candidate to list
                 candidates.append(m_contact)
 
         # If there is at least one candidate let the user choose
@@ -1020,7 +1101,8 @@ class Sync():
                 print(f"\t{num}: {monica_contact['complete_name']}")
             print(f"\t{num+1}: Create a new Monica contact")
             choice = self.__get_user_input(allowed_nums=list(range(len(candidates) + 1)))
-            # Created a sublist with the selected candidate or an empty list if user votes for a new contact
+            # Created a sublist with the selected candidate
+            # or an empty list if user votes for a new contact
             candidates = candidates[choice:choice+1]
 
         # If there are no candidates (user vote or nothing found) create a new Monica contact
@@ -1028,7 +1110,7 @@ class Sync():
             # Ask user if not done before
             if not choice and not self.skip_creation_prompt:
                 print(f"\nNo Monica contact has been found for '{g_contact_display_name}'")
-                print(f"\tCreate a new Monica contact?")
+                print("\tCreate a new Monica contact?")
                 print("\t0: No (abort initial sync)")
                 print("\t1: Yes")
                 print("\t2: Yes to all")
@@ -1036,7 +1118,7 @@ class Sync():
                 if not choice:
                     raise UserChoice("Sync aborted by user choice")
                 if choice == 2:
-                    # Skip further contact creation prompts 
+                    # Skip further contact creation prompts
                     self.skip_creation_prompt = True
 
             # Create new Monica contact
@@ -1053,14 +1135,15 @@ class Sync():
 
         # Update database and mapping
         database_entry = DatabaseEntry(google_contact['resourceName'],
-                                    monica_contact['id'],
-                                    g_contact_display_name,
-                                    monica_contact['complete_name'])
+                                       monica_contact['id'],
+                                       g_contact_display_name,
+                                       monica_contact['complete_name'])
         self.database.insert_data(database_entry)
         self.__update_mapping(google_contact['resourceName'], str(monica_contact['id']))
 
         # Print success
-        msg = f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': New sync connection added"
+        msg = f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': " \
+              "New sync connection added"
         self.log.info(msg)
         print("Conflict resolved: " + msg)
 
@@ -1078,9 +1161,8 @@ class Sync():
             except Exception:
                 print("Bad input, please try again!\n")
 
-
     def __simple_monica_id_search(self, google_contact: dict) -> Union[str, None]:
-        '''Simple search by displayname for a given Google contact. 
+        '''Simple search by displayname for a given Google contact.
         Tries to find a matching Monica contact and returns its id or None if not found'''
         # Initialization
         g_contact_given_name = self.google.get_contact_names(google_contact)[0]
@@ -1097,7 +1179,8 @@ class Sync():
             m_contact_last_name = monica_contact['last_name'] or ''
             m_contact_full_name = monica_contact['complete_name'] or ''
             m_contact_nickname = monica_contact['nickname'] or ''
-            m_contact_middle_name = self.__get_monica_middle_name(m_contact_first_name, m_contact_last_name, m_contact_nickname, m_contact_full_name)
+            m_contact_middle_name = self.__get_monica_middle_name(
+                m_contact_first_name, m_contact_last_name, m_contact_nickname, m_contact_full_name)
             # Check if the Monica contact is already assigned to a Google contact
             is_monica_contact_assigned = m_contact_id in self.mapping.values()
             # Check if display names match
@@ -1105,13 +1188,15 @@ class Sync():
             # Pre-check that the Google contact has a given and a family name
             has_names = g_contact_given_name and g_contact_family_name
             # Check if names match when ignoring honorifix prefixes
-            is_without_prefix_match = has_names and (' '.join([g_contact_given_name, g_contact_family_name]) == m_contact_full_name)
+            is_without_prefix_match = has_names and (
+                ' '.join([g_contact_given_name, g_contact_family_name]) == m_contact_full_name)
             # Check if first, middle and last name matches
             is_first_last_middle_name_match = (m_contact_first_name == g_contact_given_name
-                                          and m_contact_middle_name == g_contact_middle_name
-                                          and m_contact_last_name == g_contact_family_name)
+                                               and m_contact_middle_name == g_contact_middle_name
+                                               and m_contact_last_name == g_contact_family_name)
             # Assemble all conditions
-            matches = [is_display_name_match, is_without_prefix_match, is_first_last_middle_name_match]
+            matches = [is_display_name_match, is_without_prefix_match,
+                       is_first_last_middle_name_match]
             if not is_monica_contact_assigned and any(matches):
                 # Add possible candidate
                 candidates.append(monica_contact)
@@ -1122,9 +1207,9 @@ class Sync():
 
             # Update database and mapping
             database_entry = DatabaseEntry(google_contact['resourceName'],
-                                        monica_contact['id'],
-                                        g_contact_display_name,
-                                        monica_contact['complete_name'])
+                                           monica_contact['id'],
+                                           g_contact_display_name,
+                                           monica_contact['complete_name'])
             self.database.insert_data(database_entry)
             self.__update_mapping(google_contact['resourceName'], str(monica_contact['id']))
             return str(monica_contact['id'])
@@ -1135,7 +1220,8 @@ class Sync():
     def __get_monica_names_from_google_contact(self, google_contact: dict) -> Tuple[str, str]:
         '''Creates first and last name from a Google contact with respect to honoric
         suffix/prefix.'''
-        given_name, _, family_name, _, prefix, suffix, _ = self.google.get_contact_names(google_contact)
+        given_name, _, family_name, _, prefix, suffix, _ = self.google.get_contact_names(
+            google_contact)
         if prefix:
             given_name = f"{prefix} {given_name}".strip()
         if suffix:

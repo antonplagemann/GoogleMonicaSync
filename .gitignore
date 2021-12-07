@@ -124,7 +124,6 @@ dmypy.json
 .pyre/
 
 # Dev files
-.vscode/**
 token.pickle
 credentials.json
 conf.py

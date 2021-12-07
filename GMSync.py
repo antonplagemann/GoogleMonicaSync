@@ -6,8 +6,8 @@ try:
     from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
                       GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
 except ImportError:
-    print("\nFailed to import config settings!\n" \
-          "Please verify that you have the latest version of the conf.py file " \
+    print("\nFailed to import config settings!\n"
+          "Please verify that you have the latest version of the conf.py file "
           "available on GitHub and check for possible typos!")
     sys.exit(1)
 
@@ -33,15 +33,18 @@ def main() -> None:
         parser.add_argument('-i', '--initial', action='store_true',
                             required=False, help="build the syncing database and do a full sync")
         parser.add_argument('-sb', '--syncback', action='store_true',
-                            required=False, help="sync new Monica contacts back to Google. " \
+                            required=False, help="sync new Monica contacts back to Google. "
                                                  "Can be combined with other arguments")
         parser.add_argument('-d', '--delta', action='store_true',
-                            required=False, help="do a delta sync of new or changed Google contacts")
+                            required=False,
+                            help="do a delta sync of new or changed Google contacts")
         parser.add_argument('-f', '--full', action='store_true',
-                            required=False, help="do a full sync and request a new delta sync token")
+                            required=False,
+                            help="do a full sync and request a new delta sync token")
         parser.add_argument('-c', '--check', action='store_true',
-                            required=False, help="check database consistency and report all errors. " \
-                                                 "Can be combined with other arguments")
+                            required=False,
+                            help="check database consistency and report all errors. "
+                            "Can be combined with other arguments")
 
         # Parse arguments
         args = parser.parse_args()
@@ -59,7 +62,7 @@ def main() -> None:
         database = Database(log, DATABASE_FILENAME)
         google = Google(log, database, GOOGLE_LABELS)
         monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
-        sync = Sync(log, database, monica, google, args.syncback, args.check, 
+        sync = Sync(log, database, monica, google, args.syncback, args.check,
                     DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
 
         # Print chosen sync arguments (optional ones first)
