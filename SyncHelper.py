@@ -1,4 +1,3 @@
-# pylint: disable=import-error
 import sys
 from datetime import datetime
 from logging import Logger
@@ -1080,7 +1079,6 @@ class Sync():
                 print("Bad input, please try again!\n")
 
 
-    # pylint: disable=unsubscriptable-object
     def __simple_monica_id_search(self, google_contact: dict) -> Union[str, None]:
         '''Simple search by displayname for a given Google contact. 
         Tries to find a matching Monica contact and returns its id or None if not found'''

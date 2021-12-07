@@ -1,4 +1,3 @@
-# pylint: disable=import-error
 import argparse
 import logging
 import sys

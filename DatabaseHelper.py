@@ -28,7 +28,6 @@ class Database():
 
     def __init__(self, log: Logger, filename: str) -> None:
         self.log = log
-        # pylint: disable=no-member
         self.connection = sqlite3.connect(filename)
         self.cursor = self.connection.cursor()
         self.__initialize_database()

@@ -184,7 +184,6 @@ class Google():
             }
 
             # Fetch contact
-            # pylint: disable=no-member
             result = self.service.people().get(**parameters).execute()
             self.api_requests += 1
 
@@ -264,7 +263,6 @@ class Google():
     def __fetch_contacts(self, parameters: dict) -> None:
         contacts = []
         while True:
-            # pylint: disable=no-member
             result = self.service.people().connections().list(**parameters).execute()
             self.api_requests += 1
             next_page_token = result.get('nextPageToken', False)
@@ -285,7 +283,6 @@ class Google():
         returns a {name: id} mapping.'''
         try:
             # Get all contact groups
-            # pylint: disable=no-member
             response = self.service.contactGroups().list().execute()
             self.api_requests += 1
             groups = response.get('contactGroups', [])
@@ -307,7 +304,6 @@ class Google():
     def delete_label(self, group_id) -> None:
         '''Deletes a contact group from Google (aka label). Does not delete assigned contacts.'''
         try:
-            # pylint: disable=no-member
             response = self.service.contactGroups().delete(resourceName=group_id).execute()
             self.api_requests += 1
         except HttpError as error:
@@ -340,7 +336,6 @@ class Google():
 
         try:
             # Upload group object
-            # pylint: disable=no-member
             response = self.service.contactGroups().create(body=new_group).execute()
             self.api_requests += 1
 
@@ -360,7 +355,6 @@ class Google():
         '''Creates a given Google contact via api call and returns the created contact.'''
         # Upload contact
         try:
-            # pylint: disable=no-member
             result = self.service.people().createContact(personFields=self.sync_fields, body=data).execute()
             self.api_requests += 1
         except HttpError as error:
@@ -386,7 +380,6 @@ class Google():
         '''Updates a given Google contact via api call and returns the created contact.'''
         # Upload contact
         try:
-            # pylint: disable=no-member
             result = self.service.people().updateContact(resourceName=data['resourceName'], updatePersonFields=self.update_fields, body=data).execute()
             self.api_requests += 1
         except HttpError as error:
