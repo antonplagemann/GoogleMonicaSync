@@ -535,32 +535,26 @@ class Monica():
 class MonicaContactUploadForm():
     '''Creates json form for creating or updating Monica contacts.'''
 
-    def __init__(self, monica: Monica, first_name: str, last_name: str = None, nick_name: str = None,
-                 middle_name: str = None, gender_type: str = 'O', birthdate_day: str = None,
-                 birthdate_month: str = None, birthdate_year: str = None,
-                 is_birthdate_age_based: bool = False, is_birthdate_known: bool = False,
-                 is_deceased: bool = False, is_deceased_date_known: bool = False,
-                 deceased_day: int = None, deceased_month: int = None,
-                 deceased_year: int = None, deceased_age_based: bool = None,
-                 create_reminders: bool = True) -> None:
+    def __init__(self, monica: Monica, first_name: str, **form_data) -> None:
+        gender_type = form_data.get("gender_type", 'O')
         gender_id = monica.get_gender_mapping()[gender_type]
         self.data = {
             "first_name": first_name,
-            "last_name": last_name,
-            "nickname": nick_name,
-            "middle_name": middle_name,
+            "last_name": form_data.get("last_name", None),
+            "nickname": form_data.get("nick_name", None),
+            "middle_name": form_data.get("middle_name", None),
             "gender_id": gender_id,
-            "birthdate_day": birthdate_day,
-            "birthdate_month": birthdate_month,
-            "birthdate_year": birthdate_year,
-            "birthdate_is_age_based": is_birthdate_age_based,
-            "deceased_date_add_reminder": create_reminders,
-            "birthdate_add_reminder": create_reminders,
-            "is_birthdate_known": is_birthdate_known,
-            "is_deceased": is_deceased,
-            "is_deceased_date_known": is_deceased_date_known,
-            "deceased_date_day": deceased_day,
-            "deceased_date_month": deceased_month,
-            "deceased_date_year": deceased_year,
-            "deceased_date_is_age_based": deceased_age_based,
+            "birthdate_day": form_data.get("birthdate_day", None),
+            "birthdate_month": form_data.get("birthdate_month", None),
+            "birthdate_year": form_data.get("birthdate_year", None),
+            "birthdate_is_age_based": form_data.get("is_birthdate_age_based", False),
+            "deceased_date_add_reminder": form_data.get("create_reminders", True),
+            "birthdate_add_reminder": form_data.get("create_reminders", True),
+            "is_birthdate_known": form_data.get("is_birthdate_known", False),
+            "is_deceased": form_data.get("is_deceased", False),
+            "is_deceased_date_known": form_data.get("is_deceased_date_known", False),
+            "deceased_date_day": form_data.get("deceased_day", None),
+            "deceased_date_month": form_data.get("deceased_month", None),
+            "deceased_date_year": form_data.get("deceased_year", None),
+            "deceased_date_is_age_based": form_data.get("deceased_age_based", None),
         }
