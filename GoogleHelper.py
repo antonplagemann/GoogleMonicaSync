@@ -16,26 +16,26 @@ from DatabaseHelper import Database
 class Google():
     '''Handles all Google related (api) stuff.'''
 
-    def __init__(self, log: Logger, databaseHandler: Database = None, 
-                 labelFilter: dict = None) -> None:
+    def __init__(self, log: Logger, database_handler: Database = None, 
+                 label_filter: dict = None) -> None:
         self.log = log
-        self.labelFilter = labelFilter or {"include": [], "exclude": []}
-        self.database = databaseHandler
-        self.apiRequests = 0
-        self.service = self.__buildService()
-        self.labelMapping = self.__getLabelMapping()
-        self.reverseLabelMapping = {labelId: name for name, labelId in self.labelMapping.items()}
+        self.label_filter = label_filter or {"include": [], "exclude": []}
+        self.database = database_handler
+        self.api_requests = 0
+        self.service = self.__build_service()
+        self.label_mapping = self.__get_label_mapping()
+        self.reverse_label_mapping = {label_id: name for name, label_id in self.label_mapping.items()}
         self.contacts = []
-        self.dataAlreadyFetched = False
-        self.createdContacts = {}
-        self.syncFields = 'addresses,biographies,birthdays,emailAddresses,genders,' \
+        self.data_already_fetched = False
+        self.created_contacts = {}
+        self.sync_fields = 'addresses,biographies,birthdays,emailAddresses,genders,' \
                           'memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers'
-        self.updateFields = 'addresses,biographies,birthdays,clientData,emailAddresses,' \
+        self.update_fields = 'addresses,biographies,birthdays,clientData,emailAddresses,' \
                             'events,externalIds,genders,imClients,interests,locales,locations,memberships,' \
                             'miscKeywords,names,nicknames,occupations,organizations,phoneNumbers,relations,' \
                             'sipAddresses,urls,userDefined'
 
-    def __buildService(self) -> Resource:
+    def __build_service(self) -> Resource:
         creds = None
         FILENAME = 'token.pickle'
         # The file token.pickle stores the user's access and refresh tokens, and is
@@ -59,79 +59,79 @@ class Google():
         service = build('people', 'v1', credentials=creds)
         return service
 
-    def getLabelId(self, name:str, createOnError:bool = True) -> str:
+    def get_label_id(self, name:str, create_on_error:bool = True) -> str:
         '''Returns the Google label id for a given tag name.
         Creates a new label if it has not been found.'''
-        if createOnError:
-            return self.labelMapping.get(name, self.createLabel(name))
+        if create_on_error:
+            return self.label_mapping.get(name, self.create_label(name))
         else:
-            return self.labelMapping.get(name, '')
+            return self.label_mapping.get(name, '')
 
-    def getLabelName(self, labelString: str) -> str:
+    def get_label_name(self, label_string: str) -> str:
         '''Returns the Google label name for a given label id.'''
-        labelId = labelString.split("/")[1]
-        return self.reverseLabelMapping.get(labelString, labelId)
+        label_id = label_string.split("/")[1]
+        return self.reverse_label_mapping.get(label_string, label_id)
 
-    def __filterContactsByLabel(self, contactList: List[dict]) -> List[dict]:
+    def __filter_contacts_by_label(self, contact_list: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
-        if self.labelFilter["include"]:
-            return [contact for contact in contactList
-                    if any([contactLabel["contactGroupMembership"]["contactGroupId"] 
-                            in self.labelFilter["include"] 
-                            for contactLabel in contact["memberships"]])
-                    and all([contactLabel["contactGroupMembership"]["contactGroupId"] 
-                            not in self.labelFilter["exclude"] 
-                            for contactLabel in contact["memberships"]])]
-        elif self.labelFilter["exclude"]:
-            return [contact for contact in contactList
-                    if all([contactLabel["contactGroupMembership"]["contactGroupId"] 
-                            not in self.labelFilter["exclude"] 
-                            for contactLabel in contact["memberships"]])]
+        if self.label_filter["include"]:
+            return [contact for contact in contact_list
+                    if any([contact_label["contactGroupMembership"]["contactGroupId"] 
+                            in self.label_filter["include"] 
+                            for contact_label in contact["memberships"]])
+                    and all([contact_label["contactGroupMembership"]["contactGroupId"] 
+                            not in self.label_filter["exclude"] 
+                            for contact_label in contact["memberships"]])]
+        elif self.label_filter["exclude"]:
+            return [contact for contact in contact_list
+                    if all([contact_label["contactGroupMembership"]["contactGroupId"] 
+                            not in self.label_filter["exclude"] 
+                            for contact_label in contact["memberships"]])]
         else:
-            return contactList
+            return contact_list
 
-    def __filterUnnamedContacts(self, contactList: List[dict]) -> List[dict]:
+    def __filter_unnamed_contacts(self, contact_list: List[dict]) -> List[dict]:
         '''Exclude contacts without name.'''
-        filteredContactList = []
-        for googleContact in contactList:
+        filtered_contact_list = []
+        for google_contact in contact_list:
             # Look for empty names but keep deleted contacts (they too don't have a name)
-            isDeleted = googleContact.get('metadata', {}).get('deleted', False)
-            isAnyName = any(self.getContactNames(googleContact))
-            isNameKeyPresent = googleContact.get('names', False)
-            if (not isAnyName or not isNameKeyPresent) and not isDeleted:
+            is_deleted = google_contact.get('metadata', {}).get('deleted', False)
+            is_any_name = any(self.get_contact_names(google_contact))
+            is_name_key_present = google_contact.get('names', False)
+            if (not is_any_name or not is_name_key_present) and not is_deleted:
                 self.log.info(f"Skipped the following unnamed google contact during sync:")
-                self.log.info(f"Contact details:\n{self.getContactAsString(googleContact)[2:-1]}")
+                self.log.info(f"Contact details:\n{self.get_contact_as_string(google_contact)[2:-1]}")
             else:
-                filteredContactList.append(googleContact)
-        if len(filteredContactList) != len(contactList):
+                filtered_contact_list.append(google_contact)
+        if len(filtered_contact_list) != len(contact_list):
             print("\nSkipped one or more unnamed google contacts, see log for details")
 
-        return filteredContactList
+        return filtered_contact_list
 
-    def getContactNames(self, googleContact: dict) -> Tuple[str, str, str, str, str, str]:
+    def get_contact_names(self, google_contact: dict) -> Tuple[str, str, str, str, str, str]:
         '''Returns the given, family and display name of a Google contact.'''
-        names = googleContact.get('names', [{}])[0]
-        givenName = names.get("givenName", '')
-        familyName = names.get("familyName", '')
-        displayName = names.get("displayName", '')
-        middleName = names.get("middleName", '')
+        names = google_contact.get('names', [{}])[0]
+        given_name = names.get("givenName", '')
+        family_name = names.get("familyName", '')
+        display_name = names.get("displayName", '')
+        middle_name = names.get("middleName", '')
         prefix = names.get("honorificPrefix", '')
         suffix = names.get("honorificSuffix", '')
-        nickname = googleContact.get('nicknames', [{}])[0].get('value', '')
-        return givenName, middleName, familyName, displayName, prefix, suffix, nickname
+        nickname = google_contact.get('nicknames', [{}])[0].get('value', '')
+        return given_name, middle_name, family_name, display_name, prefix, suffix, nickname
 
-    def getContactAsString(self, googleContact: dict) -> str:
+    def get_contact_as_string(self, google_contact: dict) -> str:
         '''Get some content from a Google contact to identify it as a user and return it as string.'''
-        string = f"\n\nContact id:\t{googleContact['resourceName']}\n"
-        for obj in googleContact.get('names', []):
+        string = f"\n\nContact id:\t{google_contact['resourceName']}\n"
+        for obj in google_contact.get('names', []):
             for key, value in obj.items():
                 if key == 'displayName':
                     string += f"Display name:\t{value}\n"
-        for obj in googleContact.get('birthdays', []):
+        for obj in google_contact.get('birthdays', []):
             for key, value in obj.items():
                 if key == 'value':
                     string += f"Birthday:\t{value}\n"
-        for obj in googleContact.get('organizations', []):
+        for obj in google_contact.get('organizations', []):
             for key, value in obj.items():
                 if key == 'name':
                     string += f"Company:\t{value}\n"
@@ -139,80 +139,80 @@ class Google():
                     string += f"Department:\t{value}\n"
                 if key == 'title':
                     string += f"Job title:\t{value}\n"
-        for obj in googleContact.get('addresses', []):
+        for obj in google_contact.get('addresses', []):
             for key, value in obj.items():
                 if key == 'formattedValue':
                     value = value.replace('\n', ' ')
                     string += f"Address:\t{value}\n"
-        for obj in googleContact.get('phoneNumbers', []):
+        for obj in google_contact.get('phoneNumbers', []):
             for key, value in obj.items():
                 if key == 'value':
                     string += f"Phone number:\t{value}\n"
-        for obj in googleContact.get('emailAddresses', []):
+        for obj in google_contact.get('emailAddresses', []):
             for key, value in obj.items():
                 if key == 'value':
                     string += f"Email:\t\t{value}\n"
         labels = []
-        for obj in googleContact.get('memberships', []):
+        for obj in google_contact.get('memberships', []):
             for key, value in obj.items():
                 if key == 'contactGroupMembership':
-                    name = self.getLabelName(value['contactGroupResourceName'])
+                    name = self.get_label_name(value['contactGroupResourceName'])
                     labels.append(name)
         if labels:        
             string += f"Labels:\t\t{', '.join(labels)}\n"
         return string
 
-    def removeContactFromList(self, googleContact: dict) -> None:
+    def remove_contact_from_list(self, google_contact: dict) -> None:
         '''Removes a Google contact internally to avoid further processing
         (e.g. if it has been deleted on both sides)'''
-        self.contacts.remove(googleContact)
+        self.contacts.remove(google_contact)
 
-    def getContact(self, googleId: str) -> dict:
+    def get_contact(self, google_id: str) -> dict:
         '''Fetches a single contact by id from Google.'''
         try:
             # Check if contact is already fetched
             if self.contacts:
-                googleContactList = [c for c in self.contacts if str(c['resourceName']) == str(googleId)]
-                if googleContactList: 
-                    return googleContactList[0]
+                google_contact_list = [c for c in self.contacts if str(c['resourceName']) == str(google_id)]
+                if google_contact_list: 
+                    return google_contact_list[0]
 
             # Build GET parameters
             parameters = {
-                'resourceName': googleId,
-                'personFields': self.syncFields,
+                'resourceName': google_id,
+                'personFields': self.sync_fields,
             }
 
             # Fetch contact
             # pylint: disable=no-member
             result = self.service.people().get(**parameters).execute()
-            self.apiRequests += 1
+            self.api_requests += 1
 
             # Return contact
-            googleContact = self.__filterContactsByLabel([result])[0]
-            googleContact = self.__filterUnnamedContacts([result])[0]
-            self.contacts.append(googleContact)
-            return googleContact
+            google_contact = self.__filter_contacts_by_label([result])[0]
+            google_contact = self.__filter_unnamed_contacts([result])[0]
+            self.contacts.append(google_contact)
+            return google_contact
 
         except HttpError as error:
-            if self.__isSlowDownError(error):
-                return self.getContact(googleId)
+            if self.__is_slow_down_error(error):
+                return self.get_contact(google_id)
             else:
-                msg = f"Failed to fetch Google contact '{googleId}': {str(error)}"
+                msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
                 self.log.error(msg)
                 raise Exception(msg) from error
 
         except IndexError as error:
-            msg = f"Contact processing of '{googleId}' not allowed by label filter"
+            msg = f"Contact processing of '{google_id}' not allowed by label filter"
             self.log.info(msg)
             raise Exception(msg) from error
 
         except Exception as error:
-            msg = f"Failed to fetch Google contact '{googleId}': {str(error)}"
+            msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
             self.log.error(msg)
             raise Exception(msg) from error
 
-    def __isSlowDownError(self, error: HttpError) -> bool:
-        '''Checks if the error is an qoate exceeded error and slows down the requests if yes.'''
+    def __is_slow_down_error(self, error: HttpError) -> bool:
+        '''Checks if the error is an quota exceeded error and slows down the requests if yes.'''
         WAITING_TIME = 60
         if "Quota exceeded" in str(error):
             print(f"\nToo many Google requests, waiting {WAITING_TIME} seconds...")
@@ -221,17 +221,17 @@ class Google():
         else:
             return False
 
-    def getContacts(self, refetchData : bool = False, **params) -> List[dict]:
+    def get_contacts(self, refetch_data : bool = False, **params) -> List[dict]:
         '''Fetches all contacts from Google if not already fetched.'''
         # Build GET parameters
         parameters = {'resourceName': 'people/me',
                       'pageSize': 1000,
-                      'personFields': self.syncFields,
+                      'personFields': self.sync_fields,
                       'requestSyncToken': True,
                       **params}
 
         # Avoid multiple fetches
-        if self.dataAlreadyFetched and not refetchData:
+        if self.data_already_fetched and not refetch_data:
             return self.contacts
 
         # Start fetching
@@ -240,16 +240,16 @@ class Google():
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
         try:
-            self.__fetchContacts(parameters)
+            self.__fetch_contacts(parameters)
         except HttpError as error:
             if 'Sync token' in str(error):
                 msg = "Sync token expired or invalid. Fetching again without token (full sync)..."
                 self.log.warning(msg)
                 print("\n" + msg)
                 parameters.pop('syncToken')
-                self.__fetchContacts(parameters)
-            elif self.__isSlowDownError(error):
-                return self.getContacts(refetchData, **params)
+                self.__fetch_contacts(parameters)
+            elif self.__is_slow_down_error(error):
+                return self.get_contacts(refetch_data, **params)
             else:
                 msg = "Failed to fetch Google contacts!"
                 self.log.error(msg)
@@ -257,61 +257,61 @@ class Google():
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
-        self.dataAlreadyFetched = True
+        self.data_already_fetched = True
         return self.contacts
 
-    def __fetchContacts(self, parameters: dict) -> None:
+    def __fetch_contacts(self, parameters: dict) -> None:
         contacts = []
         while True:
             # pylint: disable=no-member
             result = self.service.people().connections().list(**parameters).execute()
-            self.apiRequests += 1
-            nextPageToken = result.get('nextPageToken', False)
+            self.api_requests += 1
+            next_page_token = result.get('nextPageToken', False)
             contacts += result.get('connections', [])
-            if nextPageToken:
-                parameters['pageToken'] = nextPageToken
+            if next_page_token:
+                parameters['pageToken'] = next_page_token
             else:
-                self.contacts = self.__filterContactsByLabel(contacts)
-                self.contacts = self.__filterUnnamedContacts(contacts)
+                self.contacts = self.__filter_contacts_by_label(contacts)
+                self.contacts = self.__filter_unnamed_contacts(contacts)
                 break
 
-        nextSyncToken = result.get('nextSyncToken', None)
-        if nextSyncToken and self.database:
-            self.database.updateGoogleNextSyncToken(nextSyncToken)
+        next_sync_token = result.get('nextSyncToken', None)
+        if next_sync_token and self.database:
+            self.database.update_google_next_sync_token(next_sync_token)
 
-    def __getLabelMapping(self) -> dict:
+    def __get_label_mapping(self) -> dict:
         '''Fetches all contact groups from Google (aka labels) and
         returns a {name: id} mapping.'''
         try:
             # Get all contact groups
             # pylint: disable=no-member
             response = self.service.contactGroups().list().execute()
-            self.apiRequests += 1
+            self.api_requests += 1
             groups = response.get('contactGroups', [])
 
             # Initialize mapping for all user groups and allowed system groups
-            labelMapping = {group['name']: group['resourceName'] for group in groups
+            label_mapping = {group['name']: group['resourceName'] for group in groups
                             if group['groupType'] == 'USER_CONTACT_GROUP'
                             or group['name'] in ['myContacts', 'starred']}
 
-            return labelMapping
+            return label_mapping
         except HttpError as error:
-            if self.__isSlowDownError(error):
-                return self.__getLabelMapping()
+            if self.__is_slow_down_error(error):
+                return self.__get_label_mapping()
             else:
                 msg = "Failed to fetch Google labels!"
                 self.log.error(msg)
                 raise Exception(str(error)) from error
 
-    def deleteLabel(self, groupId) -> None:
+    def delete_label(self, group_id) -> None:
         '''Deletes a contact group from Google (aka label). Does not delete assigned contacts.'''
         try:
             # pylint: disable=no-member
-            response = self.service.contactGroups().delete(resourceName=groupId).execute()
-            self.apiRequests += 1
+            response = self.service.contactGroups().delete(resourceName=group_id).execute()
+            self.api_requests += 1
         except HttpError as error:
-            if self.__isSlowDownError(error):
-                self.deleteLabel(groupId)
+            if self.__is_slow_down_error(error):
+                self.delete_label(group_id)
             else:
                 reason = str(error)
                 msg = f"Failed to delete Google contact group. Reason: {reason}"
@@ -324,47 +324,47 @@ class Google():
             self.log.warning(msg)
             print("\n" + msg)
 
-    def createLabel(self, labelName: str) -> str:
+    def create_label(self, label_name: str) -> str:
         '''Creates a new Google contacts label and returns its id.'''
         # Search label and return if found
-        if labelName in self.labelMapping:
-            return self.labelMapping[labelName]
+        if label_name in self.label_mapping:
+            return self.label_mapping[label_name]
 
         # Create group object
-        newGroup = {
+        new_group = {
             "contactGroup": {
-                "name": labelName
+                "name": label_name
             }
         }
 
         try:
             # Upload group object
             # pylint: disable=no-member
-            response = self.service.contactGroups().create(body=newGroup).execute()
-            self.apiRequests += 1
+            response = self.service.contactGroups().create(body=new_group).execute()
+            self.api_requests += 1
 
-            groupId = response.get('resourceName', 'contactGroups/myContacts')
-            self.labelMapping.update({labelName: groupId})
-            return groupId
+            group_id = response.get('resourceName', 'contactGroups/myContacts')
+            self.label_mapping.update({label_name: group_id})
+            return group_id
 
         except HttpError as error:
-            if self.__isSlowDownError(error):
-                return self.createLabel(labelName)
+            if self.__is_slow_down_error(error):
+                return self.create_label(label_name)
             else:
                 msg = "Failed to create Google label!"
                 self.log.error(msg)
                 raise Exception(str(error)) from error
 
-    def createContact(self, data) -> Union[dict, None]:
+    def create_contact(self, data) -> Union[dict, None]:
         '''Creates a given Google contact via api call and returns the created contact.'''
         # Upload contact
         try:
             # pylint: disable=no-member
-            result = self.service.people().createContact(personFields=self.syncFields, body=data).execute()
-            self.apiRequests += 1
+            result = self.service.people().createContact(personFields=self.sync_fields, body=data).execute()
+            self.api_requests += 1
         except HttpError as error:
-            if self.__isSlowDownError(error):
-                return self.createContact(data)
+            if self.__is_slow_down_error(error):
+                return self.create_contact(data)
             else:
                 reason = str(error)
                 msg = f"'{data['names'][0]}':Failed to create Google contact. Reason: {reason}"
@@ -373,24 +373,24 @@ class Google():
                 raise Exception(reason) from error
 
         # Process result
-        googleId = result.get('resourceName', '-')
+        google_id = result.get('resourceName', '-')
         name = result.get('names', [{}])[0].get('displayName', 'error')
-        self.createdContacts[googleId] = True
+        self.created_contacts[google_id] = True
         self.contacts.append(result)
         self.log.info(
-            f"'{name}': Contact with id '{googleId}' created successfully")
+            f"'{name}': Contact with id '{google_id}' created successfully")
         return result
 
-    def updateContact(self, data) -> Union[dict, None]:
+    def update_contact(self, data) -> Union[dict, None]:
         '''Updates a given Google contact via api call and returns the created contact.'''
         # Upload contact
         try:
             # pylint: disable=no-member
-            result = self.service.people().updateContact(resourceName=data['resourceName'], updatePersonFields=self.updateFields, body=data).execute()
-            self.apiRequests += 1
+            result = self.service.people().updateContact(resourceName=data['resourceName'], updatePersonFields=self.update_fields, body=data).execute()
+            self.api_requests += 1
         except HttpError as error:
-            if self.__isSlowDownError(error):
-                return self.updateContact(data)
+            if self.__is_slow_down_error(error):
+                return self.update_contact(data)
             else:
                 reason = str(error)
                 msg = f"'{data['names'][0]}':Failed to update Google contact. Reason: {reason}"
@@ -399,28 +399,28 @@ class Google():
                 raise Exception(reason) from error
 
         # Process result
-        googleId = result.get('resourceName', '-')
+        google_id = result.get('resourceName', '-')
         name = result.get('names', [{}])[0].get('displayName', 'error')
         self.log.info('Contact has not been saved internally!')
         self.log.info(
-            f"'{name}': Contact with id '{googleId}' updated successfully")
+            f"'{name}': Contact with id '{google_id}' updated successfully")
         return result
 
 
 class GoogleContactUploadForm():
     '''Creates json form for creating Google contacts.'''
 
-    def __init__(self, firstName: str = '', lastName: str = '',
-                 middleName: str = '', birthdate: dict = {},
-                 phoneNumbers: List[str] = [], career: dict = {},
-                 emailAdresses: List[str] = [], labelIds: List[str] = [],
+    def __init__(self, first_name: str = '', last_name: str = '',
+                 middle_name: str = '', birthdate: dict = {},
+                 phone_numbers: List[str] = [], career: dict = {},
+                 email_adresses: List[str] = [], label_ids: List[str] = [],
                  addresses: List[dict] = {}) -> None:
         self.data = {
             "names": [
                 {
-                    "familyName": lastName,
-                    "givenName": firstName,
-                    "middleName": middleName
+                    "familyName": last_name,
+                    "givenName": first_name,
+                    "middleName": middle_name
                 }
             ]
         }
@@ -458,35 +458,35 @@ class GoogleContactUploadForm():
                 for address in addresses
             ]
 
-        if phoneNumbers:
+        if phone_numbers:
             self.data["phoneNumbers"] = [
                 {
                     "value": number,
                     "type": "other",
                 }
-                for number in phoneNumbers
+                for number in phone_numbers
             ]
 
-        if emailAdresses:
+        if email_adresses:
             self.data["emailAddresses"] = [
                 {
                     "value": email,
                     "type": "other",
                 }
-                for email in emailAdresses
+                for email in email_adresses
             ]
 
-        if labelIds:
+        if label_ids:
             self.data["memberships"] = [
                 {
                     "contactGroupMembership":
                     {
-                        "contactGroupResourceName": labelId
+                        "contactGroupResourceName": label_id
                     }
                 }
-                for labelId in labelIds
+                for label_id in label_ids
             ]
 
-    def getData(self) -> dict:
+    def get_data(self) -> dict:
         '''Returns the Google contact form data.'''
         return self.data

@@ -49,10 +49,10 @@ def main() -> None:
 
         # Logging configuration
         log.setLevel(logging.INFO)
-        loggingFormat = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         handler = logging.FileHandler(filename=LOG_FILENAME, mode='a', encoding="utf8")
         handler.setLevel(logging.INFO)
-        handler.setFormatter(loggingFormat)
+        handler.setFormatter(logging_format)
         log.addHandler(handler)
         log.info(f"Script started ({VERSION})")
 
@@ -74,23 +74,23 @@ def main() -> None:
         if args.initial:
             # Start initial sync
             print("- initial sync\n")
-            sync.startSync('initial')
+            sync.start_sync('initial')
         elif args.delta:
             # Start initial sync
             print("- delta sync\n")
-            sync.startSync('delta')
+            sync.start_sync('delta')
         elif args.full:
             # Start initial sync
             print("- full sync\n")
-            sync.startSync('full')
+            sync.start_sync('full')
         elif args.syncback:
             # Start sync back from Monica to Google
             print("")
-            sync.startSync('syncBack')
+            sync.start_sync('syncBack')
         elif args.check:
             # Start database error check
             print("")
-            sync.checkDatabase()
+            sync.check_database()
         else:
             # Wrong arguments
             print("Unknown sync arguments, check your input!\n")
