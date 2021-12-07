@@ -128,46 +128,34 @@ class Google():
     def get_contact_as_string(self, google_contact: dict) -> str:
         '''Get some content from a Google contact to identify it as a user
         and return it as string.'''
-        string = f"\n\nContact id:\t{google_contact['resourceName']}\n"
-        for obj in google_contact.get('names', []):
-            for key, value in obj.items():
-                if key == 'displayName':
-                    string += f"Display name:\t{value}\n"
-        for obj in google_contact.get('birthdays', []):
-            for key, value in obj.items():
-                if key == 'value':
-                    string += f"Birthday:\t{value}\n"
-        for obj in google_contact.get('organizations', []):
-            for key, value in obj.items():
-                if key == 'name':
-                    string += f"Company:\t{value}\n"
-                if key == 'department':
-                    string += f"Department:\t{value}\n"
-                if key == 'title':
-                    string += f"Job title:\t{value}\n"
-        for obj in google_contact.get('addresses', []):
-            for key, value in obj.items():
-                if key == 'formattedValue':
-                    value = value.replace('\n', ' ')
-                    string += f"Address:\t{value}\n"
-        for obj in google_contact.get('phoneNumbers', []):
-            for key, value in obj.items():
-                if key == 'value':
-                    string += f"Phone number:\t{value}\n"
-        for obj in google_contact.get('emailAddresses', []):
-            for key, value in obj.items():
-                if key == 'value':
-                    string += f"Email:\t\t{value}\n"
-        labels = []
-        for obj in google_contact.get('memberships', []):
-            for key, value in obj.items():
-                if key == 'contactGroupMembership':
-                    name = self.get_label_name(
-                        value['contactGroupResourceName'])
-                    labels.append(name)
-        if labels:
-            string += f"Labels:\t\t{', '.join(labels)}\n"
-        return string
+        search_keys = {
+            'names': ['displayName'],
+            'birthdays': ['value'],
+            'organizations': ['name', 'department', 'title'],
+            'addresses': ['formattedValue'],
+            'phoneNumbers': ['value'],
+            'emailAddresses': ['value'],
+            'memberships': ['contactGroupMembership']
+        }
+
+        contact_string = f"\n\nContact id: {google_contact['resourceName']}\n"
+
+        for key, values in google_contact.items():
+            if key not in search_keys:
+                continue
+            sub_string = ""
+            for value in values:
+                for sub_key, sub_value in value.items():
+                    if sub_key not in search_keys[key]:
+                        continue
+                    if sub_key == 'contactGroupMembership':
+                        sub_value = self.get_label_name(sub_value['contactGroupResourceName'])
+                    sub_value = sub_value.replace('\n', ' ')
+                    sub_string += f"  {sub_key}: {sub_value}\n"
+            if sub_string:
+                contact_string += f"{key}:\n" + sub_string
+
+        return contact_string
 
     def remove_contact_from_list(self, google_contact: dict) -> None:
         '''Removes a Google contact internally to avoid further processing
