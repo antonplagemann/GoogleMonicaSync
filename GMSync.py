@@ -1,10 +1,13 @@
 import argparse
 import logging
 import sys
+from os.path import join
 
 try:
-    from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
-                      GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
+    from conf import (BASE_URL, CREATE_REMINDERS, DATA_FOLDER, DATABASE_FILE,
+                      DELETE_ON_SYNC, FIELDS, GOOGLE_CREDENTIALS_FILE,
+                      GOOGLE_LABELS, GOOGLE_TOKEN_FILE, LOG_FILE,
+                      MONICA_LABELS, STREET_REVERSAL, TOKEN)
 except ImportError:
     print("\nFailed to import config settings!\n"
           "Please verify that you have the latest version of the conf.py file "
@@ -17,8 +20,6 @@ from MonicaHelper import Monica
 from SyncHelper import Sync
 
 VERSION = "v3.2.1"
-DATABASE_FILENAME = "syncState.db"
-LOG_FILENAME = 'Sync.log'
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
@@ -52,15 +53,17 @@ def main() -> None:
         # Logging configuration
         log.setLevel(logging.INFO)
         logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        handler = logging.FileHandler(filename=LOG_FILENAME, mode='a', encoding="utf8")
+        handler = logging.FileHandler(filename=join(DATA_FOLDER, LOG_FILE),
+                                      mode='a', encoding="utf8")
         handler.setLevel(logging.INFO)
         handler.setFormatter(logging_format)
         log.addHandler(handler)
         log.info(f"Script started ({VERSION})")
 
         # Create sync object
-        database = Database(log, DATABASE_FILENAME)
-        google = Google(log, database, GOOGLE_LABELS)
+        database = Database(log, join(DATA_FOLDER, DATABASE_FILE))
+        google = Google(log, database, join(DATA_FOLDER, GOOGLE_CREDENTIALS_FILE),
+                        join(DATA_FOLDER, GOOGLE_TOKEN_FILE), GOOGLE_LABELS)
         monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
         sync = Sync(log, database, monica, google, args.syncback, args.check,
                     DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)

@@ -1,9 +1,9 @@
 import os.path
 import pickle
 import sys
+import time
 from logging import Logger
 from typing import List, Tuple, Union
-import time
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -17,9 +17,12 @@ from Exceptions import GoogleFetchError, InternalError
 class Google():
     '''Handles all Google related (api) stuff.'''
 
-    def __init__(self, log: Logger, database_handler: Database = None,
+    def __init__(self, log: Logger, database_handler: Database,
+                 credentials_file: str, token_file: str,
                  label_filter: dict = None) -> None:
         self.log = log
+        self.credentials_file = credentials_file
+        self.token_file = token_file
         self.label_filter = label_filter or {"include": [], "exclude": []}
         self.database = database_handler
         self.api_requests = 0
@@ -39,12 +42,11 @@ class Google():
 
     def __build_service(self) -> Resource:
         creds = None
-        FILENAME = 'token.pickle'
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists(FILENAME):
-            with open(FILENAME, 'rb') as token:
+        if os.path.exists(self.token_file):
+            with open(self.token_file, 'rb') as token:
                 creds = pickle.load(token)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
@@ -52,10 +54,10 @@ class Google():
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', scopes='https://www.googleapis.com/auth/contacts')
+                    self.credentials_file, scopes='https://www.googleapis.com/auth/contacts')
                 creds = flow.run_local_server(port=56411)
             # Save the credentials for the next run
-            with open(FILENAME, 'wb') as token:
+            with open(self.token_file, 'wb') as token:
                 pickle.dump(creds, token)
 
         service = build('people', 'v1', credentials=creds)
