@@ -4,7 +4,7 @@ version: "3.8"
 
 services:
   python:
-    image: google-monica-sync:latest
+    image: antonplagemann/google-monica-sync:latest
 
     # Put config, credentials, sync database and token files in ./data
     volumes:

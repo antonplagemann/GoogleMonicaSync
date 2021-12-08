@@ -1,13 +1,12 @@
-import sys
+import time
 from logging import Logger
 from typing import List
-import time
 
 import requests
 from requests.models import Response
 
 from DatabaseHelper import Database
-from Exceptions import MonicaFetchError, InternalError
+from Exceptions import InternalError, MonicaFetchError
 
 
 class Monica():
@@ -170,8 +169,7 @@ class Monica():
             contacts = []
             self.log.info("Fetching all Monica contacts...")
             while True:
-                sys.stdout.write(f"\rFetching all Monica contacts (page {page} of {max_page})")
-                sys.stdout.flush()
+                print(f"Fetching all Monica contacts (page {page} of {max_page})")
                 response = requests.get(
                     self.base_url + f"/contacts?page={page}",
                     headers=self.header, params=self.parameters)

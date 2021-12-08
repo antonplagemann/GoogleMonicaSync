@@ -130,3 +130,5 @@ conf.py
 *.db
 *.db-journal
 *.bat
+
+docker-compose-dev.yml

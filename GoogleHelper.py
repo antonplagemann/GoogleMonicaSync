@@ -1,6 +1,5 @@
 import os.path
 import pickle
-import sys
 import time
 from logging import Logger
 from typing import List, Tuple, Union
@@ -235,8 +234,7 @@ class Google():
         # Start fetching
         msg = "Fetching Google contacts..."
         self.log.info(msg)
-        sys.stdout.write(f"\r{msg}")
-        sys.stdout.flush()
+        print(msg)
         try:
             self.__fetch_contacts(parameters)
         except HttpError as error:

@@ -1,7 +1,6 @@
-import sys
 from datetime import datetime
 from logging import Logger
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 from DatabaseHelper import Database, DatabaseEntry
 from Exceptions import BadUserInput, InternalError, UserChoice
@@ -138,9 +137,7 @@ class Sync():
 
         # Process every Google contact
         for num, google_contact in enumerate(google_contacts):
-            sys.stdout.write(
-                f"\rProcessing Google contact {num+1} of {contact_count}")
-            sys.stdout.flush()
+            print(f"Processing Google contact {num+1} of {contact_count}")
 
             # Delete Monica contact if Google contact was deleted (if chosen by user; delta sync only)
             is_deleted = google_contact.get('metadata', {}).get('deleted', False)
@@ -596,8 +593,7 @@ class Sync():
 
         # Process every Google contact
         for num, google_contact in enumerate(google_contacts):
-            sys.stdout.write(f"\rProcessing Google contact {num+1} of {contact_count}")
-            sys.stdout.flush()
+            print(f"Processing Google contact {num+1} of {contact_count}")
             # Try non-interactive search first
             monica_id = self.__simple_monica_id_search(google_contact)
             if not monica_id:
@@ -629,8 +625,7 @@ class Sync():
 
         # Process every Monica contact
         for num, monica_contact in enumerate(monica_contacts):
-            sys.stdout.write(f"\rProcessing Monica contact {num+1} of {contact_count}")
-            sys.stdout.flush()
+            print(f"Processing Monica contact {num+1} of {contact_count}")
 
             # If there the id isnt in the database: create a new Google contact and upload
             if str(monica_contact['id']) not in self.mapping.values():
@@ -804,9 +799,7 @@ class Sync():
 
         # Check every Google contact
         for num, google_contact in enumerate(google_contacts):
-            sys.stdout.write(
-                f"\rProcessing Google contact {num+1} of {google_contacts_count}")
-            sys.stdout.flush()
+            print(f"Processing Google contact {num+1} of {google_contacts_count}")
 
             # Get monica id
             monica_id = self.mapping.get(google_contact['resourceName'], None)
@@ -832,9 +825,7 @@ class Sync():
 
         # Check every Monica contact
         for num, monica_contact in enumerate(monica_contacts):
-            sys.stdout.write(
-                f"\rProcessing Monica contact {num+1} of {monica_contacts_count}")
-            sys.stdout.flush()
+            print(f"Processing Monica contact {num+1} of {monica_contacts_count}")
 
             # Get monica id
             google_id = self.reverse_mapping.get(str(monica_contact["id"]), None)
