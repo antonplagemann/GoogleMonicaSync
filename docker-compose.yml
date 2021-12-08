@@ -10,5 +10,5 @@ services:
     volumes:
       - ./data:/usr/app/data
 
-    # Adjust command if needed
-    command: python GMSync.py -d
+    # Adjust command if needed (-u needed for getting console output)
+    command: python -u GMSync.py -d

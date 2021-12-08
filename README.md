@@ -37,14 +37,33 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 - Birthdays on 29. Feb will be synced as 01. March :-)
 - Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True`(because Google assigns a new contact ID). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
 
-## Get started
+## Get started (without docker)
 
 0. Install Python 3.9 or newer
 1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
-2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. Create a new `conf.py` file inside the main repository directory with [this content](#Config).
+2. Copy `credentials.json` and `token.pickle` inside the data folder directory.
+3. Inside `data` rename `conf.example.py` to `conf.py` file and fill in your desired settings (a Monica token can be retrieved in your account settings).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
+
+## Get started (with docker)
+
+1. Use the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) or something similar to get the `credentials.json` and `token.pickle` files.
+2. In your chosen main folder: create a folder named `data` and copy the files from step 1 inside.
+3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/data/conf.example.py) the config file to the `data` folder, rename it to `conf.py` and fill in your desired settings (a Monica token can be retrieved in your account settings).
+4. Open a console in the main folder and do an initial sync (on Windows replace `$(pwd)` with `%cd%`)
+
+    ```bash
+    docker run -v "$(pwd)/data":/usr/app/data -it antonplagemann/google-monica-sync sh -c "python -u GMSync.py -i"
+    ```
+
+5. For delta sync use this command:
+
+    ```bash
+    docker run -v "$(pwd)/data":/usr/app/data antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
+    ```
+
+Alternatively to step 5 you can download the [docker-compose.yml](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
 
 ## All sync commands
 
@@ -94,57 +113,6 @@ All progress will be printed at running time and logged in the `Sync.log` file. 
 ## Database check
 
 If you think something has gone wrong, you miss some contacts or just want a pretty database statistic, you can do a database check. This will check if every Google contact has its Monica counterpart and vice versa. It will also report orphaned database entries that do not have a contact on both sides.
-
-## Config
-
-This is the config file.
-Copy the content below and create a new `conf.py` file inside the main repository directory.
-Then fill in your desired settings (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
-
-```python
-# General: 
-# String values need to be in single or double quotes
-# Boolean values need to be True or False
-# List Elements need to be are seperated by commas (e.g. ["a", "b"])
-
-# Your Monica api token (without 'Bearer ')
-TOKEN = 'YOUR_TOKEN_HERE'
-# Your Monica base url
-BASE_URL = 'https://app.monicahq.com/api'
-# Create reminders for birthdays and deceased days?
-CREATE_REMINDERS = True
-# Delete Monica contact if the corresponding Google contact has been deleted?
-DELETE_ON_SYNC = True
-# Do a street reversal in address sync if the first character is a number? 
-# (e.g. from '13 Auenweg' to 'Auenweg 13')
-STREET_REVERSAL = False
-
-# What fields should be synced? (both directions)
-# Names and birthday are mandatory
-FIELDS = {
-    "career": True,     # Company and job title
-    "address": True,
-    "phone": True,
-    "email": True,
-    "labels": True,
-    "notes": True
-}
-
-# Define contact labels/tags/groups you want to include or exclude from sync. 
-# Exclude labels have the higher priority.
-# Both lists empty means every contact is included
-# Example: "include": ["Family"] will only process contacts labeled as Family.
-GOOGLE_LABELS = {
-    # Applies for Google -> Monica sync
-    "include": [],
-    "exclude": []
-}
-MONICA_LABELS = {
-    # Applies for Monica -> Google sync back
-    "include": [],
-    "exclude": []
-}
-```
 
 ## Feature roadmap
 

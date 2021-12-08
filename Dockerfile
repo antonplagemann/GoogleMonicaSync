@@ -7,15 +7,14 @@ LABEL Maintainer="antonplagemann"
 # Choose working directory
 WORKDIR /usr/app
 
-# Copy all python files to working dir
-COPY * ./
+# Copy all files to working dir
+COPY . .
 
 # Add data volume
 VOLUME /usr/app/data
 
 # Install dependencies
-RUN python -m pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN python -m pip install --upgrade pip && pip install -r requirements.txt
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
