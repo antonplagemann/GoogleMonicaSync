@@ -124,11 +124,9 @@ dmypy.json
 .pyre/
 
 # Dev files
-token.pickle
-credentials.json
+*.pickle
+*.json
 conf.py
-token.pickle*
-syncState.db
-syncState.db-journal
-GoogleSampleData.json
-MonicaSampleData.json
+*.db
+*.db-journal
+*.bat

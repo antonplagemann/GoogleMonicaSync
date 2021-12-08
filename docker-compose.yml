@@ -1,0 +1,14 @@
+# Run sync script with delta sync using configuration file from /data
+
+version: "3.8"
+
+services:
+  python:
+    image: google-monica-sync:latest
+
+    # Put config, credentials, sync database and token files in ./data
+    volumes:
+      - ./data:/usr/app/data
+
+    # Adjust command if needed
+    command: python GMSync.py -d

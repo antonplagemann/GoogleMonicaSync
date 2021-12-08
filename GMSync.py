@@ -4,10 +4,10 @@ import sys
 from os.path import join
 
 try:
-    from conf import (BASE_URL, CREATE_REMINDERS, DATA_FOLDER, DATABASE_FILE,
-                      DELETE_ON_SYNC, FIELDS, GOOGLE_CREDENTIALS_FILE,
-                      GOOGLE_LABELS, GOOGLE_TOKEN_FILE, LOG_FILE,
-                      MONICA_LABELS, STREET_REVERSAL, TOKEN)
+    from data.conf import (BASE_URL, CREATE_REMINDERS, DATA_FOLDER, DATABASE_FILE,
+                           DELETE_ON_SYNC, FIELDS, GOOGLE_CREDENTIALS_FILE,
+                           GOOGLE_LABELS, GOOGLE_TOKEN_FILE, LOG_FILE,
+                           MONICA_LABELS, STREET_REVERSAL, TOKEN)
 except ImportError:
     print("\nFailed to import config settings!\n"
           "Please verify that you have the latest version of the conf.py file "

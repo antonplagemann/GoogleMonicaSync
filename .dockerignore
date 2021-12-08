@@ -5,6 +5,7 @@
 **/docker-compose*
 **/Dockerfile*
 **/__pycache__
+**/data
 
 README.md
 LICENSE.md
