@@ -13,7 +13,7 @@ from helpers.GoogleHelper import Google
 from helpers.MonicaHelper import Monica
 from helpers.SyncHelper import Sync
 
-VERSION = "v3.2.1"
+VERSION = "v4.0.0"
 LOG_FOLDER = "logs"
 LOG_FILENAME = "sync.log"
 # Google -> Monica contact syncing script
