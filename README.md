@@ -133,5 +133,6 @@ If you think something has gone wrong, you miss some contacts or just want a pre
 - [x] Extend config to allow user choice of synced fields
 - [ ] ~~Think about two-way sync~~ (too involving, not really needed)
 - [x] Database consistency check function
-- [ ] Think about a pip package
+- [ ] ~~Think about a pip package~~
 - [ ] ~~Implement sync procedure using python threads: propably much faster with multithreading~~ (not much faster because the Monica API rate limit is the bottleneck here)
+- [x] Add docker container
