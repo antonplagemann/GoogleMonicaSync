@@ -73,13 +73,14 @@ Usage:
 python GMSync.py [arguments]
 ```
 
-| Argument | Description                                                                              |
-| :------- | :--------------------------------------------------------------------------------------- |
-| `-i`     | Database rebuild (interactive) and full sync                                             |
-| `-d`     | Delta sync (unattended)                                                                  |
-| `-f`     | Full sync (unattended)                                                                   |
-| `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments     |
-| `-c`     | Check syncing database for errors (unattended). Can be combined with all other arguments |
+| Argument  | Description                                                                              |
+| :-------- | :--------------------------------------------------------------------------------------- |
+| `-i`      | Database rebuild (interactive) and full sync                                             |
+| `-d`      | Delta sync (unattended)                                                                  |
+| `-f`      | Full sync (unattended)                                                                   |
+| `-sb`     | Sync back new Monica contacts (unattended). Can be combined with all other arguments     |
+| `-c`      | Check syncing database for errors (unattended). Can be combined with all other arguments |
+| `-e PATH` | Use custom .env configuration file path (relative or absolute)                           |
 
 **Remark**:  
 Full sync, database check and sync back require heavy API use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).

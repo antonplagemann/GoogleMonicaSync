@@ -8,6 +8,7 @@ from dotenv import dotenv_values, find_dotenv
 
 from helpers.ConfigHelper import Config
 from helpers.DatabaseHelper import Database
+from helpers.Exceptions import ConfigError
 from helpers.GoogleHelper import Google
 from helpers.MonicaHelper import Monica
 from helpers.SyncHelper import Sync
@@ -22,40 +23,6 @@ LOG_FILENAME = "sync.log"
 
 def main() -> None:
     try:
-        # Set logging configuration
-        log = logging.getLogger("GMSync")
-        dotenv_log = logging.getLogger("dotenv.main")
-        log.setLevel(logging.INFO)
-        logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        log_filename = join(LOG_FOLDER, LOG_FILENAME)
-        handler = logging.FileHandler(filename=log_filename, mode='a', encoding="utf8")
-        handler.setLevel(logging.INFO)
-        handler.setFormatter(logging_format)
-        log.addHandler(handler)
-        dotenv_log.addHandler(handler)
-        log.info(f"Script started ({VERSION})")
-
-        # Load raw config
-        default_config = find_dotenv(".env.default", raise_error_if_not_found=True)
-        user_config = find_dotenv()
-        if user_config:
-            log.info(f"Loading user config from {user_config}")
-            user_config_values = dotenv_values(user_config)
-        else:
-            log.info("Loading user config from os environment")
-            user_config_values = dict(os.environ)
-        log.info(f"Loading default config from {default_config}")
-        default_config_values = dotenv_values(default_config)
-        raw_config = {
-            **default_config_values,
-            **user_config_values
-        }
-        log.info("Config loading complete")
-
-        # Parse config
-        conf = Config(log, raw_config)
-        log.info("Config successfully parsed")
-
         # Setup argument parser
         parser = argparse.ArgumentParser(description='Syncs Google contacts to a Monica instance.')
         parser.add_argument('-i', '--initial', action='store_true',
@@ -73,9 +40,54 @@ def main() -> None:
                             required=False,
                             help="check database consistency and report all errors. "
                             "Can be combined with other arguments")
+        parser.add_argument('-e', '--env-file', type=str, required=False,
+                            help="custom path to your .env config file")
 
         # Parse arguments
         args = parser.parse_args()
+
+        # Set logging configuration
+        log = logging.getLogger("GMSync")
+        dotenv_log = logging.getLogger("dotenv.main")
+        log.setLevel(logging.INFO)
+        logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        log_filename = join(LOG_FOLDER, LOG_FILENAME)
+        handler = logging.FileHandler(filename=log_filename, mode='a', encoding="utf8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging_format)
+        log.addHandler(handler)
+        dotenv_log.addHandler(handler)
+        log.info(f"Script started ({VERSION})")
+
+        # Load raw config
+        default_config = find_dotenv(".env.default", raise_error_if_not_found=True)
+        if args.env_file:
+            if not os.path.exists(args.env_file):
+                raise ConfigError("Could not find the custom config file, check your input!")
+            # Use config from custom path
+            user_config = args.env_file
+        else:
+            # Search config path
+            user_config = find_dotenv()
+        if user_config:
+            # Load user config from file
+            log.info(f"Loading user config from {user_config}")
+            user_config_values = dotenv_values(user_config)
+        else:
+            # Load user config from environment vars
+            log.info("Loading user config from os environment")
+            user_config_values = dict(os.environ)
+        log.info(f"Loading default config from {default_config}")
+        default_config_values = dotenv_values(default_config)
+        raw_config = {
+            **default_config_values,
+            **user_config_values
+        }
+        log.info("Config loading complete")
+
+        # Parse config
+        conf = Config(log, raw_config)
+        log.info("Config successfully parsed")
 
         # Create sync object
         database = Database(log, join(DATA_FOLDER, conf.DATABASE_FILE))
