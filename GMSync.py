@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 import sys
-from os.path import join
+from os.path import abspath, join
 
 from dotenv import dotenv_values, find_dotenv
 
@@ -14,7 +14,6 @@ from helpers.MonicaHelper import Monica
 from helpers.SyncHelper import Sync
 
 VERSION = "v3.2.1"
-DATA_FOLDER = "data"
 LOG_FOLDER = "logs"
 LOG_FILENAME = "sync.log"
 # Google -> Monica contact syncing script
@@ -65,7 +64,7 @@ def main() -> None:
             if not os.path.exists(args.env_file):
                 raise ConfigError("Could not find the custom config file, check your input!")
             # Use config from custom path
-            user_config = args.env_file
+            user_config = abspath(args.env_file)
         else:
             # Search config path
             user_config = find_dotenv()
@@ -90,9 +89,9 @@ def main() -> None:
         log.info("Config successfully parsed")
 
         # Create sync object
-        database = Database(log, join(DATA_FOLDER, conf.DATABASE_FILE))
-        google = Google(log, database, join(DATA_FOLDER, conf.GOOGLE_CREDENTIALS_FILE),
-                        join(DATA_FOLDER, conf.GOOGLE_TOKEN_FILE),
+        database = Database(log, abspath(conf.DATABASE_FILE))
+        google = Google(log, database, abspath(conf.GOOGLE_CREDENTIALS_FILE),
+                        abspath(conf.GOOGLE_TOKEN_FILE),
                         conf.GOOGLE_LABELS_INCLUDE, conf.GOOGLE_LABELS_EXCLUDE)
         monica = Monica(log, database, conf.TOKEN, conf.BASE_URL, conf.CREATE_REMINDERS,
                         conf.MONICA_LABELS_INCLUDE, conf.MONICA_LABELS_EXCLUDE)
