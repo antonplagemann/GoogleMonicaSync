@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import sys
 from os.path import join
 
@@ -36,9 +37,13 @@ def main() -> None:
 
         # Load raw config
         default_config = find_dotenv(".env.default", raise_error_if_not_found=True)
-        user_config = find_dotenv(raise_error_if_not_found=True)
-        log.info(f"Loading user config from {user_config}")
-        user_config_values = dotenv_values(user_config)
+        user_config = find_dotenv()
+        if user_config:
+            log.info(f"Loading user config from {user_config}")
+            user_config_values = dotenv_values(user_config)
+        else:
+            log.info("Loading user config from os environment")
+            user_config_values = dict(os.environ)
         log.info(f"Loading default config from {default_config}")
         default_config_values = dotenv_values(default_config)
         raw_config = {

@@ -2,20 +2,24 @@ version: "3.8"
 
 services:
   python:
-    image: antonplagemann/google-monica-sync:latest
+    image: antonplagemann/google-monica-sync
 
     environment:
       # Your Monica api token (without 'Bearer ')
-      - TOKEN = YOUR_TOKEN_HERE
+      - TOKEN=YOUR_TOKEN_HERE
       # Your Monica base url (ends with /api)
-      # - BASE_URL = https://app.monicahq.com/api
+      # - BASE_URL=https://app.monicahq.com/api
       # For more config options see .env.full
+      
+    # You can also specify a .env file to load from
+    # env_file:
+    #   - .env
 
     # Put credentials, sync database and token files in ./data
     volumes:
       - ./data:/usr/app/data
-      # Uncomment the next line if you want to access the logs 
-      # - ./logs:/usr/app/logs
+      # Remove the next line if you do not want to access the logs 
+      - ./logs:/usr/app/logs
 
     # Adjust command if needed (-u needed for getting console output)
     command: python -u GMSync.py -d

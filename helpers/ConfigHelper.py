@@ -1,4 +1,5 @@
 from logging import Logger
+from typing import Dict, Union
 
 from helpers.Exceptions import ConfigError
 
@@ -6,7 +7,7 @@ from helpers.Exceptions import ConfigError
 class Config():
     """Class for parsing config .env files"""
 
-    def __init__(self, log: Logger, raw_config: dict) -> None:
+    def __init__(self, log: Logger, raw_config: Dict[str, Union[str, None]]) -> None:
         self._log = log
         self._values = raw_config
         try:
@@ -28,8 +29,7 @@ class Config():
             self.GOOGLE_TOKEN_FILE = self._values["GOOGLE_TOKEN_FILE"]
             self.GOOGLE_CREDENTIALS_FILE = self._values["GOOGLE_CREDENTIALS_FILE"]
         except Exception as e:
-            raise ConfigError(
-                "Error parsing config .env file. Check syntax and required args!") from e
+            raise ConfigError("Error parsing config, check syntax and required args!") from e
 
     def __get_boolean(self, key: str) -> bool:
         """Get a boolean value from config as Python boolean"""

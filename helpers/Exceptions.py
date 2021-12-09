@@ -22,7 +22,7 @@ class BadUserInput(SyncError):
 
 
 class ConfigError(SyncError):
-    """Error parsing config .env file"""
+    """Error reading config files or environment"""
     pass
 
 

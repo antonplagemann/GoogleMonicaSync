@@ -1,4 +1,5 @@
 **/.github
+**/.git
 **/.gitignore
 **/.vscode
 **/__pycache__
@@ -18,3 +19,4 @@ Dockerfile
 .env
 .pylintrc
 .flake8
+.dockerignore

@@ -50,20 +50,20 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 
 1. Use the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) or something similar to get the `credentials.json` and `token.pickle` files.
 2. In your chosen main folder: create a folder named `data` and copy the files from step 1 inside.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/data/conf.example.py) the config file to the `data` folder, rename it to `conf.py` and fill in your desired settings (a Monica token can be retrieved in your account settings).
-4. Open a console in the main folder and do an initial sync (on Windows replace `$(pwd)` with `%cd%`)
+3. Download a `.env.*` file from the [main repository directory](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/) and fill in your desired settings (a Monica token can be retrieved in your account settings).
+4. Open a console in the main folder and do an initial sync using your created `.env` file (on Windows replace `$(pwd)` with `%cd%`)
 
     ```bash
-    docker run -v "$(pwd)/data":/usr/app/data -it antonplagemann/google-monica-sync sh -c "python -u GMSync.py -i"
+    docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env -it antonplagemann/google-monica-sync sh -c "python -u GMSync.py -i"
     ```
 
 5. For delta sync use this command:
 
     ```bash
-    docker run -v "$(pwd)/data":/usr/app/data antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
+    docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
     ```
 
-Alternatively to step 5 you can download the [docker-compose.yml](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
+Alternatively to step 5 you can download and configure the [docker-compose.yml](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
 
 ## All sync commands
 
