@@ -16,10 +16,6 @@ class Config():
                 msg = "Missing required monica token config value!"
                 self._log.error(msg)
                 raise ConfigError(msg)
-            if not self.BASE_URL:
-                msg = "Missing required monica base url config value!"
-                self._log.error(msg)
-                raise ConfigError(msg)
             self.CREATE_REMINDERS = self.__get_boolean("CREATE_REMINDERS")
             self.DELETE_ON_SYNC = self.__get_boolean("DELETE_ON_SYNC")
             self.STREET_REVERSAL = self.__get_boolean("STREET_REVERSAL")
