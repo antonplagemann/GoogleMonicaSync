@@ -1,14 +1,21 @@
-# Run sync script with delta sync using configuration file from /data
-
 version: "3.8"
 
 services:
   python:
     image: antonplagemann/google-monica-sync:latest
 
-    # Put config, credentials, sync database and token files in ./data
+    environment:
+      # Your Monica api token (without 'Bearer ')
+      - TOKEN = YOUR_TOKEN_HERE
+      # Your Monica base url
+      - BASE_URL = https://app.monicahq.com/api
+      # For more config options see .env.full
+
+    # Put credentials, sync database and token files in ./data
     volumes:
       - ./data:/usr/app/data
+      # Uncomment the next line if you want to access the logs 
+      # - ./logs:/usr/app/logs
 
     # Adjust command if needed (-u needed for getting console output)
     command: python -u GMSync.py -d

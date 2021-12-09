@@ -3,32 +3,54 @@ import logging
 import sys
 from os.path import join
 
-try:
-    from data.conf import (BASE_URL, CREATE_REMINDERS, DATA_FOLDER, DATABASE_FILE,
-                           DELETE_ON_SYNC, FIELDS, GOOGLE_CREDENTIALS_FILE,
-                           GOOGLE_LABELS, GOOGLE_TOKEN_FILE, LOG_FILE,
-                           MONICA_LABELS, STREET_REVERSAL, TOKEN)
-except ImportError:
-    print("\nFailed to import config settings!\n"
-          "Please verify that you have the latest version of the conf.py file "
-          "available on GitHub and check for possible typos!")
-    sys.exit(1)
+from dotenv import dotenv_values, find_dotenv
 
-from DatabaseHelper import Database
-from GoogleHelper import Google
-from MonicaHelper import Monica
-from SyncHelper import Sync
+from helpers.ConfigHelper import Config
+from helpers.DatabaseHelper import Database
+from helpers.GoogleHelper import Google
+from helpers.MonicaHelper import Monica
+from helpers.SyncHelper import Sync
 
 VERSION = "v3.2.1"
+DATA_FOLDER = "data"
+LOG_FOLDER = "logs"
+LOG_FILENAME = "sync.log"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
-
-# Get module specific logger
-log = logging.getLogger('GMSync')
 
 
 def main() -> None:
     try:
+        # Set logging configuration
+        log = logging.getLogger("GMSync")
+        dotenv_log = logging.getLogger("dotenv.main")
+        log.setLevel(logging.INFO)
+        logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        log_filename = join(LOG_FOLDER, LOG_FILENAME)
+        handler = logging.FileHandler(filename=log_filename, mode='a', encoding="utf8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging_format)
+        log.addHandler(handler)
+        dotenv_log.addHandler(handler)
+        log.info(f"Script started ({VERSION})")
+
+        # Load raw config
+        default_config = find_dotenv(".env.default", raise_error_if_not_found=True)
+        user_config = find_dotenv(raise_error_if_not_found=True)
+        log.info(f"Loading user config from {user_config}")
+        user_config_values = dotenv_values(user_config)
+        log.info(f"Loading default config from {default_config}")
+        default_config_values = dotenv_values(default_config)
+        raw_config = {
+            **default_config_values,
+            **user_config_values
+        }
+        log.info("Config loading complete")
+
+        # Parse config
+        conf = Config(log, raw_config)
+        log.info("Config successfully parsed")
+
         # Setup argument parser
         parser = argparse.ArgumentParser(description='Syncs Google contacts to a Monica instance.')
         parser.add_argument('-i', '--initial', action='store_true',
@@ -50,23 +72,15 @@ def main() -> None:
         # Parse arguments
         args = parser.parse_args()
 
-        # Logging configuration
-        log.setLevel(logging.INFO)
-        logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        handler = logging.FileHandler(filename=join(DATA_FOLDER, LOG_FILE),
-                                      mode='a', encoding="utf8")
-        handler.setLevel(logging.INFO)
-        handler.setFormatter(logging_format)
-        log.addHandler(handler)
-        log.info(f"Script started ({VERSION})")
-
         # Create sync object
-        database = Database(log, join(DATA_FOLDER, DATABASE_FILE))
-        google = Google(log, database, join(DATA_FOLDER, GOOGLE_CREDENTIALS_FILE),
-                        join(DATA_FOLDER, GOOGLE_TOKEN_FILE), GOOGLE_LABELS)
-        monica = Monica(log, database, TOKEN, BASE_URL, CREATE_REMINDERS, MONICA_LABELS)
+        database = Database(log, join(DATA_FOLDER, conf.DATABASE_FILE))
+        google = Google(log, database, join(DATA_FOLDER, conf.GOOGLE_CREDENTIALS_FILE),
+                        join(DATA_FOLDER, conf.GOOGLE_TOKEN_FILE),
+                        conf.GOOGLE_LABELS_INCLUDE, conf.GOOGLE_LABELS_EXCLUDE)
+        monica = Monica(log, database, conf.TOKEN, conf.BASE_URL, conf.CREATE_REMINDERS,
+                        conf.MONICA_LABELS_INCLUDE, conf.MONICA_LABELS_EXCLUDE)
         sync = Sync(log, database, monica, google, args.syncback, args.check,
-                    DELETE_ON_SYNC, STREET_REVERSAL, FIELDS)
+                    conf.DELETE_ON_SYNC, conf.STREET_REVERSAL, conf.FIELDS)
 
         # Print chosen sync arguments (optional ones first)
         print("\nYour choice (unordered):")
@@ -106,9 +120,10 @@ def main() -> None:
         log.info("Script ended\n")
 
     except Exception as e:
-        msg = f"Script aborted: {type(e).__name__}: {str(e)}\n"
         log.exception(e)
-        print("\n" + msg)
+        log.info("Script aborted")
+        print(f"\nScript aborted: {type(e).__name__}: {str(e)}")
+        print(f"See log file ({log_filename}) for all details")
         raise SystemExit(1) from e
 
 

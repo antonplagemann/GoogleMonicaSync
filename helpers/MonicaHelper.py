@@ -5,19 +5,20 @@ from typing import List
 import requests
 from requests.models import Response
 
-from DatabaseHelper import Database
-from Exceptions import InternalError, MonicaFetchError
+from helpers.DatabaseHelper import Database
+from helpers.Exceptions import InternalError, MonicaFetchError
 
 
 class Monica():
     '''Handles all Monica related (api) stuff.'''
 
     def __init__(self, log: Logger, database_handler: Database, token: str, base_url: str,
-                 create_reminders: bool, label_filter: dict) -> None:
+                 create_reminders: bool, include_labels: list, exclude_labels: list) -> None:
         self.log = log
         self.database = database_handler
         self.base_url = base_url
-        self.label_filter = label_filter
+        self.include_labels = include_labels
+        self.exclude_labels = exclude_labels
         self.header = {'Authorization': f'Bearer {token}'}
         self.parameters = {'limit': 100}
         self.is_data_already_fetched = False
@@ -32,18 +33,18 @@ class Monica():
 
     def __filter_contacts_by_label(self, contact_list: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
-        if self.label_filter["include"]:
+        if self.include_labels:
             return [contact for contact in contact_list
                     if any([contact_label["name"]
-                            in self.label_filter["include"]
+                            in self.include_labels
                             for contact_label in contact["tags"]])
                     and all([contact_label["name"]
-                            not in self.label_filter["exclude"]
+                            not in self.exclude_labels
                             for contact_label in contact["tags"]])]
-        elif self.label_filter["exclude"]:
+        elif self.exclude_labels:
             return [contact for contact in contact_list
                     if all([contact_label["name"]
-                            not in self.label_filter["exclude"]
+                            not in self.exclude_labels
                             for contact_label in contact["tags"]])]
         else:
             return contact_list

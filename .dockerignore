@@ -2,6 +2,7 @@
 **/.gitignore
 **/.vscode
 **/__pycache__
+**/logs/*
 **/data/*
 *.properties
 *.bat
@@ -14,5 +15,6 @@ docker-compose.yml
 README.md
 LICENSE.md
 Dockerfile
+.env
 .pylintrc
 .flake8

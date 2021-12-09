@@ -10,8 +10,9 @@ WORKDIR /usr/app
 # Copy all files to working dir
 COPY . .
 
-# Add data volume
+# Add data and logs volume
 VOLUME /usr/app/data
+VOLUME /usr/app/logs
 
 # Install dependencies
 RUN python -m pip install --upgrade pip && pip install -r requirements.txt

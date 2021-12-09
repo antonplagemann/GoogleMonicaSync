@@ -9,8 +9,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import Resource, build
 from googleapiclient.errors import HttpError
 
-from DatabaseHelper import Database
-from Exceptions import GoogleFetchError, InternalError
+from helpers.DatabaseHelper import Database
+from helpers.Exceptions import GoogleFetchError, InternalError
 
 
 class Google():
@@ -18,11 +18,12 @@ class Google():
 
     def __init__(self, log: Logger, database_handler: Database,
                  credentials_file: str, token_file: str,
-                 label_filter: dict = None) -> None:
+                 include_labels: list, exclude_labels: list) -> None:
         self.log = log
         self.credentials_file = credentials_file
         self.token_file = token_file
-        self.label_filter = label_filter or {"include": [], "exclude": []}
+        self.include_labels = include_labels
+        self.exclude_labels = exclude_labels
         self.database = database_handler
         self.api_requests = 0
         self.service = self.__build_service()
@@ -77,18 +78,18 @@ class Google():
 
     def __filter_contacts_by_label(self, contact_list: List[dict]) -> List[dict]:
         '''Filters a contact list by include/exclude labels.'''
-        if self.label_filter["include"]:
+        if self.include_labels:
             return [contact for contact in contact_list
                     if any([contact_label["contactGroupMembership"]["contactGroupId"]
-                            in self.label_filter["include"]
+                            in self.include_labels
                             for contact_label in contact["memberships"]])
                     and all([contact_label["contactGroupMembership"]["contactGroupId"]
-                            not in self.label_filter["exclude"]
+                            not in self.exclude_labels
                             for contact_label in contact["memberships"]])]
-        elif self.label_filter["exclude"]:
+        elif self.exclude_labels:
             return [contact for contact in contact_list
                     if all([contact_label["contactGroupMembership"]["contactGroupId"]
-                            not in self.label_filter["exclude"]
+                            not in self.exclude_labels
                             for contact_label in contact["memberships"]])]
         else:
             return contact_list

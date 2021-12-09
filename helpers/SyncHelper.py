@@ -2,10 +2,10 @@ from datetime import datetime
 from logging import Logger
 from typing import List, Tuple, Union
 
-from DatabaseHelper import Database, DatabaseEntry
-from Exceptions import BadUserInput, InternalError, UserChoice
-from GoogleHelper import Google, GoogleContactUploadForm
-from MonicaHelper import Monica, MonicaContactUploadForm
+from helpers.DatabaseHelper import Database, DatabaseEntry
+from helpers.Exceptions import BadUserInput, InternalError, UserChoice
+from helpers.GoogleHelper import Google, GoogleContactUploadForm
+from helpers.MonicaHelper import Monica, MonicaContactUploadForm
 
 
 class Sync():
@@ -14,7 +14,7 @@ class Sync():
     def __init__(self, log: Logger, database_handler: Database,
                  monica_handler: Monica, google_handler: Google, is_sync_back_to_google: bool,
                  is_check_database: bool, is_delete_monica_contacts_on_sync: bool,
-                 is_street_reversal_on_address_sync: bool, syncing_fields: dict) -> None:
+                 is_street_reversal_on_address_sync: bool, syncing_fields: list) -> None:
         self.log = log
         self.start_time = datetime.now()
         self.monica = monica_handler
@@ -29,7 +29,7 @@ class Sync():
         self.is_check = is_check_database
         self.is_delete_monica_contacts = is_delete_monica_contacts_on_sync
         self.is_street_reversal = is_street_reversal_on_address_sync
-        self.syncing_fields = syncing_fields
+        self.syncing_fields = set(syncing_fields)
         self.skip_creation_prompt = False
 
     def __update_mapping(self, google_id: str, monica_id: str) -> None:
@@ -81,9 +81,8 @@ class Sync():
         self.mapping.clear()
         self.__build_sync_database()
         print("\nThe following fields will be overwritten with Google data:")
-        for field, choice in list(self.syncing_fields.items())[:-1]:
-            if choice:
-                print(f"- {field}")
+        for field in self.syncing_fields - {"notes"}:
+            print(f"- {field}")
         print("Start full sync now?")
         print("\t0: No (abort initial sync)")
         print("\t1: Yes")
@@ -233,23 +232,23 @@ class Sync():
     def __sync_details(self, google_contact: dict, monica_contact: dict) -> None:
         '''Syncs additional details, such as company, jobtitle, labels,
         address, phone numbers, emails, notes, contact picture, etc.'''
-        if self.syncing_fields["career"]:
+        if "career" in self.syncing_fields:
             # Sync career info
             self.__sync_career_info(google_contact, monica_contact)
 
-        if self.syncing_fields["address"]:
+        if "address" in self.syncing_fields:
             # Sync address info
             self.__sync_address(google_contact, monica_contact)
 
-        if self.syncing_fields["phone"] or self.syncing_fields["email"]:
+        if "phone" in self.syncing_fields or "email" in self.syncing_fields:
             # Sync phone and email
             self.__sync_phone_email(google_contact, monica_contact)
 
-        if self.syncing_fields["labels"]:
+        if "labels" in self.syncing_fields:
             # Sync labels
             self.__sync_labels(google_contact, monica_contact)
 
-        if self.syncing_fields["notes"]:
+        if "notes" in self.syncing_fields:
             # Sync notes if not existent at Monica
             self.__sync_notes(google_contact, monica_contact)
 
@@ -341,9 +340,9 @@ class Sync():
         '''Syncs phone and email fields.'''
         monica_contact_fields = self.monica.get_contact_fields(
             monica_contact['id'], monica_contact['complete_name'])
-        if self.syncing_fields["email"]:
+        if "email" in self.syncing_fields:
             self.__sync_email(google_contact, monica_contact, monica_contact_fields)
-        if self.syncing_fields["phone"]:
+        if "phone" in self.syncing_fields:
             self.__sync_phone(google_contact, monica_contact, monica_contact_fields)
 
     def __sync_email(self, google_contact: dict, monica_contact: dict,
@@ -718,29 +717,29 @@ class Sync():
             })
 
         # Get addresses
-        addresses = monica_contact["addresses"] if self.syncing_fields["address"] else []
+        addresses = monica_contact["addresses"] if "address" in self.syncing_fields else []
 
         # Get career info if exists
         career = {key: value for key, value in monica_contact['information']["career"].items()
-                  if value and self.syncing_fields["career"]}
+                  if value and "career" in self.syncing_fields}
 
         # Get phone numbers and email addresses
-        if self.syncing_fields["phone"] or self.syncing_fields["email"]:
+        if "phone" in self.syncing_fields or "email" in self.syncing_fields:
             monica_contact_fields = self.monica.get_contact_fields(
                 monica_contact['id'], monica_contact['complete_name'])
             # Get email addresses
             emails = [field["content"] for field in monica_contact_fields
                       if field["contact_field_type"]["type"] == "email"
-                      and self.syncing_fields["email"]]
+                      and "email" in self.syncing_fields]
             # Get phone numbers
             phone_numbers = [field["content"] for field in monica_contact_fields
                              if field["contact_field_type"]["type"] == "phone"
-                             and self.syncing_fields["phone"]]
+                             and "phone" in self.syncing_fields]
 
         # Get tags/labels and create them if neccessary
         label_ids = [self.google.get_label_id(tag['name'])
                      for tag in monica_contact["tags"]
-                     if self.syncing_fields["labels"]]
+                     if "labels" in self.syncing_fields]
 
         # Create contact upload form
         form = GoogleContactUploadForm(first_name=first_name, last_name=last_name,

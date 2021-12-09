@@ -21,6 +21,11 @@ class BadUserInput(SyncError):
     pass
 
 
+class ConfigError(SyncError):
+    """Error parsing config .env file"""
+    pass
+
+
 class UserChoice(SyncError):
     """Intended exit chosen by the user"""
     pass
