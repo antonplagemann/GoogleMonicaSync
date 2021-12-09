@@ -49,10 +49,10 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 ## Get started (with docker)
 
 1. Use the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) or something similar to get the `credentials.json` and `token.pickle` files.
-2. In your chosen main folder: create two folders named `data` and `logs`and copy the files from step 1 inside `data`.
-3. Download a `.env.*` file from the [main repository directory](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/) and fill in your desired settings (a Monica token can be retrieved in your account settings).
-    > This is a **non-root** container, so `data` and `logs` must have read-write permissions for UID 5678 (appuser).
-    > For example, you can use `sudo chown 5678 data logs` inside your main directory to set the appropriate permissions.
+2. In your chosen main folder, create two folders named `data` and `logs` and copy the files from step 1 inside the `data` folder.
+3. Download a `.env.*` file from the [main repository directory](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/), put it in your main folder and fill in your desired settings (a Monica token can be retrieved in your account settings).
+    > This project is using a **non-root** container, so `data` and `logs` must have read-write permissions for UID 5678 (container user).
+    > For example, you can use `sudo chown 5678 data logs` inside your main directory to set the appropriate permissions. Sometimes this may be also necessary for files inside those folders (if you get a `permission denied` error).
 4. Open a console in the main folder and do an initial sync using your created `.env` file (on Windows replace `$(pwd)` with `%cd%`)
 
     ```bash
@@ -69,7 +69,7 @@ Alternatively to step 5 you can download and configure the [docker-compose.yml](
 
 ### Background script with docker
 
-A sample script you can use to automate syncing e.g. with a crontab schedule:
+A sample script you can use to automate syncing e.g. with a crontab schedule.
 
 ```bash
 #!/bin/bash
@@ -95,7 +95,7 @@ python GMSync.py [arguments]
 | `-f`      | Full sync (unattended)                                                                   |
 | `-sb`     | Sync back new Monica contacts (unattended). Can be combined with all other arguments     |
 | `-c`      | Check syncing database for errors (unattended). Can be combined with all other arguments |
-| `-e PATH` | Use custom .env configuration file path (relative or absolute)                           |
+| `-e PATH` | Custom .env configuration file path (relative or absolute)                               |
 
 **Remark**:  
 Full sync, database check and sync back require heavy API use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
