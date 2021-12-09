@@ -52,7 +52,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 2. In your chosen main folder: create two folders named `data` and `logs`and copy the files from step 1 inside `data`.
 3. Download a `.env.*` file from the [main repository directory](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/) and fill in your desired settings (a Monica token can be retrieved in your account settings).
     > This is a **non-root** container, so `data` and `logs` must have read-write permissions for UID 5678 (appuser).
-    > For example, you can use `sudo chown 5678 logs data` inside your main directory to set the appropriate permissions.
+    > For example, you can use `sudo chown 5678 data logs` inside your main directory to set the appropriate permissions.
 4. Open a console in the main folder and do an initial sync using your created `.env` file (on Windows replace `$(pwd)` with `%cd%`)
 
     ```bash
@@ -66,6 +66,19 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
     ```
 
 Alternatively to step 5 you can download and configure the [docker-compose.yml](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
+
+### Background script with docker
+
+A sample script you can use to automate syncing e.g. with a crontab schedule:
+
+```bash
+#!/bin/bash
+
+cd /path/to/folder-with-docker-compose-yaml
+set -e
+export COMPOSE_INTERACTIVE_NO_CLI=1
+docker-compose up -d
+```
 
 ## All sync commands
 
@@ -136,5 +149,5 @@ If you think something has gone wrong, you miss some contacts or just want a pre
 - [ ] ~~Think about two-way sync~~ (too involving, not really needed)
 - [x] Database consistency check function
 - [ ] ~~Think about a pip package~~
-- [ ] ~~Implement sync procedure using python threads: propably much faster with multithreading~~ (not much faster because the Monica API rate limit is the bottleneck here)
+- [ ] ~~Implement sync procedure using python threads: probably much faster with multithreading~~ (not much faster because the Monica API rate limit is the bottleneck here)
 - [x] Add docker container
