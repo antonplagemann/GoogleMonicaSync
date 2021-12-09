@@ -581,7 +581,8 @@ class MonicaContactUploadForm():
 
     def __init__(self, monica: Monica, first_name: str, **form_data) -> None:
         gender_type = form_data.get("gender_type", 'O')
-        gender_id = monica.get_gender_mapping()[gender_type]
+        gender_mapping = monica.get_gender_mapping()
+        gender_id = gender_mapping.get(gender_type, None)
         self.data = {
             "first_name": first_name,
             "last_name": form_data.get("last_name", None),
