@@ -16,7 +16,7 @@ from helpers.SyncHelper import Sync
 VERSION = "v4.0.0"
 LOG_FOLDER = "logs"
 LOG_FILENAME = "sync.log"
-DEFAULT_CONFIG_FILEPATH = "helpers\\.env.default"
+DEFAULT_CONFIG_FILEPATH = join("helpers", ".env.default")
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
