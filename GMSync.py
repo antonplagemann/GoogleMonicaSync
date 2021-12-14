@@ -5,6 +5,7 @@ import sys
 from os.path import abspath, join
 
 from dotenv import dotenv_values, find_dotenv
+from dotenv.main import set_key
 
 from helpers.ConfigHelper import Config
 from helpers.DatabaseHelper import Database
@@ -42,28 +43,39 @@ def main() -> None:
                             "Can be combined with other arguments")
         parser.add_argument('-e', '--env-file', type=str, required=False,
                             help="custom path to your .env config file")
+        parser.add_argument('-u', '--update', action='store_true',
+                            required=False,
+                            help="Updates the environment files from 3.x to v4.x scheme")
 
         # Parse arguments
         args = parser.parse_args()
 
         # Set logging configuration
+        if not os.path.exists(LOG_FOLDER):
+            os.makedirs(LOG_FOLDER)
         log = logging.getLogger("GMSync")
         dotenv_log = logging.getLogger("dotenv.main")
         log.setLevel(logging.INFO)
         logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        log_filename = join(LOG_FOLDER, LOG_FILENAME)
-        handler = logging.FileHandler(filename=log_filename, mode='a', encoding="utf8")
+        log_filepath = join(LOG_FOLDER, LOG_FILENAME)
+        handler = logging.FileHandler(filename=log_filepath, mode='a', encoding="utf8")
         handler.setLevel(logging.INFO)
         handler.setFormatter(logging_format)
         log.addHandler(handler)
         dotenv_log.addHandler(handler)
         log.info(f"Script started ({VERSION})")
 
+        # Convert environment if requested
+        if args.update:
+            update_environment(log)
+
         # Load raw config
         default_config = find_dotenv(DEFAULT_CONFIG_FILEPATH, raise_error_if_not_found=True)
+        log.info(f"Loading default config from {default_config}")
+        default_config_values = dotenv_values(default_config)
         if args.env_file:
             if not os.path.exists(args.env_file):
-                raise ConfigError("Could not find the custom config file, check your input!")
+                raise ConfigError("Could not find the custom user config file, check your input!")
             # Use config from custom path
             user_config = abspath(args.env_file)
         else:
@@ -77,8 +89,6 @@ def main() -> None:
             # Load user config from environment vars
             log.info("Loading user config from os environment")
             user_config_values = dict(os.environ)
-        log.info(f"Loading default config from {default_config}")
-        default_config_values = dotenv_values(default_config)
         raw_config = {
             **default_config_values,
             **user_config_values
@@ -127,7 +137,7 @@ def main() -> None:
             # Start database error check
             print("")
             sync.check_database()
-        else:
+        elif not args.update:
             # Wrong arguments
             print("Unknown sync arguments, check your input!\n")
             parser.print_help()
@@ -140,8 +150,55 @@ def main() -> None:
         log.exception(e)
         log.info("Script aborted")
         print(f"\nScript aborted: {type(e).__name__}: {str(e)}")
-        print(f"See log file ({log_filename}) for all details")
+        print(f"See log file ({log_filepath}) for all details")
         raise SystemExit(1) from e
+
+
+def update_environment(log: logging.Logger):
+    """Updates the config and other environment files to work with v.4.x"""
+    log.info("Start updating environment")
+
+    # Make 'data' folder
+    if not os.path.exists("data"):
+        os.makedirs("data")
+        msg = "'data' folder created"
+        log.info(msg)
+        print(msg)
+
+    # Convert config to '.env' file
+    ENV_FILE = ".env"
+    open(ENV_FILE, 'w').close()
+    from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
+                      GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
+    set_key(ENV_FILE, "TOKEN", TOKEN)
+    set_key(ENV_FILE, "BASE_URL", BASE_URL)
+    set_key(ENV_FILE, "CREATE_REMINDERS", str(CREATE_REMINDERS))
+    set_key(ENV_FILE, "DELETE_ON_SYNC", str(DELETE_ON_SYNC))
+    set_key(ENV_FILE, "STREET_REVERSAL", str(STREET_REVERSAL))
+    set_key(ENV_FILE, "FIELDS", ",".join([field for field, isTrue in FIELDS.items() if isTrue]))
+    set_key(ENV_FILE, "GOOGLE_LABELS_INCLUDE", ",".join(GOOGLE_LABELS["include"]))
+    set_key(ENV_FILE, "GOOGLE_LABELS_EXCLUDE", ",".join(GOOGLE_LABELS["exclude"]))
+    set_key(ENV_FILE, "MONICA_LABELS_INCLUDE", ",".join(MONICA_LABELS["include"]))
+    set_key(ENV_FILE, "MONICA_LABELS_EXCLUDE", ",".join(MONICA_LABELS["exclude"]))
+    msg = "'.env' file created, old 'conf.py' can be deleted now"
+    log.info(msg)
+    print(msg)
+
+    # Move token, credentials and database inside new 'data' folder
+    files = ["syncState.db", "token.pickle", "credentials.json"]
+    for filename in files:
+        try:
+            os.rename(filename, f"data/{filename}")
+            msg = f"'{filename}' moved to 'data/{filename}'"
+            log.info(msg)
+            print(msg)
+        except FileNotFoundError:
+            msg = f"Could not move {filename}, file not found!"
+            print(msg)
+            log.warning(msg)
+
+    # Finished
+    log.info("Finished updating environment")
 
 
 if __name__ == '__main__':
