@@ -50,7 +50,7 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 
 1. Use the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) or something similar to get the `credentials.json` and `token.pickle` files.
 2. In your chosen main folder, create two folders named `data` and `logs` and copy the files from step 1 inside the `data` folder.
-3. Download a `.env.*` file from the [main repository directory](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/), put it in your main folder and fill in your desired settings (a Monica token can be retrieved in your account settings).
+3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/.env.example) the `.env.example` file, rename to `.env`, put it in your main folder and fill in your desired settings (a Monica token can be retrieved in your account settings).
     > This project is using a **non-root** container, so `data` and `logs` must have read-write permissions for UID 5678 (container user).
     > For example, you can use `sudo chown 5678 data logs` inside your main directory to set the appropriate permissions. Sometimes this may be also necessary for files inside those folders (if you get a `permission denied` error).
 4. Open a console in the main folder and do an initial sync using your created `.env` file (on Windows replace `$(pwd)` with `%cd%`)

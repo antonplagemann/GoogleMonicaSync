@@ -16,6 +16,7 @@ from helpers.SyncHelper import Sync
 VERSION = "v4.0.0"
 LOG_FOLDER = "logs"
 LOG_FILENAME = "sync.log"
+DEFAULT_CONFIG_FILEPATH = "helpers\\.env.default"
 # Google -> Monica contact syncing script
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
@@ -59,7 +60,7 @@ def main() -> None:
         log.info(f"Script started ({VERSION})")
 
         # Load raw config
-        default_config = find_dotenv(".env.default", raise_error_if_not_found=True)
+        default_config = find_dotenv(DEFAULT_CONFIG_FILEPATH, raise_error_if_not_found=True)
         if args.env_file:
             if not os.path.exists(args.env_file):
                 raise ConfigError("Could not find the custom config file, check your input!")

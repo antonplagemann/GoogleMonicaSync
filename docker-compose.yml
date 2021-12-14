@@ -9,7 +9,7 @@ services:
       - TOKEN=YOUR_TOKEN_HERE
       # Your Monica base url (ends with /api)
       # - BASE_URL=https://app.monicahq.com/api
-      # For more config options see .env.full
+      # For more config options see .env.example
       
     # You can also specify a .env file to load from
     # env_file:
