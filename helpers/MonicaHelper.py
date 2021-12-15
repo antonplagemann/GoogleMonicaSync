@@ -1,6 +1,6 @@
 import time
 from logging import Logger
-from typing import List
+from typing import Dict, List
 
 import requests
 from requests.models import Response
@@ -30,12 +30,12 @@ class Monica:
         self.header = {"Authorization": f"Bearer {token}"}
         self.parameters = {"limit": 100}
         self.is_data_already_fetched = False
-        self.contacts = []
-        self.gender_mapping = {}
-        self.contact_field_type_mapping = {}
-        self.updated_contacts = {}
-        self.created_contacts = {}
-        self.deleted_contacts = {}
+        self.contacts: List[dict] = []
+        self.gender_mapping: Dict[str, str] = {}
+        self.contact_field_type_mapping: Dict[str, str] = {}
+        self.updated_contacts: Dict[str, bool] = {}
+        self.created_contacts: Dict[str, bool] = {}
+        self.deleted_contacts: Dict[str, bool] = {}
         self.api_requests = 0
         self.create_reminders = create_reminders
 
@@ -632,8 +632,10 @@ class Monica:
 
     def __is_slow_down_error(self, response: Response, error: str) -> bool:
         """Checks if the error is an rate limiter error and slows down the requests if yes."""
+
         if "Too many attempts, please slow down the request" in error:
-            sec = int(response.headers.get("Retry-After"))
+            sec_str = str(response.headers.get("Retry-After"))
+            sec = int(sec_str)
             print(f"\nToo many Monica requests, waiting {sec} seconds...")
             time.sleep(sec)
             return True

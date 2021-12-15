@@ -2,12 +2,12 @@ import os.path
 import pickle
 import time
 from logging import Logger
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import Resource, build
-from googleapiclient.errors import HttpError
+from google.auth.transport.requests import Request  # type: ignore
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
+from googleapiclient.discovery import Resource, build  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
 
 from helpers.DatabaseHelper import Database
 from helpers.Exceptions import GoogleFetchError, InternalError
@@ -35,9 +35,9 @@ class Google:
         self.service = self.__build_service()
         self.label_mapping = self.__get_label_mapping()
         self.reverse_label_mapping = {label_id: name for name, label_id in self.label_mapping.items()}
-        self.contacts = []
+        self.contacts: List[dict] = []
         self.data_already_fetched = False
-        self.created_contacts = {}
+        self.created_contacts: Dict[str, bool] = {}
         self.sync_fields = (
             "addresses,biographies,birthdays,emailAddresses,genders,"
             "memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers"
@@ -139,16 +139,18 @@ class Google:
 
         return filtered_contact_list
 
-    def get_contact_names(self, google_contact: dict) -> Tuple[str, str, str, str, str, str]:
+    def get_contact_names(
+        self, google_contact: Dict[str, List[dict]]
+    ) -> Tuple[str, str, str, str, str, str, str]:
         """Returns the given, family and display name of a Google contact."""
         names = google_contact.get("names", [{}])[0]
-        given_name = names.get("givenName", "")
-        family_name = names.get("familyName", "")
-        display_name = names.get("displayName", "")
-        middle_name = names.get("middleName", "")
-        prefix = names.get("honorificPrefix", "")
-        suffix = names.get("honorificSuffix", "")
-        nickname = google_contact.get("nicknames", [{}])[0].get("value", "")
+        given_name: str = names.get("givenName", "")
+        family_name: str = names.get("familyName", "")
+        display_name: str = names.get("displayName", "")
+        middle_name: str = names.get("middleName", "")
+        prefix: str = names.get("honorificPrefix", "")
+        suffix: str = names.get("honorificSuffix", "")
+        nickname: str = google_contact.get("nicknames", [{}])[0].get("value", "")
         return given_name, middle_name, family_name, display_name, prefix, suffix, nickname
 
     def get_contact_as_string(self, google_contact: dict) -> str:
@@ -373,7 +375,7 @@ class Google:
                 self.log.error(msg)
                 raise GoogleFetchError(str(error)) from error
 
-    def create_contact(self, data) -> Union[dict, None]:
+    def create_contact(self, data) -> dict:
         """Creates a given Google contact via api call and returns the created contact."""
         # Upload contact
         try:
@@ -392,8 +394,8 @@ class Google:
                 raise GoogleFetchError(reason) from error
 
         # Process result
-        google_id = result.get("resourceName", "-")
-        name = result.get("names", [{}])[0].get("displayName", "error")
+        google_id = result["resourceName"]
+        name = result["names"]["displayName"]
         self.created_contacts[google_id] = True
         self.contacts.append(result)
         self.log.info(f"'{name}': Contact with id '{google_id}' created successfully")
@@ -442,9 +444,9 @@ class GoogleContactUploadForm:
         career: dict = {},
         email_adresses: List[str] = [],
         label_ids: List[str] = [],
-        addresses: List[dict] = {},
+        addresses: List[dict] = [],
     ) -> None:
-        self.data = {
+        self.data: Dict[str, List[Dict[str, Any]]] = {
             "names": [{"familyName": last_name, "givenName": first_name, "middleName": middle_name}]
         }
 

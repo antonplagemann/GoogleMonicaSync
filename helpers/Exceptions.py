@@ -37,6 +37,12 @@ class UserChoice(SyncError):
     pass
 
 
+class DatabaseError(SyncError):
+    """Something went wrong with the database (e.g. entry not found)"""
+
+    pass
+
+
 class InternalError(SyncError):
     """An internal error that should not happen (fail save error)"""
 

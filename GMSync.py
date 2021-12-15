@@ -158,7 +158,7 @@ class GMSync:
         self.parser = parser
         self.args = parser.parse_args()
 
-    def load_config(self) -> dict:
+    def load_config(self) -> None:
         """Loads the config from file or environment variables"""
         # Load raw config
         default_config = find_dotenv(DEFAULT_CONFIG_FILEPATH, raise_error_if_not_found=True)

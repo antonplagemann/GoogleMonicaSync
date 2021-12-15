@@ -3,7 +3,7 @@ from logging import Logger
 from typing import Any, Dict, List, Tuple, Union
 
 from helpers.DatabaseHelper import Database, DatabaseEntry
-from helpers.Exceptions import BadUserInput, UserChoice
+from helpers.Exceptions import BadUserInput, DatabaseError, UserChoice
 from helpers.GoogleHelper import Google, GoogleContactUploadForm
 from helpers.MonicaHelper import Monica, MonicaContactUploadForm
 
@@ -110,7 +110,10 @@ class Sync:
 
         try:
             # Try to delete the corresponding contact
-            monica_id = self.database.find_by_id(google_id=google_id)[1]
+            database_entry = self.database.find_by_id(google_id=google_id)
+            if not database_entry:
+                raise DatabaseError(f"No database entry for google contact '{google_id}' found!")
+            monica_id = database_entry[1]
             self.monica.delete_contact(monica_id, g_contact_display_name)
             self.database.delete(google_id, monica_id)
             self.mapping.pop(google_id)
@@ -179,7 +182,7 @@ class Sync:
                 print(msg)
 
                 # Update database and mapping
-                database_entry = DatabaseEntry(
+                new_database_entry = DatabaseEntry(
                     google_contact["resourceName"],
                     monica_contact["id"],
                     g_contact_display_name,
@@ -187,7 +190,7 @@ class Sync:
                     google_contact["metadata"]["sources"][0]["updateTime"],
                     monica_contact["updated_at"],
                 )
-                self.database.insert_data(database_entry)
+                self.database.insert_data(new_database_entry)
                 self.__update_mapping(google_contact["resourceName"], str(monica_contact["id"]))
                 msg = (
                     f"'{google_contact['resourceName']}' <-> '{monica_contact['id']}': "
@@ -376,7 +379,7 @@ class Sync:
             self.__sync_phone(google_contact, monica_contact, monica_contact_fields)
 
     def __sync_email(
-        self, google_contact: dict, monica_contact: dict, monica_contact_fields: dict
+        self, google_contact: dict, monica_contact: dict, monica_contact_fields: List[dict]
     ) -> None:
         """Syncs email fields."""
         try:
@@ -440,7 +443,7 @@ class Sync:
             self.log.warning(msg)
 
     def __sync_phone(
-        self, google_contact: dict, monica_contact: dict, monica_contact_fields: dict
+        self, google_contact: dict, monica_contact: dict, monica_contact_fields: List[dict]
     ) -> None:
         """Syncs phone fields."""
         try:
@@ -606,6 +609,7 @@ class Sync:
                     }
                 }
             )
+        return monica_address_list
 
     def __get_google_addresses(self, google_contact: dict, monica_id: str) -> List[dict]:
         """Get all addresses from a Google contact"""
@@ -969,7 +973,8 @@ class Sync:
         if orphaned_entries:
             self.log.info("The following database entries are orphaned:")
             for google_id in orphaned_entries:
-                monica_id, google_full_name, monica_full_name = self.database.find_by_id(google_id)[1:4]
+                database_entry = self.database.find_by_id(google_id)
+                monica_id, google_full_name, monica_full_name = database_entry  # type: ignore
                 self.log.warning(
                     f"'{google_id}' <-> '{monica_id}' ('{google_full_name}' <-> '{monica_full_name}')"
                 )
@@ -1012,7 +1017,7 @@ class Sync:
 
     def __print_check_statistics(
         self,
-        start_time: str,
+        start_time: datetime,
         errors: int,
         orphaned: int,
         monica_contacts_not_synced: int,

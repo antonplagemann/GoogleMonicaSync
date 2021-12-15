@@ -10,10 +10,10 @@ class Config:
 
     def __init__(self, log: Logger, raw_config: Dict[str, Union[str, None]]) -> None:
         self._log = log
-        self._values = raw_config
+        self._values = {key: value or "" for key, value in raw_config.items()}
         try:
-            self.TOKEN = self._values.get("TOKEN", None)
-            self.BASE_URL = self._values.get("BASE_URL", None)
+            self.TOKEN = self._values["TOKEN"]
+            self.BASE_URL = self._values["BASE_URL"]
             if not self.TOKEN or self.TOKEN == "YOUR_TOKEN_HERE":
                 msg = "Missing required monica token config value!"
                 self._log.error(msg)
