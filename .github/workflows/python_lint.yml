@@ -1,4 +1,4 @@
-name: lint_python
+name: lint python
 
 on:
   pull_request:
@@ -8,6 +8,7 @@ on:
       - 'development'
     paths:
       - '**.py'
+  workflow_dispatch:
 
 jobs:
   lint_python:
@@ -17,14 +18,22 @@ jobs:
       - uses: actions/setup-python@v2
       - run: pip install bandit black codespell flake8 isort mypy pytest pyupgrade safety
       - run: bandit --recursive --skip B403,B101,B301 .
-      - run: black --check .
+        if: always()
+      - run: black -l 105 --check --diff .
+        if: always()
       - run: codespell  # --ignore-words-list="" --skip=""
+        if: always()
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        if: always()
       - run: flake8 . --count --exit-zero --max-line-length=105 --show-source --statistics
+        if: always()
       - run: isort --check-only --profile black .
+        if: always()
       - run: pip install -r requirements.txt
+        if: always()
       - run: mypy --install-types --non-interactive .
-      - run: pytest .
-      - run: pytest --doctest-modules .
-      - run: shopt -s globstar && pyupgrade --py36-plus **/*.py
-      - run: safety check
+        if: always()
+      # - run: pytest .
+      # - run: pytest --doctest-modules .
+      # - run: shopt -s globstar && pyupgrade --py36-plus **/*.py
+      # - run: safety check
