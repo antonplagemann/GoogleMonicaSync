@@ -2,6 +2,24 @@
 
 # Google to Monica contact syncing script
 
+🤖 Automated CI/CD Pipeline
+
+[![CodeQL](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml)
+[![SonarCloud Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Docker CD](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd-dev.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml)
+
+🔒 SonarCloud monitored
+
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=bugs)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+
 ## Introduction
 
 This script does a contact syncing from a Google account to a [Monica](https://github.com/monicahq/monica) account. This script is intended for personal use only. It can contain all kinds of bugs, errors, and unhandled exceptions, so please do a backup before using it. It was programmed very carefully not to do bad things and delete everything, but it's your own risk trusting my words.
