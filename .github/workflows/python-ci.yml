@@ -59,7 +59,6 @@ jobs:
           python-version: 3.8
       - uses: isort/isort-action@master
         with:
-            requirementsFiles: "requirements.txt"
             configuration: "--check-only --profile black"
   mypy_typecheck:
     runs-on: ubuntu-latest

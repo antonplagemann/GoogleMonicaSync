@@ -4,8 +4,8 @@ import os
 import sys
 from os.path import abspath, join
 
-from dotenv import dotenv_values, find_dotenv
-from dotenv.main import set_key
+from dotenv import dotenv_values, find_dotenv  # type: ignore
+from dotenv.main import set_key  # type: ignore
 
 from helpers.ConfigHelper import Config
 from helpers.DatabaseHelper import Database
