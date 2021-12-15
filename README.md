@@ -2,11 +2,11 @@
 
 # Google to Monica contact syncing script
 
-🤖 Automated CI/CD Pipeline
+🤖 Automated CI/CD Pipelines
 
 [![CodeQL](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml)
 [![SonarCloud Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
-[![Docker CD](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd-dev.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml)
+[![Docker CD](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml)
 
 🔒 SonarCloud monitored
 

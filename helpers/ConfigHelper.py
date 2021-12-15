@@ -1,4 +1,5 @@
 from logging import Logger
+from os.path import abspath
 from typing import Dict, Union
 
 from helpers.Exceptions import ConfigError
@@ -25,9 +26,9 @@ class Config():
             self.GOOGLE_LABELS_EXCLUDE = self.__get_array("GOOGLE_LABELS_EXCLUDE")
             self.MONICA_LABELS_INCLUDE = self.__get_array("MONICA_LABELS_INCLUDE")
             self.MONICA_LABELS_EXCLUDE = self.__get_array("MONICA_LABELS_EXCLUDE")
-            self.DATABASE_FILE = self._values["DATABASE_FILE"]
-            self.GOOGLE_TOKEN_FILE = self._values["GOOGLE_TOKEN_FILE"]
-            self.GOOGLE_CREDENTIALS_FILE = self._values["GOOGLE_CREDENTIALS_FILE"]
+            self.DATABASE_FILE = abspath(self._values["DATABASE_FILE"])
+            self.GOOGLE_TOKEN_FILE = abspath(self._values["GOOGLE_TOKEN_FILE"])
+            self.GOOGLE_CREDENTIALS_FILE = abspath(self._values["GOOGLE_CREDENTIALS_FILE"])
         except Exception as e:
             raise ConfigError("Error parsing config, check syntax and required args!") from e
 
