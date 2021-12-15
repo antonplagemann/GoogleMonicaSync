@@ -481,11 +481,21 @@ class GoogleContactUploadForm:
             ]
 
         if phone_numbers:
-            self.data["phoneNumbers"] = [{"value": number, "type": "other",} for number in phone_numbers]
+            self.data["phoneNumbers"] = [
+                {
+                    "value": number,
+                    "type": "other",
+                }
+                for number in phone_numbers
+            ]
 
         if email_adresses:
             self.data["emailAddresses"] = [
-                {"value": email, "type": "other",} for email in email_adresses
+                {
+                    "value": email,
+                    "type": "other",
+                }
+                for email in email_adresses
             ]
 
         if label_ids:
