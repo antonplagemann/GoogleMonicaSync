@@ -5,7 +5,7 @@ from typing import Dict, Union
 from helpers.Exceptions import ConfigError
 
 
-class Config():
+class Config:
     """Class for parsing config .env files"""
 
     def __init__(self, log: Logger, raw_config: Dict[str, Union[str, None]]) -> None:
@@ -14,7 +14,7 @@ class Config():
         try:
             self.TOKEN = self._values.get("TOKEN", None)
             self.BASE_URL = self._values.get("BASE_URL", None)
-            if not self.TOKEN or self.TOKEN == 'YOUR_TOKEN_HERE':
+            if not self.TOKEN or self.TOKEN == "YOUR_TOKEN_HERE":
                 msg = "Missing required monica token config value!"
                 self._log.error(msg)
                 raise ConfigError(msg)
@@ -35,11 +35,11 @@ class Config():
     def __get_boolean(self, key: str) -> bool:
         """Get a boolean value from config as Python boolean"""
         value_str = self._values[key].lower()
-        return value_str in ['true', '1', 't', 'y']
+        return value_str in ["true", "1", "t", "y"]
 
     def __get_array(self, key: str) -> list:
         """Get an array from config as Python list"""
-        values_str = self._values.get(key, '')
+        values_str = self._values.get(key, "")
         if not values_str:
             return []
         return [v.strip() for v in values_str.split(",")]

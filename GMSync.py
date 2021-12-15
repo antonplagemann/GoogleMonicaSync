@@ -22,8 +22,7 @@ DEFAULT_CONFIG_FILEPATH = join("helpers", ".env.default")
 # Make sure you installed all requirements using 'pip install -r requirements.txt'
 
 
-class GMSync():
-
+class GMSync:
     def main(self) -> None:
         try:
             # Create logger
@@ -54,19 +53,19 @@ class GMSync():
             if self.args.initial:
                 # Start initial sync  (-i)
                 print("- initial sync\n")
-                self.sync.start_sync('initial')
+                self.sync.start_sync("initial")
             elif self.args.delta:
                 # Start initial sync  (-d)
                 print("- delta sync\n")
-                self.sync.start_sync('delta')
+                self.sync.start_sync("delta")
             elif self.args.full:
                 # Start initial sync  (-f)
                 print("- full sync\n")
-                self.sync.start_sync('full')
+                self.sync.start_sync("full")
             elif self.args.syncback:
                 # Start sync back from Monica to Google  (-sb)
                 print("")
-                self.sync.start_sync('syncBack')
+                self.sync.start_sync("syncBack")
             elif self.args.check:
                 # Start database error check  (-c)
                 print("")
@@ -95,9 +94,9 @@ class GMSync():
         log = logging.getLogger("GMSync")
         dotenv_log = logging.getLogger("dotenv.main")
         log.setLevel(logging.INFO)
-        logging_format = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        logging_format = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
         log_filepath = join(LOG_FOLDER, LOG_FILENAME)
-        handler = logging.FileHandler(filename=log_filepath, mode='a', encoding="utf8")
+        handler = logging.FileHandler(filename=log_filepath, mode="a", encoding="utf8")
         handler.setLevel(logging.INFO)
         handler.setFormatter(logging_format)
         log.addHandler(handler)
@@ -107,27 +106,53 @@ class GMSync():
     def create_argument_parser(self) -> None:
         """Creates the argument parser object"""
         # Setup argument parser
-        parser = argparse.ArgumentParser(description='Syncs Google contacts to a Monica instance.')
-        parser.add_argument('-i', '--initial', action='store_true',
-                            required=False, help="build the syncing database and do a full sync")
-        parser.add_argument('-sb', '--syncback', action='store_true',
-                            required=False, help="sync new Monica contacts back to Google. "
-                            "Can be combined with other arguments")
-        parser.add_argument('-d', '--delta', action='store_true',
-                            required=False,
-                            help="do a delta sync of new or changed Google contacts")
-        parser.add_argument('-f', '--full', action='store_true',
-                            required=False,
-                            help="do a full sync and request a new delta sync token")
-        parser.add_argument('-c', '--check', action='store_true',
-                            required=False,
-                            help="check database consistency and report all errors. "
-                            "Can be combined with other arguments")
-        parser.add_argument('-e', '--env-file', type=str, required=False,
-                            help="custom path to your .env config file")
-        parser.add_argument('-u', '--update', action='store_true',
-                            required=False,
-                            help="Updates the environment files from 3.x to v4.x scheme")
+        parser = argparse.ArgumentParser(description="Syncs Google contacts to a Monica instance.")
+        parser.add_argument(
+            "-i",
+            "--initial",
+            action="store_true",
+            required=False,
+            help="build the syncing database and do a full sync",
+        )
+        parser.add_argument(
+            "-sb",
+            "--syncback",
+            action="store_true",
+            required=False,
+            help="sync new Monica contacts back to Google. Can be combined with other arguments",
+        )
+        parser.add_argument(
+            "-d",
+            "--delta",
+            action="store_true",
+            required=False,
+            help="do a delta sync of new or changed Google contacts",
+        )
+        parser.add_argument(
+            "-f",
+            "--full",
+            action="store_true",
+            required=False,
+            help="do a full sync and request a new delta sync token",
+        )
+        parser.add_argument(
+            "-c",
+            "--check",
+            action="store_true",
+            required=False,
+            help="check database consistency and report all errors. "
+            "Can be combined with other arguments",
+        )
+        parser.add_argument(
+            "-e", "--env-file", type=str, required=False, help="custom path to your .env config file"
+        )
+        parser.add_argument(
+            "-u",
+            "--update",
+            action="store_true",
+            required=False,
+            help="Updates the environment files from 3.x to v4.x scheme",
+        )
 
         # Parse arguments
         self.parser = parser
@@ -156,10 +181,7 @@ class GMSync():
             self.log.info("Loading user config from os environment")
             user_config_values = dict(os.environ)
         self.log.info("Config loading complete")
-        raw_config = {
-            **default_config_values,
-            **user_config_values
-        }
+        raw_config = {**default_config_values, **user_config_values}
 
         # Parse config
         self.conf = Config(self.log, raw_config)
@@ -168,29 +190,35 @@ class GMSync():
     def create_sync_helper(self) -> None:
         """Creates the main sync class object"""
         # Create sync objects
-        database = Database(self.log,
-                            self.conf.DATABASE_FILE)
-        google = Google(self.log,
-                        database,
-                        self.conf.GOOGLE_CREDENTIALS_FILE,
-                        self.conf.GOOGLE_TOKEN_FILE,
-                        self.conf.GOOGLE_LABELS_INCLUDE,
-                        self.conf.GOOGLE_LABELS_EXCLUDE)
-        monica = Monica(self.log, database,
-                        self.conf.TOKEN,
-                        self.conf.BASE_URL,
-                        self.conf.CREATE_REMINDERS,
-                        self.conf.MONICA_LABELS_INCLUDE,
-                        self.conf.MONICA_LABELS_EXCLUDE)
-        self.sync = Sync(self.log,
-                         database,
-                         monica,
-                         google,
-                         self.args.syncback,
-                         self.args.check,
-                         self.conf.DELETE_ON_SYNC,
-                         self.conf.STREET_REVERSAL,
-                         self.conf.FIELDS)
+        database = Database(self.log, self.conf.DATABASE_FILE)
+        google = Google(
+            self.log,
+            database,
+            self.conf.GOOGLE_CREDENTIALS_FILE,
+            self.conf.GOOGLE_TOKEN_FILE,
+            self.conf.GOOGLE_LABELS_INCLUDE,
+            self.conf.GOOGLE_LABELS_EXCLUDE,
+        )
+        monica = Monica(
+            self.log,
+            database,
+            self.conf.TOKEN,
+            self.conf.BASE_URL,
+            self.conf.CREATE_REMINDERS,
+            self.conf.MONICA_LABELS_INCLUDE,
+            self.conf.MONICA_LABELS_EXCLUDE,
+        )
+        self.sync = Sync(
+            self.log,
+            database,
+            monica,
+            google,
+            self.args.syncback,
+            self.args.check,
+            self.conf.DELETE_ON_SYNC,
+            self.conf.STREET_REVERSAL,
+            self.conf.FIELDS,
+        )
 
     def update_environment(self):
         """Updates the config and other environment files to work with v.4.x"""
@@ -205,9 +233,18 @@ class GMSync():
 
         # Convert config to '.env' file
         ENV_FILE = ".env"
-        open(ENV_FILE, 'w').close()
-        from conf import (BASE_URL, CREATE_REMINDERS, DELETE_ON_SYNC, FIELDS,
-                          GOOGLE_LABELS, MONICA_LABELS, STREET_REVERSAL, TOKEN)
+        open(ENV_FILE, "w").close()
+        from conf import (  # type: ignore
+            BASE_URL,
+            CREATE_REMINDERS,
+            DELETE_ON_SYNC,
+            FIELDS,
+            GOOGLE_LABELS,
+            MONICA_LABELS,
+            STREET_REVERSAL,
+            TOKEN,
+        )
+
         set_key(ENV_FILE, "TOKEN", TOKEN)
         set_key(ENV_FILE, "BASE_URL", BASE_URL)
         set_key(ENV_FILE, "CREATE_REMINDERS", str(CREATE_REMINDERS))
@@ -239,5 +276,5 @@ class GMSync():
         self.log.info("Finished updating environment")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     GMSync().main()
