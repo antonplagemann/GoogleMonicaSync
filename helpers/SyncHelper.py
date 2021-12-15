@@ -145,22 +145,11 @@ class Sync():
                 # Skip further processing
                 continue
 
-            # Skip all contacts which have not changed
-            # according to the database lastChanged date (if present)
-            try:
-                # Get Monica id and timestamp
-                monica_id, _, _, database_timestamp = self.database.find_by_id(
-                    google_id=google_contact["resourceName"])[1:5]
-                if is_date_based_sync and not database_timestamp == 'NULL':
-                    database_date = self.__convert_google_timestamp(database_timestamp)
-                    contact_timestamp = google_contact['metadata']['sources'][0]["updateTime"]
-                    contact_date = self.__convert_google_timestamp(contact_timestamp)
+            database_entry = self.database.find_by_id(google_id=google_contact["resourceName"])
 
-                    # Skip if nothing has changed
-                    if database_date == contact_date:
-                        continue
-            except Exception:
-                # Create a new Google contact if there's nothing in the database yet
+            # Create a new Google contact in the database if there's nothing yet
+            if not database_entry:
+                # Create a new Google contact in the database if there's nothing yet
                 google_id = google_contact['resourceName']
                 g_contact_display_name = self.google.get_contact_names(google_contact)[3]
                 msg = f"'{g_contact_display_name}' ('{google_id}'): " \
@@ -192,6 +181,16 @@ class Sync():
                 self.__sync_details(google_contact, monica_contact)
 
                 # Proceed with next contact
+                continue
+
+            # Skip all contacts which have not changed
+            # according to the database lastChanged date (if present)
+            monica_id = database_entry[1]
+            database_timestamp = database_entry[4]
+            contact_timestamp = google_contact['metadata']['sources'][0]["updateTime"]
+            database_date = self.__convert_google_timestamp(database_timestamp)
+            contact_date = self.__convert_google_timestamp(contact_timestamp)
+            if is_date_based_sync and database_date == contact_date:
                 continue
 
             # Get Monica contact by id
@@ -1055,9 +1054,12 @@ class Sync():
             data=form.data, reference_id=google_contact['resourceName'])
         return monica_contact
 
-    def __convert_google_timestamp(self, timestamp: str) -> datetime:
+    def __convert_google_timestamp(self, timestamp: str) -> Union[datetime, None]:
         '''Converts Google timestamp to a datetime object.'''
-        return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return None
 
     def __convert_monica_timestamp(self, timestamp: str) -> datetime:
         '''Converts Monica timestamp to a datetime object.'''
