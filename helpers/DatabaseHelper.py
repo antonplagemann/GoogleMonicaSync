@@ -136,7 +136,7 @@ class Database:
 
     def find_by_id(self, google_id: str = None, monica_id: str = None) -> Union[tuple, None]:
         """Search for a contact row in the database. Returns None if not found.
-           Needs Google id OR Monica id"""
+        Needs Google id OR Monica id"""
         if monica_id:
             row = self.__find_by_monica_id(str(monica_id))
         elif google_id:
