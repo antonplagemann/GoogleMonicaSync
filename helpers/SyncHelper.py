@@ -483,65 +483,10 @@ class Sync():
     def __sync_address(self, google_contact: dict, monica_contact: dict) -> None:
         '''Syncs all address fields.'''
         try:
-            is_monica_data_present = bool(monica_contact.get("addresses", False))
-            is_google_data_present = bool(google_contact.get("addresses", False))
-            if is_google_data_present:
-                # Get Google data
-                google_address_list = []
-                for addr in google_contact.get("addresses", []):
-                    # None type is important for comparison, empty string won't work here
-                    name = None
-                    street = None
-                    city = None
-                    province = None
-                    postal_code = None
-                    country_code = None
-                    street = addr.get("streetAddress", "").replace("\n", " ").strip() or None
-                    if self.is_street_reversal:
-                        # Street reversal: from '13 Auenweg' to 'Auenweg 13'
-                        try:
-                            if street and street[0].isdigit():
-                                street = (f'{street[street.index(" ")+1:]}'
-                                          f' {street[:street.index(" ")]}').strip()
-                        except Exception:
-                            pass
+            google_address_list = self.__get_google_addresses(google_contact, monica_contact['id'])
+            monica_address_list = self.__get_monica_addresses(monica_contact)
 
-                    # Get (extended) city
-                    city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip() or None
-                    # Get other details
-                    province = addr.get("region", None)
-                    postal_code = addr.get("postalCode", None)
-                    country_code = addr.get("countryCode", None)
-                    # Name can not be empty
-                    name = addr.get("formattedType", None) or "Other"
-                    # Do not sync empty addresses
-                    if not any([street, city, province, postal_code, country_code]):
-                        continue
-                    google_address_list.append({
-                        'name': name,
-                        'street': street,
-                        'city': city,
-                        'province': province,
-                        'postal_code': postal_code,
-                        'country': country_code,
-                        'contact_id': monica_contact['id']
-                    })
-
-            if is_monica_data_present:
-                # Get Monica data
-                monica_address_list = []
-                for addr in monica_contact.get("addresses", []):
-                    monica_address_list.append({addr["id"]: {
-                        'name': addr["name"],
-                        'street': addr["street"],
-                        'city': addr["city"],
-                        'province': addr["province"],
-                        'postal_code': addr["postal_code"],
-                        'country': addr["country"].get("iso", None) if addr["country"] else None,
-                        'contact_id': monica_contact['id']
-                    }})
-
-            if is_google_data_present and is_monica_data_present:
+            if google_address_list and monica_address_list:
                 monica_plain_address_list = [
                     monica_address for item in monica_address_list for monica_address in item.values()]
                 # Do a complete comparison
@@ -556,14 +501,14 @@ class Sync():
                         for address_id, _ in element.items():
                             self.monica.delete_address(
                                 address_id, monica_contact["id"], monica_contact["complete_name"])
-            elif not is_google_data_present and is_monica_data_present:
+            elif not google_address_list and monica_address_list:
                 # Delete all Monica addresses
                 for element in monica_address_list:
                     for address_id, _ in element.items():
                         self.monica.delete_address(
                             address_id, monica_contact["id"], monica_contact["complete_name"])
 
-            if is_google_data_present:
+            if google_address_list:
                 # All old Monica data (if existed) have been cleaned now, proceed with address creation
                 for google_address in google_address_list:
                     self.monica.create_address(google_address, monica_contact["complete_name"])
@@ -572,6 +517,69 @@ class Sync():
             msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
                   f"Error updating Monica addresses: {str(e)}"
             self.log.warning(msg)
+
+    def __get_monica_addresses(self, monica_contact: dict) -> List[dict]:
+        """Get all addresses from a Monica contact"""
+        if not monica_contact.get("addresses", False):
+            return []
+        # Get Monica data
+        monica_address_list = []
+        for addr in monica_contact.get("addresses", []):
+            monica_address_list.append({addr["id"]: {
+                'name': addr["name"],
+                'street': addr["street"],
+                'city': addr["city"],
+                'province': addr["province"],
+                'postal_code': addr["postal_code"],
+                'country': addr["country"].get("iso", None) if addr["country"] else None,
+                'contact_id': monica_contact['id']
+            }})
+
+    def __get_google_addresses(self, google_contact: dict, monica_id: str) -> List[dict]:
+        """Get all addresses from a Google contact"""
+        if not google_contact.get("addresses", False):
+            return []
+        # Get Google data
+        google_address_list = []
+        for addr in google_contact.get("addresses", []):
+            # None type is important for comparison, empty string won't work here
+            name = None
+            street = None
+            city = None
+            province = None
+            postal_code = None
+            country_code = None
+            street = addr.get("streetAddress", "").replace("\n", " ").strip() or None
+            if self.is_street_reversal:
+                # Street reversal: from '13 Auenweg' to 'Auenweg 13'
+                try:
+                    if street and street[0].isdigit():
+                        street = (f'{street[street.index(" ")+1:]}'
+                                  f' {street[:street.index(" ")]}').strip()
+                except Exception:
+                    pass
+
+            # Get (extended) city
+            city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip() or None
+            # Get other details
+            province = addr.get("region", None)
+            postal_code = addr.get("postalCode", None)
+            country_code = addr.get("countryCode", None)
+            # Name can not be empty
+            name = addr.get("formattedType", None) or "Other"
+            # Do not sync empty addresses
+            if not any([street, city, province, postal_code, country_code]):
+                continue
+            google_address_list.append({
+                'name': name,
+                'street': street,
+                'city': city,
+                'province': province,
+                'postal_code': postal_code,
+                'country': country_code,
+                'contact_id': monica_id
+            })
+        return google_address_list
 
     def __build_sync_database(self) -> None:
         '''Builds a Google <-> Monica 1:1 contact id mapping and saves it to the database.'''
