@@ -27,11 +27,13 @@
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
 
-## Introduction
+## Hey 👋
 
-This script does a contact syncing from a Google account to a [Monica](https://github.com/monicahq/monica) account. This script is intended for personal use only. It can contain all kinds of bugs, errors, and unhandled exceptions, so please do a backup before using it. It was programmed very carefully not to do bad things and delete everything, but it's your own risk trusting my words.
-
-That being said: Be welcome to use it, fork it, copy it for your own projects, and file issues for bug fixes or improvements.
+Using [Monica](https://github.com/monicahq/monica) and Google Contacts, but you're annoyed by keeping your data in sync? Then this python script is for you 😎  
+It does one-way ➡ contact syncing of your Google Contacts to a Monica account 🎉  
+But wait, before trying something new and cool, please do not forget to **make a full backup 🔒** before entering the first command 😉  
+I did my best to write clean code, but if I missed a bug 🐛 that you've found, please return it to me 🏡😊, I would be happy to fix it 🙏!  
+All contributions are welcome! Feel free to open an issue or pull request 🙌
 
 ## Features
 
@@ -42,16 +44,15 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica → Google) of new Monica contacts that do not have a corresponding Google contact yet
   - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags)
-- Extensive logging of every change, warning, or error including the affected contact ID and name (File: `Sync.log`)
+- Extensive logging of every change, warning, or error including the affected contact ID and name (file: `logs/sync.log`)
 
 ## Limits
 
-- **Do not update [*synced*](#features) details at Monica.** As this is a one-way sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
+- **Do not update [*synced*](#features) details at Monica.** As this is a one-way ➡ sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete synced contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
-- Monica limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).  
-**UPDATE:** If you are using the hosted version of Monica you can [configure this rate limit](https://github.com/monicahq/monica/pull/5489) starting from Monica v3.3.0.
-- Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
-- No support for gender sync (support can be added, file an issue if you want it).
+- The Monica public instance limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).  
+If you are using the hosted version of Monica you can [configure this rate limit](https://github.com/monicahq/monica/pull/5489) starting from Monica v3.3.0.
+- Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do (fast) full sync instead
 - A label itself won't be deleted automatically if it has been removed from the last contact.
 - If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many *additional* notes as you want at Monica**, they will not be overwritten.
 - Monica contacts require a first name. If a Google contact does not have any name, it will be skipped.
@@ -59,8 +60,8 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 ## Known bugs
 
 - Sometimes the Google API returns more contacts than necessary. This is not an issue because the sync will match the last known update timestamps and skip the contact if nothing has changed.
-- Birthdays on 29. Feb will be synced as 01. March :-)
-- Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True`(because Google assigns a new contact ID). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
+- Birthdays on 29. Feb will be synced as 01. March 😊
+- Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True` (default: `False`), because Google assigns a new contact ID. That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
 
 ## Get started (without docker)
 
