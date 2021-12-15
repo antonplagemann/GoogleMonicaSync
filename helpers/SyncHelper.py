@@ -391,50 +391,51 @@ class Sync:
             ]
             google_contact_emails = google_contact.get("emailAddresses", [])
 
-            if google_contact_emails:
-                google_emails = [
-                    {
-                        "contact_field_type_id": self.monica.get_contact_field_id("email"),
-                        "data": email["value"].strip(),
-                        "contact_id": monica_contact["id"],
-                    }
-                    for email in google_contact_emails
-                ]
-                if monica_contact_emails:
-                    # There is Google and Monica data: Check and recreate emails
-                    for monica_email in monica_contact_emails:
-                        # Check if there are emails to be deleted
-                        if monica_email["content"] in [
-                            google_email["data"] for google_email in google_emails
-                        ]:
-                            continue
-                        else:
-                            self.monica.delete_contact_field(
-                                monica_email["id"], monica_contact["id"], monica_contact["complete_name"]
-                            )
-                    for google_email in google_emails:
-                        # Check if there are emails to be created
-                        if google_email["data"] in [
-                            monica_email["content"] for monica_email in monica_contact_emails
-                        ]:
-                            continue
-                        else:
-                            self.monica.create_contact_field(
-                                monica_contact["id"], google_email, monica_contact["complete_name"]
-                            )
-                else:
-                    # There is only Google data: Create emails
-                    for google_email in google_emails:
-                        self.monica.create_contact_field(
-                            monica_contact["id"], google_email, monica_contact["complete_name"]
-                        )
-
-            elif monica_contact_emails:
-                # Delete Monica contact emails
+            if not google_contact_emails:
+                # There may be only Monica data: Delete emails
                 for monica_email in monica_contact_emails:
                     self.monica.delete_contact_field(
                         monica_email["id"], monica_contact["id"], monica_contact["complete_name"]
                     )
+                return
+
+            google_emails = [
+                {
+                    "contact_field_type_id": self.monica.get_contact_field_id("email"),
+                    "data": email["value"].strip(),
+                    "contact_id": monica_contact["id"],
+                }
+                for email in google_contact_emails
+            ]
+
+            if not monica_contact_emails:
+                # There is only Google data: Create emails
+                for google_email in google_emails:
+                    self.monica.create_contact_field(
+                        monica_contact["id"], google_email, monica_contact["complete_name"]
+                    )
+                return
+
+            # There is Google and Monica data: Check and recreate emails
+            for monica_email in monica_contact_emails:
+                # Check if there are emails to be deleted
+                if monica_email["content"] in [google_email["data"] for google_email in google_emails]:
+                    continue
+                else:
+                    self.monica.delete_contact_field(
+                        monica_email["id"], monica_contact["id"], monica_contact["complete_name"]
+                    )
+            for google_email in google_emails:
+                # Check if there are emails to be created
+                if google_email["data"] in [
+                    monica_email["content"] for monica_email in monica_contact_emails
+                ]:
+                    continue
+                else:
+                    self.monica.create_contact_field(
+                        monica_contact["id"], google_email, monica_contact["complete_name"]
+                    )
+
         except Exception as e:
             msg = (
                 f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): "
@@ -455,49 +456,48 @@ class Sync:
             ]
             google_contact_phones = google_contact.get("phoneNumbers", [])
 
-            if google_contact_phones:
-                google_phones = [
-                    {
-                        "contact_field_type_id": self.monica.get_contact_field_id("phone"),
-                        "data": number["value"].strip(),
-                        "contact_id": monica_contact["id"],
-                    }
-                    for number in google_contact_phones
-                ]
-                if monica_contact_phones:
-                    # There is Google and Monica data: Check and recreate phone numbers
-                    for monica_phone in monica_contact_phones:
-                        # Check if there are phone numbers to be deleted
-                        if monica_phone["content"] in [
-                            google_phone["data"] for google_phone in google_phones
-                        ]:
-                            continue
-                        else:
-                            self.monica.delete_contact_field(
-                                monica_phone["id"], monica_contact["id"], monica_contact["complete_name"]
-                            )
-                    for google_phone in google_phones:
-                        # Check if there are phone numbers to be created
-                        if google_phone["data"] in [
-                            monica_phone["content"] for monica_phone in monica_contact_phones
-                        ]:
-                            continue
-                        else:
-                            self.monica.create_contact_field(
-                                monica_contact["id"], google_phone, monica_contact["complete_name"]
-                            )
-                else:
-                    # There is only Google data: Create phone numbers
-                    for google_phone in google_phones:
-                        self.monica.create_contact_field(
-                            monica_contact["id"], google_phone, monica_contact["complete_name"]
-                        )
-
-            elif monica_contact_phones:
-                # Delete Monica contact phone numbers
+            if not google_contact_phones:
+                # No Google data: Delete all Monica contact phone numbers
                 for monica_phone in monica_contact_phones:
                     self.monica.delete_contact_field(
                         monica_phone["id"], monica_contact["id"], monica_contact["complete_name"]
+                    )
+                return
+
+            google_phones = [
+                {
+                    "contact_field_type_id": self.monica.get_contact_field_id("phone"),
+                    "data": number["value"].strip(),
+                    "contact_id": monica_contact["id"],
+                }
+                for number in google_contact_phones
+            ]
+            if not monica_contact_phones:
+                # There is only Google data: Create Monica phone numbers
+                for google_phone in google_phones:
+                    self.monica.create_contact_field(
+                        monica_contact["id"], google_phone, monica_contact["complete_name"]
+                    )
+                return
+
+            # There is Google and Monica data: Check and recreate phone numbers
+            for monica_phone in monica_contact_phones:
+                # Check if there are phone numbers to be deleted
+                if monica_phone["content"] in [google_phone["data"] for google_phone in google_phones]:
+                    continue
+                else:
+                    self.monica.delete_contact_field(
+                        monica_phone["id"], monica_contact["id"], monica_contact["complete_name"]
+                    )
+            for google_phone in google_phones:
+                # Check if there are phone numbers to be created
+                if google_phone["data"] in [
+                    monica_phone["content"] for monica_phone in monica_contact_phones
+                ]:
+                    continue
+                else:
+                    self.monica.create_contact_field(
+                        monica_contact["id"], google_phone, monica_contact["complete_name"]
                     )
 
         except Exception as e:
@@ -548,39 +548,38 @@ class Sync:
             google_address_list = self.__get_google_addresses(google_contact, monica_contact["id"])
             monica_address_list = self.__get_monica_addresses(monica_contact)
 
-            if google_address_list and monica_address_list:
-                monica_plain_address_list = [
-                    monica_address for item in monica_address_list for monica_address in item.values()
-                ]
-                # Do a complete comparison
-                if all(
-                    [
-                        google_address in monica_plain_address_list
-                        for google_address in google_address_list
-                    ]
-                ):
-                    # All addresses are equal, nothing to do
-                    return
-                else:
-                    # Delete all Monica addresses and create new ones afterwards
-                    # Safest way, I don't want to code more deeper comparisons and update functions
-                    for element in monica_address_list:
-                        for address_id, _ in element.items():
-                            self.monica.delete_address(
-                                address_id, monica_contact["id"], monica_contact["complete_name"]
-                            )
-            elif not google_address_list and monica_address_list:
+            if not google_address_list:
                 # Delete all Monica addresses
                 for element in monica_address_list:
                     for address_id, _ in element.items():
                         self.monica.delete_address(
                             address_id, monica_contact["id"], monica_contact["complete_name"]
                         )
+                return
 
-            if google_address_list:
-                # All old Monica data (if existed) have been cleaned now, proceed with address creation
-                for google_address in google_address_list:
-                    self.monica.create_address(google_address, monica_contact["complete_name"])
+            # Create list for comparison
+            monica_plain_address_list = [
+                monica_address for item in monica_address_list for monica_address in item.values()
+            ]
+            # Do a complete comparison
+            addresses_are_equal = [
+                google_address in monica_plain_address_list for google_address in google_address_list
+            ]
+            if all(addresses_are_equal):
+                # All addresses are equal, nothing to do
+                return
+
+            # Delete all Monica addresses and create new ones afterwards
+            # Safest way, I don't want to code more deeper comparisons and update functions
+            for element in monica_address_list:
+                for address_id, _ in element.items():
+                    self.monica.delete_address(
+                        address_id, monica_contact["id"], monica_contact["complete_name"]
+                    )
+
+            # All old Monica data (if existed) have been cleaned now, proceed with address creation
+            for google_address in google_address_list:
+                self.monica.create_address(google_address, monica_contact["complete_name"])
 
         except Exception as e:
             msg = (
@@ -878,6 +877,65 @@ class Sync:
         except Exception:
             return ""
 
+    def __check_google_contacts(self, google_contacts: List[dict]) -> Tuple[List[dict], int]:
+        """Checks every Google contact if it is currently in sync"""
+        errors = 0
+        google_contacts_not_synced = []
+        google_contacts_count = len(google_contacts)
+        # Check every Google contact
+        for num, google_contact in enumerate(google_contacts):
+            print(f"Processing Google contact {num+1} of {google_contacts_count}")
+
+            # Get monica id
+            monica_id = self.mapping.get(google_contact["resourceName"], None)
+            if not monica_id:
+                google_contacts_not_synced.append(google_contact)
+                continue
+
+            # Get monica contact
+            try:
+                monica_contact = self.monica.get_contact(monica_id)
+                assert monica_contact
+            except Exception:
+                errors += 1
+                msg = (
+                    f"'{self.google.get_contact_names(google_contact)[3]}'"
+                    f" ('{google_contact['resourceName']}'): "
+                    f"Wrong id or missing Monica contact for id '{monica_id}'."
+                )
+                self.log.error(msg)
+                print("\nError: " + msg)
+        return google_contacts_not_synced, errors
+
+    def __check_monica_contacts(self, monica_contacts: List[dict]) -> Tuple[List[dict], int]:
+        """Checks every Google contact if it is currently in sync"""
+        errors = 0
+        monica_contacts_not_synced = []
+        monica_contacts_count = len(monica_contacts)
+        # Check every Monica contact
+        for num, monica_contact in enumerate(monica_contacts):
+            print(f"Processing Monica contact {num+1} of {monica_contacts_count}")
+
+            # Get Google id
+            google_id = self.reverse_mapping.get(str(monica_contact["id"]), None)
+            if not google_id:
+                monica_contacts_not_synced.append(monica_contact)
+                continue
+
+            # Get Google contact
+            try:
+                google_contact = self.google.get_contact(google_id)
+                assert google_contact
+            except Exception:
+                errors += 1
+                msg = (
+                    f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): "
+                    f"Wrong id or missing Google contact for id '{google_id}'."
+                )
+                self.log.error(msg)
+                print("\nError: " + msg)
+        return monica_contacts_not_synced, errors
+
     def check_database(self) -> None:
         """Checks if there are orphaned database entries which need to be resolved.
         The following checks and assumptions will be made:
@@ -893,10 +951,6 @@ class Sync:
            -> Warning: orphaned database entry"""
         # Initialization
         start_time = datetime.now()
-        google_contacts_not_synced = []
-        google_contacts_synced = []
-        monica_contacts_not_synced = []
-        monica_contacts_synced = []
         errors = 0
         msg = "Starting database check..."
         self.log.info(msg)
@@ -904,61 +958,15 @@ class Sync:
 
         # Get contacts
         google_contacts = self.google.get_contacts(refetch_data=True, requestSyncToken=False)
-        google_contacts_count = len(google_contacts)
         monica_contacts = self.monica.get_contacts()
-        monica_contacts_count = len(monica_contacts)
 
         # Check every Google contact
-        for num, google_contact in enumerate(google_contacts):
-            print(f"Processing Google contact {num+1} of {google_contacts_count}")
-
-            # Get monica id
-            monica_id = self.mapping.get(google_contact["resourceName"], None)
-            if not monica_id:
-                google_contacts_not_synced.append(google_contact)
-                continue
-
-            # Get monica contact
-            try:
-                monica_contact = self.monica.get_contact(monica_id)
-                assert monica_contact
-                monica_contacts_synced.append(monica_contact)
-            except Exception:
-                errors += 1
-                msg = (
-                    f"'{self.google.get_contact_names(google_contact)[3]}'"
-                    f" ('{google_contact['resourceName']}'): "
-                    f"Wrong id or missing Monica contact for id '{monica_id}'."
-                )
-                self.log.error(msg)
-                print("\nError: " + msg)
-
-        # Print a newline to avoid overwriting console output
-        print("")
+        google_contacts_not_synced, error_count = self.__check_google_contacts(google_contacts)
+        errors += error_count
 
         # Check every Monica contact
-        for num, monica_contact in enumerate(monica_contacts):
-            print(f"Processing Monica contact {num+1} of {monica_contacts_count}")
-
-            # Get monica id
-            google_id = self.reverse_mapping.get(str(monica_contact["id"]), None)
-            if not google_id:
-                monica_contacts_not_synced.append(monica_contact)
-                continue
-
-            # Get Monica contact
-            try:
-                google_contact = self.google.get_contact(google_id)
-                assert google_contact
-                google_contacts_synced.append(google_contact)
-            except Exception:
-                errors += 1
-                msg = (
-                    f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): "
-                    f"Wrong id or missing Google contact for id '{google_id}'."
-                )
-                self.log.error(msg)
-                print("\nError: " + msg)
+        monica_contacts_not_synced, error_count = self.__check_monica_contacts(monica_contacts)
+        errors += error_count
 
         # Check for orphaned database entries
         google_ids = [c["resourceName"] for c in google_contacts]
@@ -1011,8 +1019,8 @@ class Sync:
             len(orphaned_entries),
             len(monica_contacts_not_synced),
             len(google_contacts_not_synced),
-            monica_contacts_count,
-            google_contacts_count,
+            len(monica_contacts),
+            len(google_contacts),
         )
 
     def __print_check_statistics(
@@ -1222,14 +1230,16 @@ class Sync:
         monica_contact = None
 
         # Process every Monica contact
-        for m_contact in self.monica.get_contacts():
-            if str(m_contact["id"]) not in self.mapping.values() and (
-                g_contact_given_name == m_contact["first_name"]
-                or g_contact_family_name == m_contact["last_name"]
-            ):
+        for monica_contact in self.monica.get_contacts():
+            contact_in_database = str(monica_contact["id"]) in self.mapping.values()
+            is_name_match = (
+                g_contact_given_name == monica_contact["first_name"]
+                or g_contact_family_name == monica_contact["last_name"]
+            )
+            if not contact_in_database and is_name_match:
                 # If the id isn't in the database and first or last name matches
                 # add potential candidate to list
-                candidates.append(m_contact)
+                candidates.append(monica_contact)
 
         # If there is at least one candidate let the user choose
         choice = None
@@ -1244,22 +1254,22 @@ class Sync:
             # or an empty list if user votes for a new contact
             candidates = candidates[choice : choice + 1]
 
+        # No candidates found, let the user choose to create a new contact
+        elif not self.skip_creation_prompt:
+            print(f"\nNo Monica contact has been found for '{g_contact_display_name}'")
+            print("\tCreate a new Monica contact?")
+            print("\t0: No (abort initial sync)")
+            print("\t1: Yes")
+            print("\t2: Yes to all")
+            choice = choice = self.__get_user_input(allowed_nums=[0, 1, 2])
+            if choice == 0:
+                raise UserChoice("Sync aborted by user choice")
+            if choice == 2:
+                # Skip further contact creation prompts
+                self.skip_creation_prompt = True
+
         # If there are no candidates (user vote or nothing found) create a new Monica contact
         if not candidates:
-            # Ask user if not done before
-            if not choice and not self.skip_creation_prompt:
-                print(f"\nNo Monica contact has been found for '{g_contact_display_name}'")
-                print("\tCreate a new Monica contact?")
-                print("\t0: No (abort initial sync)")
-                print("\t1: Yes")
-                print("\t2: Yes to all")
-                choice = choice = self.__get_user_input(allowed_nums=[0, 1, 2])
-                if not choice:
-                    raise UserChoice("Sync aborted by user choice")
-                if choice == 2:
-                    # Skip further contact creation prompts
-                    self.skip_creation_prompt = True
-
             # Create new Monica contact
             monica_contact = self.__create_monica_contact(google_contact)
 

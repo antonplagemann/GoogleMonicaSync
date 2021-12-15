@@ -13,7 +13,7 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ development, main ]
+    branches: [ main ]
     paths:
       - '**.py'
   pull_request:
