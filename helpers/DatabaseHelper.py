@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 from logging import Logger
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 
 class DatabaseEntry:
