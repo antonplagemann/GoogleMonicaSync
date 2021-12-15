@@ -138,7 +138,7 @@ class Sync:
             google_contacts = self.google.get_contacts()
         contact_count = len(google_contacts)
 
-        # If Google hasnt returned some data
+        # If Google hasn't returned some data
         if not google_contacts:
             msg = "No (changed) Google contacts found!"
             self.log.info(msg)
@@ -349,7 +349,7 @@ class Sync:
                     {"tags": remove_list}, monica_contact["id"], monica_contact["complete_name"]
                 )
 
-            # Update labels if neccessary
+            # Update labels if necessary
             monica_labels = [
                 label["name"] for label in monica_contact["tags"] if label["name"] in google_labels
             ]
@@ -529,7 +529,7 @@ class Sync:
                     "company": monica_contact["information"]["career"].get("company", None),
                 }
 
-                # Compare and update if neccessary
+                # Compare and update if necessary
                 if google_data != monica_data:
                     self.monica.update_career(monica_contact["id"], google_data)
         except Exception as e:
@@ -703,7 +703,7 @@ class Sync:
         for num, monica_contact in enumerate(monica_contacts):
             print(f"Processing Monica contact {num+1} of {contact_count}")
 
-            # If there the id isnt in the database: create a new Google contact and upload
+            # If there the id isn't in the database: create a new Google contact and upload
             if str(monica_contact["id"]) not in self.mapping.values():
                 # Create Google contact
                 google_contact = self.__create_google_contact(monica_contact)
@@ -834,7 +834,7 @@ class Sync:
                 if field["contact_field_type"]["type"] == "phone" and "phone" in self.syncing_fields
             ]
 
-        # Get tags/labels and create them if neccessary
+        # Get tags/labels and create them if necessary
         label_ids = [
             self.google.get_label_id(tag["name"])
             for tag in monica_contact["tags"]
@@ -956,19 +956,19 @@ class Sync:
                 self.log.error(msg)
                 print("\nError: " + msg)
 
-        # Check for orphaned database entrys
+        # Check for orphaned database entries
         google_ids = [c["resourceName"] for c in google_contacts]
         monica_ids = [str(c["id"]) for c in monica_contacts]
-        orphaned_entrys = [
+        orphaned_entries = [
             google_id
             for google_id, monica_id in self.mapping.items()
             if google_id not in google_ids and monica_id not in monica_ids
         ]
 
         # Log results
-        if orphaned_entrys:
-            self.log.info("The following database entrys are orphaned:")
-            for google_id in orphaned_entrys:
+        if orphaned_entries:
+            self.log.info("The following database entries are orphaned:")
+            for google_id in orphaned_entries:
                 monica_id, google_full_name, monica_full_name = self.database.find_by_id(google_id)[1:4]
                 self.log.warning(
                     f"'{google_id}' <-> '{monica_id}' ('{google_full_name}' <-> '{monica_full_name}')"
@@ -1003,7 +1003,7 @@ class Sync:
         self.__print_check_statistics(
             start_time,
             errors,
-            len(orphaned_entrys),
+            len(orphaned_entries),
             len(monica_contacts_not_synced),
             len(google_contacts_not_synced),
             monica_contacts_count,
@@ -1034,7 +1034,7 @@ class Sync:
             f"+-----------------------------------------+\n"
             f"| Check time:                   {tme   }  |\n"
             f"| Errors:                       {err   }  |\n"
-            f"| Orphaned database entrys:     {oph   }  |\n"
+            f"| Orphaned database entries:     {oph   }  |\n"
             f"| Monica contacts not in sync:  {mns   }  |\n"
             f"| Google contacts not in sync:  {gns   }  |\n"
             f"| Checked Monica contacts:      {cmc   }  |\n"
@@ -1208,7 +1208,7 @@ class Sync:
         """Advanced search by first and last name for a given Google contact.
         Tries to find a matching Monica contact and asks for user choice if
         at least one candidate has been found. Creates a new Monica contact
-        if neccessary or chosen by User. Returns Monica contact id."""
+        if necessary or chosen by User. Returns Monica contact id."""
         # Initialization
         candidates = []
         g_contact_given_name = self.google.get_contact_names(google_contact)[0]
@@ -1222,7 +1222,7 @@ class Sync:
                 g_contact_given_name == m_contact["first_name"]
                 or g_contact_family_name == m_contact["last_name"]
             ):
-                # If the id isnt in the database and first or last name matches
+                # If the id isn't in the database and first or last name matches
                 # add potential candidate to list
                 candidates.append(m_contact)
 
