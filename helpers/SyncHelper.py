@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import Logger
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from helpers.DatabaseHelper import Database, DatabaseEntry
 from helpers.Exceptions import BadUserInput, UserChoice
@@ -258,32 +258,9 @@ class Sync():
                 # Convert normal newlines to markdown newlines
                 google_note["body"] = google_note["body"].replace("\n", "  \n")
 
-                if not monica_notes:
-                    # If there is no Monica note sync the Google note
-                    google_note["body"] += identifier
-                    self.monica.add_note(google_note, monica_contact["complete_name"])
-                else:
-                    updated = False
-                    for monica_note in monica_notes:
-                        if monica_note["body"] == google_note["body"]:
-                            # If there is a note with the same content update it and add the identifier
-                            google_note["body"] += identifier
-                            self.monica.update_note(
-                                monica_note["id"], google_note, monica_contact["complete_name"])
-                            updated = True
-                            break
-                        elif identifier in monica_note["body"]:
-                            # Found identifier, update this note if changed
-                            google_note["body"] += identifier
-                            if monica_note["body"] != google_note["body"]:
-                                self.monica.update_note(
-                                    monica_note["id"], google_note, monica_contact["complete_name"])
-                            updated = True
-                            break
-                    if not updated:
-                        # No note with same content or identifier found so create a new one
-                        google_note["body"] += identifier
-                        self.monica.add_note(google_note, monica_contact["complete_name"])
+                # Update or create the Monica note
+                self.__update_or_create_note(monica_notes, google_note, identifier, monica_contact)
+
             elif monica_notes:
                 for monica_note in monica_notes:
                     if identifier in monica_note["body"]:
@@ -297,6 +274,32 @@ class Sync():
             msg = f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): " \
                   f"Error creating Monica note: {str(e)}"
             self.log.warning(msg)
+
+    def __update_or_create_note(self, monica_notes: List[dict], google_note: Dict[str, Any],
+                                identifier: str, monica_contact: dict) -> None:
+        """Updates a note at Monica or creates it if it does not exist"""
+        updated = False
+        if monica_notes:
+            for monica_note in monica_notes:
+                if monica_note["body"] == google_note["body"]:
+                    # If there is a note with the same content update it and add the identifier
+                    google_note["body"] += identifier
+                    self.monica.update_note(
+                        monica_note["id"], google_note, monica_contact["complete_name"])
+                    updated = True
+                    break
+                elif identifier in monica_note["body"]:
+                    # Found identifier, update this note if changed
+                    google_note["body"] += identifier
+                    if monica_note["body"] != google_note["body"]:
+                        self.monica.update_note(
+                            monica_note["id"], google_note, monica_contact["complete_name"])
+                    updated = True
+                    break
+        if not updated:
+            # No note with same content or identifier found so create a new one
+            google_note["body"] += identifier
+            self.monica.add_note(google_note, monica_contact["complete_name"])
 
     def __sync_labels(self, google_contact: dict, monica_contact: dict) -> None:
         '''Syncs Google contact labels/groups/tags.'''
