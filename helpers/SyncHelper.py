@@ -556,7 +556,9 @@ class Sync():
                         street = (f'{street[street.index(" ")+1:]}'
                                   f' {street[:street.index(" ")]}').strip()
                 except Exception:
-                    pass
+                    msg = f"Street reversal failed for '{street}'"
+                    self.log.warning(msg)
+                    print(msg)
 
             # Get (extended) city
             city = f'{addr.get("city", "")} {addr.get("extendedAddress", "")}'.strip() or None
