@@ -5,11 +5,18 @@
 🤖 Automated CI/CD Pipelines
 
 [![CodeQL](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml)
-[![SonarCloud Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
 [![Docker CD](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml)
+[![Python CI](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python_lint.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python_ci.yml)
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![spellcheck: codespell](https://img.shields.io/badge/spellcheck-codespell-brightgreen.svg)](https://github.com/codespell-project/codespell)
+[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![linter: flake8](https://img.shields.io/badge/linter-flake8-brightgreen.svg)](https://github.com/PyCQA/flake8)
+[![imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![mypy: checked](https://img.shields.io/badge/mypy-checked-blue.svg)](https://github.com/python/mypy)
 
 🔒 SonarCloud monitored
 
+[![SonarCloud Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=bugs)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)

@@ -1,0 +1,81 @@
+name: Python CI
+
+on:
+  pull_request:
+    types: ['opened', 'edited', 'reopened', 'synchronize']
+  push:
+    branches:
+      - 'development'
+    paths:
+      - '**.py'
+  workflow_dispatch:
+
+jobs:
+  black_formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: psf/black@stable
+        with:
+          options: "-l 105 --check --diff"
+          src: "."
+  codespell_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: codespell-project/actions-codespell@master
+        with:
+          check_filenames: true
+  bandit_security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jpetrucciani/bandit-check@master
+        with:
+          path: '.'
+          bandit_flags: '--recursive --skip B403,B101,B301'
+  flake8_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v2
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
+        with:
+          ignore: "E203,W503,E231"
+          max-line-length: "105"
+          path: "."
+          args: "--count --exit-zero --show-source --statistics"
+  isort_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - uses: isort/isort-action@master
+        with:
+            requirementsFiles: "requirements.txt"
+            configuration: "--check-only --profile black"
+  mypy_typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jpetrucciani/mypy-check@master
+        with:
+          path: '.'
+          mypy_flags: '--install-types --non-interactive'
+  #pytest_unit:
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/checkout@v2
+  #    - uses: actions/setup-python@v2
+  #    - run: pip install pytest pyupgrade safety
+  #    - run: pytest .
+  #    - run: pytest --doctest-modules .
+  #    - run: shopt -s globstar && pyupgrade --py36-plus **/*.py
+  #    - run: safety check

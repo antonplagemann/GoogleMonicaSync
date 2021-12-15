@@ -1,4 +1,4 @@
-name: cd
+name: Docker CD
 
 on:
   push:

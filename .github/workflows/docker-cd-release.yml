@@ -1,4 +1,4 @@
-name: release cd
+name: Docker Release CD
 
 on:
   release:
