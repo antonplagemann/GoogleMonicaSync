@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - '**.py'
+      - '.dockerignore'
+      - 'Dockerfile'
+      - 'requirements.txt'
 
 jobs:
   docker:

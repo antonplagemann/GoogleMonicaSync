@@ -17,6 +17,7 @@ README.md
 LICENSE.md
 Dockerfile
 .env
+.env.example
 .pylintrc
 .flake8
 .dockerignore
