@@ -233,13 +233,17 @@ class Monica():
 
         except IndexError as e:
             msg = f"Contact processing of '{monica_id}' not allowed by label filter"
-            self.log.info(msg)
+            self.log.error(msg)
+            print("\n" + msg)
             raise InternalError(msg) from e
 
         except Exception as e:
-            msg = f"Failed to fetch Monica contact '{monica_id}': {str(e)}"
-            self.log.error(msg)
-            raise MonicaFetchError(msg) from e
+            msg1 = f"Failed to fetch Monica contact '{monica_id}': {str(e)}"
+            msg2 = "Database may be inconsistent, did you delete a Monica contact?"
+            self.log.error(msg1)
+            self.log.warning(msg2)
+            print("\n" + msg1 + "\n" + msg2)
+            raise MonicaFetchError(msg1) from e
 
     def get_notes(self, monica_id: str, name: str) -> List[dict]:
         '''Fetches all contact notes for a given Monica contact id via api call.'''

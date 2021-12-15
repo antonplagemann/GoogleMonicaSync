@@ -3,7 +3,7 @@ from logging import Logger
 from typing import List, Tuple, Union
 
 from helpers.DatabaseHelper import Database, DatabaseEntry
-from helpers.Exceptions import BadUserInput, InternalError, UserChoice
+from helpers.Exceptions import BadUserInput, UserChoice
 from helpers.GoogleHelper import Google, GoogleContactUploadForm
 from helpers.MonicaHelper import Monica, MonicaContactUploadForm
 
@@ -194,17 +194,8 @@ class Sync():
                 # Proceed with next contact
                 continue
 
-            try:
-                # Get Monica contact by id
-                monica_contact = self.monica.get_contact(monica_id)
-            except Exception as e:
-                msg = f"'{monica_id}': Failed to fetch Monica contact: {str(e)}"
-                self.log.error(msg)
-                print("\n" + msg)
-                print("Please do not delete Monica contacts manually!")
-                raise InternalError(
-                    "Could't connect to Monica api or Database not consistent, "
-                    "consider doing initial sync to rebuild.")
+            # Get Monica contact by id
+            monica_contact = self.monica.get_contact(monica_id)
             # Merge name, birthday and deceased date and update them
             self.__merge_and_update_nbd(monica_contact, google_contact)
 
