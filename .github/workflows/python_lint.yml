@@ -17,10 +17,15 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - run: pip install bandit black codespell flake8 isort mypy pytest pyupgrade safety
+      - uses: psf/black@stable
+        if: always()
+        with:
+          options: "-l 105 --check --diff"
+          src: "."
       - run: bandit --recursive --skip B403,B101,B301 .
         if: always()
-      - run: black -l 105 --check --diff .
-        if: always()
+      #- run: black -l 105 --check --diff .
+      #  if: always()
       - run: codespell  # --ignore-words-list="" --skip=""
         if: always()
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
