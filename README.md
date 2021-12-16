@@ -68,7 +68,7 @@ If you are using the hosted version of Monica you can [configure this rate limit
 0. Install Python 3.9 or newer
 1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
 2. Copy `credentials.json` and `token.pickle` inside the data folder directory.
-3. Inside `data` rename `conf.example.py` to `conf.py` file and fill in your desired settings (a Monica token can be retrieved in your account settings).
+3. Inside `data` rename `.env.example` to `.env` file and fill in your desired settings (a Monica token can be retrieved in your account settings).
 4. Do a `pip install -r requirements.txt` inside the main repository directory.
 5. Run `python GMSync.py -i`
 

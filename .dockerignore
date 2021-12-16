@@ -11,10 +11,11 @@
 *.pickle
 *.log
 *.db
+*.md
+*.yml
 **/conf.py
-docker-compose.yml
-README.md
-LICENSE.md
+/data/*
+/logs/*
 Dockerfile
 .env
 .env.example

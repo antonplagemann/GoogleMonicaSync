@@ -66,7 +66,7 @@ class Google:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_file, scopes=["https://www.googleapis.com/auth/contacts"]
                 )
-                creds = flow.run_local_server(port=56411, prompt="consent")
+                creds = flow.run_console(prompt="consent")
             # Save the credentials for the next run
             with open(self.token_file, "wb") as token:
                 pickle.dump(creds, token)
