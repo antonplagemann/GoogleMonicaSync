@@ -99,26 +99,26 @@ class Sync:
 
     def __delete_monica_contact(self, google_contact: dict) -> None:
         """Deletes a Monica contact given a corresponding Google contact."""
-        # Initialization
-        google_id = google_contact["resourceName"]
-        g_contact_display_name = self.google.get_contact_names(google_contact)[3]
-        msg = (
-            f"'{g_contact_display_name}' ('{google_id}'): "
-            "Found deleted Google contact. Deleting Monica contact..."
-        )
-        self.log.info(msg)
-
         try:
-            # Try to delete the corresponding contact
+            # Initialization
+            google_id = google_contact["resourceName"]
             database_entry = self.database.find_by_id(google_id=google_id)
             if not database_entry:
-                raise DatabaseError(f"No database entry for google contact '{google_id}' found!")
+                raise DatabaseError(f"No database entry for deleted google contact '{google_id}' found!")
+            monica_id, g_contact_display_name, m_contact_full_name = database_entry[1:4]
+            msg = (
+                f"'{g_contact_display_name}' ('{google_id}'): "
+                "Found deleted Google contact. Deleting Monica contact..."
+            )
+            self.log.info(msg)
+
+            # Try to delete the corresponding contact
             monica_id = database_entry[1]
-            self.monica.delete_contact(monica_id, g_contact_display_name)
+            self.monica.delete_contact(monica_id, m_contact_full_name)
             self.database.delete(google_id, monica_id)
             self.mapping.pop(google_id)
             self.google.remove_contact_from_list(google_contact)
-            msg = f"'{g_contact_display_name}' ('{monica_id}'): Monica contact deleted successfully"
+            msg = f"'{m_contact_full_name}' ('{monica_id}'): Monica contact deleted successfully"
             self.log.info(msg)
         except Exception:
             msg = (
@@ -982,7 +982,7 @@ class Sync:
             self.log.info("The following database entries are orphaned:")
             for google_id in orphaned_entries:
                 database_entry = self.database.find_by_id(google_id)
-                monica_id, google_full_name, monica_full_name = database_entry  # type: ignore
+                monica_id, google_full_name, monica_full_name = database_entry[1:4]  # type: ignore
                 self.log.warning(
                     f"'{google_id}' <-> '{monica_id}' ('{google_full_name}' <-> '{monica_full_name}')"
                 )
@@ -1008,9 +1008,15 @@ class Sync:
         if errors:
             msg = "Database check failed. Consider doing initial sync '-i' again!"
         else:
-            msg = "Database check finished, no errors found!"
+            msg = "Database check finished, no critical errors found!"
+        msg2 = (
+            "If you encounter non-synced contacts on both sides that match each other "
+            "you should do an initial sync '-i' again to match them."
+        )
         self.log.info(msg)
+        self.log.info(msg2)
         print("\n" + msg)
+        print(msg2)
 
         # Print and log statistics
         self.__print_check_statistics(
@@ -1047,7 +1053,7 @@ class Sync:
             f"+-----------------------------------------+\n"
             f"| Check time:                   {tme   }  |\n"
             f"| Errors:                       {err   }  |\n"
-            f"| Orphaned database entries:     {oph   }  |\n"
+            f"| Orphaned database entries:    {oph   }  |\n"
             f"| Monica contacts not in sync:  {mns   }  |\n"
             f"| Google contacts not in sync:  {gns   }  |\n"
             f"| Checked Monica contacts:      {cmc   }  |\n"
