@@ -5,6 +5,7 @@ from logging import Logger
 from typing import Any, Dict, List, Tuple, Union
 
 from google.auth.transport.requests import Request  # type: ignore
+from google.oauth2.credentials import Credentials  # type: ignore
 from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
 from googleapiclient.discovery import Resource, build  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
@@ -50,7 +51,7 @@ class Google:
         )
 
     def __build_service(self) -> Resource:
-        creds = None
+        creds: Credentials = None
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
@@ -63,9 +64,9 @@ class Google:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_file, scopes="https://www.googleapis.com/auth/contacts"
+                    self.credentials_file, scopes=["https://www.googleapis.com/auth/contacts"]
                 )
-                creds = flow.run_local_server(port=56411)
+                creds = flow.run_local_server(port=56411, prompt="consent")
             # Save the credentials for the next run
             with open(self.token_file, "wb") as token:
                 pickle.dump(creds, token)
