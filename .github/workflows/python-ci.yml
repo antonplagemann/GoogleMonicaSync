@@ -26,6 +26,7 @@ jobs:
       - uses: codespell-project/actions-codespell@master
         with:
           check_filenames: true
+          skip: ./.*
   bandit_security:
     runs-on: ubuntu-latest
     steps:
