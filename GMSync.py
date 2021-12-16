@@ -198,6 +198,7 @@ class GMSync:
             self.conf.GOOGLE_TOKEN_FILE,
             self.conf.GOOGLE_LABELS_INCLUDE,
             self.conf.GOOGLE_LABELS_EXCLUDE,
+            self.args.initial,
         )
         monica = Monica(
             self.log,

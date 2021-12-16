@@ -11,7 +11,7 @@ from googleapiclient.discovery import Resource, build  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
 
 from helpers.DatabaseHelper import Database
-from helpers.Exceptions import GoogleFetchError, InternalError
+from helpers.Exceptions import ConfigError, GoogleFetchError, InternalError
 
 
 class Google:
@@ -25,12 +25,14 @@ class Google:
         token_file: str,
         include_labels: list,
         exclude_labels: list,
+        is_interactive_sync: bool,
     ) -> None:
         self.log = log
         self.credentials_file = credentials_file
         self.token_file = token_file
         self.include_labels = include_labels
         self.exclude_labels = exclude_labels
+        self.is_interactive = is_interactive_sync
         self.database = database_handler
         self.api_requests = 0
         self.service = self.__build_service()
@@ -62,11 +64,25 @@ class Google:
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
-            else:
+            elif self.is_interactive:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_file, scopes=["https://www.googleapis.com/auth/contacts"]
                 )
                 creds = flow.run_console(prompt="consent")
+            else:
+                self.log.error("The 'token.pickle' file was not found or invalid!")
+                self.log.info(
+                    "Please run the script using '-i' to acquire a new token (needs user input)."
+                )
+                self.log.info(
+                    f"Debug info: creds={bool(creds)}, valid={creds.valid}, "
+                    f"expired={creds.expired}, refresh_token={bool(creds.refresh_token)}"
+                )
+                print(
+                    "Google token not found or invalid!\n"
+                    "Please run '-i' to acquire a new one! (interactive)"
+                )
+                raise ConfigError("Google token not found or invalid!")
             # Save the credentials for the next run
             with open(self.token_file, "wb") as token:
                 pickle.dump(creds, token)
