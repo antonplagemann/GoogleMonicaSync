@@ -710,7 +710,7 @@ class Sync:
             # If there the id isn't in the database: create a new Google contact and upload
             if str(monica_contact["id"]) not in self.mapping.values():
                 # Create Google contact
-                google_contact = self.__create_google_contact(monica_contact)
+                google_contact = self.create_google_contact(monica_contact)
                 if not google_contact:
                     msg = (
                         f"'{monica_contact['complete_name']}': "
@@ -790,7 +790,7 @@ class Sync:
         print(msg)
         self.log.info(msg)
 
-    def __create_google_contact(self, monica_contact: dict) -> dict:
+    def create_google_contact(self, monica_contact: dict) -> dict:
         """Creates a new Google contact from a given Monica contact and returns it."""
         # Get names (no nickname)
         first_name = monica_contact["first_name"] or ""
@@ -1084,6 +1084,7 @@ class Sync:
             birthdate_year = birthday[0].get("date", {}).get("year", None)
             birthdate_month = birthday[0].get("date", {}).get("month", None)
             birthdate_day = birthday[0].get("date", {}).get("day", None)
+        is_birthdate_known = all([birthdate_month, birthdate_day])
 
         # Get deceased info
         deceased_date = monica_contact["information"]["dates"]["deceased_date"]["date"]
@@ -1103,10 +1104,10 @@ class Sync:
             nick_name=nick_name,
             middle_name=middle_name,
             gender_type=monica_contact["gender_type"],
-            birthdate_day=birthdate_day,
-            birthdate_month=birthdate_month,
-            birthdate_year=birthdate_year,
-            is_birthdate_known=bool(birthday),
+            birthdate_day=birthdate_day if is_birthdate_known else None,
+            birthdate_month=birthdate_month if is_birthdate_known else None,
+            birthdate_year=birthdate_year if is_birthdate_known else None,
+            is_birthdate_known=is_birthdate_known,
             is_deceased=monica_contact["is_dead"],
             is_deceased_date_known=bool(deceased_date),
             deceased_year=deceased_year,
@@ -1193,6 +1194,7 @@ class Sync:
             birthdate_year = birthday[0].get("date", {}).get("year", None)
             birthdate_month = birthday[0].get("date", {}).get("month", None)
             birthdate_day = birthday[0].get("date", {}).get("day", None)
+        is_birthdate_known = all([birthdate_month, birthdate_day])
 
         # Assemble form object
         form = MonicaContactUploadForm(
@@ -1201,10 +1203,10 @@ class Sync:
             last_name=last_name,
             middle_name=middle_name,
             nick_name=nickname,
-            birthdate_day=birthdate_day,
-            birthdate_month=birthdate_month,
-            birthdate_year=birthdate_year,
-            is_birthdate_known=bool(birthday),
+            birthdate_day=birthdate_day if is_birthdate_known else None,
+            birthdate_month=birthdate_month if is_birthdate_known else None,
+            birthdate_year=birthdate_year if is_birthdate_known else None,
+            is_birthdate_known=all([birthdate_month, birthdate_day]),
             create_reminders=self.monica.create_reminders,
         )
         # Upload contact

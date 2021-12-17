@@ -140,7 +140,7 @@ class Monica:
                     continue
                 self.log.error(
                     f"'{name}' ('{monica_id}'): "
-                    "Error updating Monica contact: {error}. Does it exist?"
+                    f"Error updating Monica contact: {error}. Does it exist?"
                 )
                 self.log.error(f"Monica form data: {data}")
                 raise MonicaFetchError("Error updating Monica contact!")
