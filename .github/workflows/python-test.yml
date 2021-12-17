@@ -1,0 +1,60 @@
+name: Python System Test
+
+on:
+  pull_request:
+    types: ['opened', 'reopened', 'synchronize']
+  push:
+    branches:
+      - 'development'
+    paths:
+      - '**.py'
+  workflow_dispatch:
+
+jobs:
+  system_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+
+      - name: Start new Monica instance
+        run: docker-compose -f test/docker-compose-monica.yml up -d
+
+      - name: Install requirements
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt -r test/requirements.txt
+
+      - name: Download files from Azure Blob Storage
+        run: python test/TransferFiles.py --download --files data/token.pickle
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
+
+      - name: Create API token at Monica instance
+        run: python test/SetupToken.py
+
+      - name: Set folder permissions for non-root container
+        run: sudo chmod 777 data logs -R
+
+      # Start testing
+      - name: Test initial sync
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml up
+        timeout-minutes: 1
+        env:
+          TOKEN: ${{ env.TOKEN }}
+      - name: Check results of initial sync
+        run: '[[ -f logs/sync.log ]] && [[ -z "$(grep -e ERROR -e WARNING logs/sync.log)" ]] || exit 1'
+        if: always()
+      - name: Rename log file
+        run: mv logs/sync.log logs/sync_initial.log
+        if: always()
+      # End testing
+
+      - name: Upload files to Azure Blob Storage
+        run: python test/TransferFiles.py --upload --files data/token.pickle logs/
+        if: always()
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}

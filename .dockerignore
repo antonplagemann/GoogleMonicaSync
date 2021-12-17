@@ -16,6 +16,7 @@
 **/conf.py
 /data/*
 /logs/*
+/test/*
 Dockerfile
 .env
 .env.example

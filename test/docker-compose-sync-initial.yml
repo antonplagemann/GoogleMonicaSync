@@ -1,0 +1,4 @@
+services:
+  python:
+    # Do an initial sync
+    command: python -u GMSync.py -i

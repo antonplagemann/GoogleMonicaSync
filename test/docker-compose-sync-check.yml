@@ -1,0 +1,4 @@
+services:
+  python:
+    # Do a database check
+    command: python -u GMSync.py -c

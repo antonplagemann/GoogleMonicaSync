@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from logging import Logger
 from typing import Any, Dict, List, Tuple, Union
@@ -1253,12 +1254,12 @@ class Sync:
             print("\nPossible syncing conflict, please choose your alternative by number:")
             print(f"\tWhich Monica contact should be connected to '{g_contact_display_name}'?")
             for num, monica_contact in enumerate(candidates):
-                print(f"\t{num}: {monica_contact['complete_name']}")
-            print(f"\t{num+1}: Create a new Monica contact")
-            choice = self.__get_user_input(allowed_nums=list(range(len(candidates) + 1)))
+                print(f"\t{num+1}: {monica_contact['complete_name']}")
+            print(f"\t{num+2}: Create a new Monica contact")
+            choice = self.__get_user_input(allowed_nums=list(range(1, len(candidates) + 2)))
             # Created a sublist with the selected candidate
             # or an empty list if user votes for a new contact
-            candidates = candidates[choice : choice + 1]
+            candidates = candidates[choice - 1 : choice]
 
         # No candidates found, let the user choose to create a new contact
         elif not self.skip_creation_prompt:
@@ -1310,6 +1311,10 @@ class Sync:
 
     def __get_user_input(self, allowed_nums: List[int]) -> int:
         """Prompts for a number entered by the user"""
+        # If running from GitHub Actions always choose 1
+        if os.getenv("CI", 0):
+            print("Running from CI -> 1")
+            return 1
         while True:
             try:
                 choice = int(input("Enter your choice (number only): "))

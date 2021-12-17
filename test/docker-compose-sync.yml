@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  python:
+    image: antonplagemann/google-monica-sync:next
+
+    environment:
+      # The Monica API token
+      - TOKEN=${TOKEN}
+      # Your Monica base url (ends with /api)
+      - BASE_URL=http://monica:80/api
+      # Script is running within GitHub Actions
+      - CI=1
+
+    # Put credentials, sync database and token files in ./data
+    volumes:
+      - ../data:/usr/app/data
+      # Remove the next line if you do not want to access the logs 
+      - ../logs:/usr/app/logs
+
+    # Adjust command if needed (-u needed for getting console output)
+    command: python -u GMSync.py --help
+    networks:
+      - monica_network
+
+networks:
+  monica_network:
+    name: monica_network

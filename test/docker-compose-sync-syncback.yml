@@ -1,0 +1,4 @@
+services:
+  python:
+    # Do a sync back
+    command: python -u GMSync.py -sb
