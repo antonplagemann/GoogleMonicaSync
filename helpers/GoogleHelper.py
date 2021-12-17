@@ -65,10 +65,12 @@ class Google:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             elif self.is_interactive:
+                prompt = "\nPlease visit this URL to authorize this application:\n{url}\n"
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_file, scopes=["https://www.googleapis.com/auth/contacts"]
+                    self.credentials_file,
+                    scopes=["https://www.googleapis.com/auth/contacts"],
                 )
-                creds = flow.run_console(prompt="consent")
+                creds = flow.run_console(prompt="consent", authorization_prompt_message=prompt)
             else:
                 self.log.error("The 'token.pickle' file was not found or invalid!")
                 self.log.info(
@@ -446,6 +448,25 @@ class Google:
         self.log.info("Contact has not been saved internally!")
         self.log.info(f"'{name}': Contact with id '{google_id}' updated successfully")
         return result
+
+    def delete_contact(self, google_id: str, display_name: str) -> None:
+        """Deletes a given Google contact via api call."""
+        # Upload contact
+        try:
+            self.service.people().deleteContact(resourceName=google_id).execute()
+            self.api_requests += 1
+        except HttpError as error:
+            if self.__is_slow_down_error(error):
+                return self.delete_contact(google_id, display_name)
+            else:
+                reason = str(error)
+                msg = f"'{display_name}':Failed to delete Google contact. Reason: {reason}"
+                self.log.warning(msg)
+                print("\n" + msg)
+                raise GoogleFetchError(reason) from error
+
+        # Finished
+        self.log.info(f"'{display_name}': Contact with id '{google_id}' deleted successfully")
 
 
 class GoogleContactUploadForm:
