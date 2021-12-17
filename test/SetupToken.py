@@ -106,7 +106,7 @@ try:
     print(f"Saving access token to '{env_file}'")
     log.info(f"Saving access token '{access_token}' to '{env_file}'")
     with open(env_file, "a") as myfile:
-        myfile.write(f"TOKEN={access_token}")
+        myfile.write(f"TOKEN={access_token}\n")
 
     msg = "Script finished"
     log.info(msg)

@@ -125,7 +125,8 @@ dmypy.json
 
 # Dev files
 *.pickle
-*.json
+credentials.json
+.vscode
 conf.py
 *.db
 *.db-journal

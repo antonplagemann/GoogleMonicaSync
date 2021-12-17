@@ -11,6 +11,7 @@ services:
       - DB_HOST=db
       - DB_USERNAME=monica
       - DB_PASSWORD=secret
+      - RATE_LIMIT_PER_MINUTE_API=1000
     volumes:
       - data:/var/www/html/storage
     restart: always
