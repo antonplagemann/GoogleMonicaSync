@@ -118,7 +118,6 @@ class Sync:
             self.monica.delete_contact(monica_id, m_contact_full_name)
             self.database.delete(google_id, monica_id)
             self.mapping.pop(google_id)
-            self.google.remove_contact_from_list(google_contact)
             msg = f"'{m_contact_full_name}' ('{monica_id}'): Monica contact deleted successfully"
             self.log.info(msg)
         except Exception:
@@ -126,7 +125,6 @@ class Sync:
                 f"'{g_contact_display_name}' ('{google_id}'): "
                 "Failed deleting corresponding Monica contact! Please delete manually!"
             )
-            self.google.remove_contact_from_list(google_contact)
             self.log.error(msg)
             print(msg)
 
