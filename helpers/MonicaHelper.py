@@ -83,26 +83,34 @@ class Monica:
         # Only fetch if not present yet
         if self.gender_mapping:
             return self.gender_mapping
+        try:
+            while True:
+                # Get genders
+                response = requests.get(
+                    self.base_url + "/genders", headers=self.header, params=self.parameters
+                )
+                self.api_requests += 1
 
-        while True:
-            # Get genders
-            response = requests.get(
-                self.base_url + "/genders", headers=self.header, params=self.parameters
-            )
-            self.api_requests += 1
+                # If successful
+                if response.status_code == 200:
+                    genders = response.json()["data"]
+                    gender_mapping = {gender["type"]: gender["id"] for gender in genders}
+                    self.gender_mapping = gender_mapping
+                    return self.gender_mapping
+                else:
+                    error = response.json()["error"]["message"]
+                    if self.__is_slow_down_error(response, error):
+                        continue
+                    self.log.error(f"Failed to fetch genders from Monica: {error}")
+                    raise MonicaFetchError("Error fetching genders from Monica!")
 
-            # If successful
-            if response.status_code == 200:
-                genders = response.json()["data"]
-                gender_mapping = {gender["type"]: gender["id"] for gender in genders}
-                self.gender_mapping = gender_mapping
-                return self.gender_mapping
-            else:
-                error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
-                    continue
-                self.log.error(f"Failed to fetch genders from Monica: {error}")
-                raise MonicaFetchError("Error fetching genders from Monica!")
+        except Exception as e:
+            msg = f"Failed to fetch Monica genders (maybe connection issue): {str(e)}"
+            print("\n" + msg)
+            self.log.error(msg)
+            if response:
+                self.log.info(response.text)
+            raise MonicaFetchError(msg) from e
 
     def update_contact(self, monica_id: str, data: dict) -> None:
         """Updates a given contact and its id via api call."""
@@ -235,6 +243,8 @@ class Monica:
             msg = f"Failed to fetch Monica contacts (maybe connection issue): {str(e)}"
             print("\n" + msg)
             self.log.error(msg)
+            if response:
+                self.log.info(response.text)
             raise MonicaFetchError(msg) from e
 
     def get_contact(self, monica_id: str) -> dict:

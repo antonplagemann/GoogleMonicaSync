@@ -166,7 +166,7 @@ class Database:
             self.log.error(f"Unknown database find arguments: '{google_id}', '{monica_id}'")
             raise DatabaseError("Unknown database find arguments")
         if row:
-            return DatabaseEntry(*row[0])
+            return DatabaseEntry(*row)
         return None
 
     def get_id_mapping(self) -> dict:
@@ -176,12 +176,12 @@ class Database:
         mapping = {google_id: str(monica_id) for google_id, monica_id in self.cursor.fetchall()}
         return mapping
 
-    def __find_by_monica_id(self, monica_id: str) -> List[tuple]:
+    def __find_by_monica_id(self, monica_id: str) -> List[str]:
         find_sql = "SELECT * FROM sync WHERE monicaId=?"
         self.cursor.execute(find_sql, (str(monica_id),))
         return self.cursor.fetchone()
 
-    def __find_by_google_id(self, google_id: str) -> List[tuple]:
+    def __find_by_google_id(self, google_id: str) -> List[str]:
         find_sql = "SELECT * FROM sync WHERE googleId=?"
         self.cursor.execute(find_sql, (google_id,))
         return self.cursor.fetchone()
