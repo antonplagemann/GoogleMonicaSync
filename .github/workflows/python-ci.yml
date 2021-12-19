@@ -47,10 +47,10 @@ jobs:
       - name: flake8 Lint
         uses: py-actions/flake8@v2
         with:
-          ignore: "E203,W503,E231"
+          ignore: "E203,W503,E231,E402"
           max-line-length: "105"
           path: "."
-          args: "--count --exit-zero --show-source --statistics"
+          args: '--count --exit-zero --show-source --statistics'
   isort_check:
     runs-on: ubuntu-latest
     steps:

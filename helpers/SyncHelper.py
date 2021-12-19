@@ -173,7 +173,7 @@ class Sync:
                 print("\n" + msg)
 
                 # Create new Monica contact
-                monica_contact = self.__create_monica_contact(google_contact)
+                monica_contact = self.create_monica_contact(google_contact)
                 msg = (
                     f"'{monica_contact['complete_name']}' ('{monica_contact['id']}'): "
                     "New Monica contact created"
@@ -1175,7 +1175,7 @@ class Sync:
             create_reminders=self.monica.create_reminders,
         )
 
-    def __create_monica_contact(self, google_contact: dict) -> dict:
+    def create_monica_contact(self, google_contact: dict) -> dict:
         """Creates a new Monica contact from a given Google contact and returns it."""
         # Get names
         first_name, last_name = self.__get_monica_names_from_google_contact(google_contact)
@@ -1280,7 +1280,7 @@ class Sync:
         # If there are no candidates (user vote or nothing found) create a new Monica contact
         if not candidates:
             # Create new Monica contact
-            monica_contact = self.__create_monica_contact(google_contact)
+            monica_contact = self.create_monica_contact(google_contact)
 
             # Print success
             msg = f"'{g_contact_display_name}' ('{monica_contact['id']}'): New Monica contact created"

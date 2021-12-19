@@ -5,8 +5,8 @@ import logging
 import os
 from os.path import join
 from posixpath import join as posix_join
-from urllib.parse import unquote
 from typing import List
+from urllib.parse import unquote
 
 from azure.storage.blob import BlobServiceClient  # type: ignore
 

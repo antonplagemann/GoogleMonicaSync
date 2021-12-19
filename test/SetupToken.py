@@ -8,6 +8,7 @@ from urllib.parse import unquote
 
 import requests
 from bs4 import BeautifulSoup  # type: ignore
+from dotenv.main import set_key  # type: ignore
 from requests import ConnectionError, ConnectTimeout, ReadTimeout
 
 LOG_FOLDER = "logs"
@@ -105,8 +106,7 @@ try:
     env_file = os.getenv("GITHUB_ENV", ".env")
     print(f"Saving access token to '{env_file}'")
     log.info(f"Saving access token '{access_token}' to '{env_file}'")
-    with open(env_file, "a") as myfile:
-        myfile.write(f"TOKEN={access_token}\n")
+    set_key(env_file, "TOKEN", access_token)
 
     msg = "Script finished"
     log.info(msg)
