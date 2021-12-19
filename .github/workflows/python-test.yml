@@ -53,7 +53,7 @@ jobs:
       # End testing
 
       - name: Upload files to Azure Blob Storage
-        run: python test/TransferFiles.py --upload --files data/token.pickle logs/
+        run: python test/TransferFiles.py --upload --files logs/
         if: always()
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
