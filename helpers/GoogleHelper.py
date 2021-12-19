@@ -2,7 +2,7 @@ import os.path
 import pickle
 import time
 from logging import Logger
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 from google.auth.transport.requests import Request  # type: ignore
 from google.oauth2.credentials import Credentials  # type: ignore
@@ -394,7 +394,7 @@ class Google:
                 self.log.error(msg)
                 raise GoogleFetchError(str(error)) from error
 
-    def create_contact(self, data) -> dict:
+    def create_contact(self, data: dict) -> dict:
         """Creates a given Google contact via api call and returns the created contact."""
         # Upload contact
         try:
@@ -414,14 +414,115 @@ class Google:
 
         # Process result
         google_id = result["resourceName"]
-        name = result["names"]["displayName"]
+        name = result["names"][0]["displayName"]
         self.created_contacts[google_id] = True
         self.contacts.append(result)
         self.log.info(f"'{name}': Contact with id '{google_id}' created successfully")
         return result
 
-    def update_contact(self, data) -> Union[dict, None]:
-        """Updates a given Google contact via api call and returns the created contact."""
+    def update_contacts(self, data: List[dict]) -> List[dict]:
+        """Updates a given Google contact list via api call and returns the updated contacts."""
+        assert len(data) < 200, "Too many contacts for batch update!"
+        if not data:
+            return []
+        # Prepare body
+        body = {
+            "contacts": {contact["resourceName"]: contact for contact in data},
+            "updateMask": self.update_fields,
+            "readMask": self.update_fields,
+        }
+        # Upload contacts
+        try:
+            results = self.service.people().batchUpdateContacts(body=body).execute()
+            self.api_requests += 1
+        except HttpError as error:
+            if self.__is_slow_down_error(error):
+                return self.update_contacts(data)
+            else:
+                reason = str(error)
+                msg = f"Failed to update Google contacts. Reason: {reason}"
+                self.log.warning(msg)
+                print("\n" + msg)
+                raise GoogleFetchError(reason) from error
+
+        # Process result
+        results = results["updateResult"].values()
+        contacts = []
+        for item in results:
+            contact = item["person"]
+            google_id = contact.get("resourceName", "-")
+            name = contact.get("names", [{}])[0].get("displayName", "error")
+            if item["httpStatusCode"] != 200:
+                self.log.error(f"'{name}': Failed to update contact with id '{google_id}'!")
+                continue
+            self.log.info(f"'{name}': Contact with id '{google_id}' updated successfully")
+            contacts.append(contact)
+        return contacts
+
+    def delete_contacts(self, data: Dict[str, str]) -> None:
+        """Deletes all given Google contacts list via api call."""
+        assert len(data) < 500, "Too many contacts for batch delete!"
+        if not data:
+            return
+        # Prepare body
+        body = {"resourceNames": list(data)}
+        # Delete contacts
+        try:
+            self.service.people().batchDeleteContacts(body=body).execute()
+            self.api_requests += 1
+        except HttpError as error:
+            if self.__is_slow_down_error(error):
+                return self.delete_contacts(data)
+            else:
+                reason = str(error)
+                msg = f"Failed to delete Google contacts. Reason: {reason}"
+                self.log.warning(msg)
+                print("\n" + msg)
+                raise GoogleFetchError(reason) from error
+
+        # Finished
+        for google_id, display_name in data.items():
+            self.log.info(f"'{display_name}': Contact with id '{google_id}' deleted successfully")
+
+    def create_contacts(self, data: List[dict]) -> List[dict]:
+        """Creates a given Google contact list via api call and returns the created contacts."""
+        assert len(data) < 200, "Too many contacts for batch create!"
+        if not data:
+            return []
+        # Prepare body
+        body = {
+            "contacts": [{"contactPerson": contact} for contact in data],
+            "readMask": self.update_fields,
+        }
+        # Upload contacts
+        try:
+            results = self.service.people().batchCreateContacts(body=body).execute()
+            self.api_requests += 1
+        except HttpError as error:
+            if self.__is_slow_down_error(error):
+                return self.create_contacts(data)
+            else:
+                reason = str(error)
+                msg = f"Failed to create Google contacts. Reason: {reason}"
+                self.log.warning(msg)
+                print("\n" + msg)
+                raise GoogleFetchError(reason) from error
+
+        # Process result
+        contacts = []
+        for item in results["createdPeople"]:
+            contact = item["person"]
+            google_id = contact.get("resourceName", "-")
+            name = contact.get("names", [{}])[0].get("displayName", "error")
+            if item["httpStatusCode"] != 200:
+                self.log.error(f"'{name}': Failed to create contact with id '{google_id}'!")
+                continue
+            self.log.info(f"'{name}': Contact with id '{google_id}' created successfully")
+            contacts.append(contact)
+        return contacts
+
+    def update_contact(self, data: dict) -> dict:
+        """Updates a given Google contact via api call and returns the updated contact."""
         # Upload contact
         try:
             result = (
@@ -445,7 +546,6 @@ class Google:
         # Process result
         google_id = result.get("resourceName", "-")
         name = result.get("names", [{}])[0].get("displayName", "error")
-        self.log.info("Contact has not been saved internally!")
         self.log.info(f"'{name}': Contact with id '{google_id}' updated successfully")
         return result
 
