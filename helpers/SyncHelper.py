@@ -103,26 +103,27 @@ class Sync:
         try:
             # Initialization
             google_id = google_contact["resourceName"]
-            database_entry = self.database.find_by_id(google_id=google_id)
-            if not database_entry:
+            entry = self.database.find_by_id(google_id=google_id)
+            if not entry:
                 raise DatabaseError(f"No database entry for deleted google contact '{google_id}' found!")
-            monica_id, g_contact_display_name, m_contact_full_name = database_entry[1:4]
             msg = (
-                f"'{g_contact_display_name}' ('{google_id}'): "
+                f"'{entry.google_full_name}' ('{google_id}'): "
                 "Found deleted Google contact. Deleting Monica contact..."
             )
             self.log.info(msg)
 
             # Try to delete the corresponding contact
-            monica_id = database_entry[1]
-            self.monica.delete_contact(monica_id, m_contact_full_name)
-            self.database.delete(google_id, monica_id)
+            self.monica.delete_contact(entry.monica_id, entry.monica_full_name)
+            self.database.delete(google_id, entry.monica_id)
             self.mapping.pop(google_id)
-            msg = f"'{m_contact_full_name}' ('{monica_id}'): Monica contact deleted successfully"
+            msg = (
+                f"'{entry.monica_full_name}' ('{entry.monica_id}'): Monica contact deleted successfully"
+            )
             self.log.info(msg)
         except Exception:
+            name = entry.google_full_name if entry else ""
             msg = (
-                f"'{g_contact_display_name}' ('{google_id}'): "
+                f"'{name}' ('{google_id}'): "
                 "Failed deleting corresponding Monica contact! Please delete manually!"
             )
             self.log.error(msg)
@@ -157,10 +158,10 @@ class Sync:
                 # Skip further processing
                 continue
 
-            database_entry = self.database.find_by_id(google_id=google_contact["resourceName"])
+            entry = self.database.find_by_id(google_id=google_contact["resourceName"])
 
             # Create a new Google contact in the database if there's nothing yet
-            if not database_entry:
+            if not entry:
                 # Create a new Google contact in the database if there's nothing yet
                 google_id = google_contact["resourceName"]
                 g_contact_display_name = self.google.get_contact_names(google_contact)[3]
@@ -205,29 +206,28 @@ class Sync:
 
             # Skip all contacts which have not changed
             # according to the database lastChanged date (if present)
-            monica_id = database_entry[1]
-            database_timestamp = database_entry[4]
             contact_timestamp = google_contact["metadata"]["sources"][0]["updateTime"]
-            database_date = self.__convert_google_timestamp(database_timestamp)
+            database_date = self.__convert_google_timestamp(entry.google_last_changed)
             contact_date = self.__convert_google_timestamp(contact_timestamp)
             if is_date_based_sync and database_date == contact_date:
                 continue
 
             # Get Monica contact by id
-            monica_contact = self.monica.get_contact(monica_id)
+            monica_contact = self.monica.get_contact(entry.monica_id)
             # Merge name, birthday and deceased date and update them
             self.__merge_and_update_nbd(monica_contact, google_contact)
 
             # Update Google contact last changed date in the database
             google_last_changed = google_contact["metadata"]["sources"][0]["updateTime"]
-            self.database.update(
+            updated_entry = DatabaseEntry(
                 google_id=google_contact["resourceName"],
                 google_full_name=self.google.get_contact_names(google_contact)[3],
                 google_last_changed=google_last_changed,
             )
+            self.database.update(updated_entry)
 
             # Refresh Monica data (could have changed)
-            monica_contact = self.monica.get_contact(monica_id)
+            monica_contact = self.monica.get_contact(entry.monica_id)
 
             # Sync additional details
             self.__sync_details(google_contact, monica_contact)
@@ -980,10 +980,12 @@ class Sync:
         if orphaned_entries:
             self.log.info("The following database entries are orphaned:")
             for google_id in orphaned_entries:
-                database_entry = self.database.find_by_id(google_id)
-                monica_id, google_full_name, monica_full_name = database_entry[1:4]  # type: ignore
+                entry = self.database.find_by_id(google_id)
+                if not entry:
+                    raise DatabaseError("Database externally modified, entry not found!")
                 self.log.warning(
-                    f"'{google_id}' <-> '{monica_id}' ('{google_full_name}' <-> '{monica_full_name}')"
+                    f"'{google_id}' <-> '{entry.monica_id}' "
+                    f"('{entry.google_full_name}' <-> '{entry.monica_full_name}')"
                 )
                 self.log.info(
                     "This doesn't cause sync errors, but you can fix it doing initial sync '-i'"

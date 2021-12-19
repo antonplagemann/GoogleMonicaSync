@@ -3,39 +3,57 @@ from datetime import datetime
 from logging import Logger
 from typing import List, Tuple, Union
 
+from helpers.Exceptions import DatabaseError
+
 
 class DatabaseEntry:
-    """Creates a database row object for inserting into the database.
+    """Represents a database row.
     Needs at least a Monica id AND a Google id."""
 
     def __init__(
         self,
-        google_id: str,
-        monica_id: str,
+        google_id: str = "",
+        monica_id: Union[str, int] = "",
         google_full_name: str = "NULL",
         monica_full_name: str = "NULL",
         google_last_changed: str = "NULL",
         monica_last_changed: str = "NULL",
     ) -> None:
+        self.google_id = google_id
+        self.monica_id = str(monica_id)
+        self.google_full_name = google_full_name
+        self.monica_full_name = monica_full_name
+        self.google_last_changed = google_last_changed
+        self.monica_last_changed = monica_last_changed
+
+    def __repr__(self) -> str:
+        """Returns the database entry as string"""
+        return (
+            f"google_id: '{self.google_id}', "
+            f"monica_id: '{self.monica_id}', "
+            f"google_full_name: '{self.google_full_name}', "
+            f"monica_full_name: '{self.monica_full_name}', "
+            f"google_last_changed: '{self.google_last_changed}', "
+            f"monica_last_changed: '{self.monica_last_changed}'"
+        )
+
+    def get_insert_statement(self) -> Tuple[str, tuple]:
         insert_sql = """
         INSERT INTO sync(googleId, monicaId, googleFullName, monicaFullName,
                         googleLastChanged, monicaLastChanged)
         VALUES(?,?,?,?,?,?)
         """
-        self.insert_statement = (
+        return (
             insert_sql,
             (
-                google_id,
-                str(monica_id),
-                google_full_name,
-                monica_full_name,
-                google_last_changed,
-                monica_last_changed,
+                self.google_id,
+                self.monica_id,
+                self.google_full_name,
+                self.monica_full_name,
+                self.google_last_changed,
+                self.monica_last_changed,
             ),
         )
-
-    def get_insert_statement(self) -> Tuple[str, tuple]:
-        return self.insert_statement
 
 
 class Database:
@@ -85,34 +103,37 @@ class Database:
         self.cursor.execute(*database_entry.get_insert_statement())
         self.connection.commit()
 
-    def update(
-        self,
-        google_id: str = None,
-        monica_id: str = None,
-        google_full_name: str = None,
-        monica_full_name: str = None,
-        google_last_changed: str = None,
-        monica_last_changed: str = None,
-    ) -> None:
+    def update(self, database_entry: DatabaseEntry) -> None:
         """Updates a dataset in the database.
         Needs at least a Monica id OR a Google id and the related data."""
         UNKNOWN_ARGUMENTS = "Unknown database update arguments!"
-        if monica_id:
-            if monica_full_name:
-                self.__update_full_name_by_monica_id(str(monica_id), monica_full_name)
-            if monica_last_changed:
-                self.__update_monica_last_changed(str(monica_id), monica_last_changed)
+        if database_entry.monica_id:
+            if database_entry.monica_full_name:
+                self.__update_full_name_by_monica_id(
+                    database_entry.monica_id, database_entry.monica_full_name
+                )
+            if database_entry.monica_last_changed:
+                self.__update_monica_last_changed(
+                    database_entry.monica_id, database_entry.monica_last_changed
+                )
             else:
-                self.log.error(UNKNOWN_ARGUMENTS)
-        if google_id:
-            if google_full_name:
-                self.__update_full_name_by_google_id(google_id, google_full_name)
-            if google_last_changed:
-                self.__update_google_last_changed(google_id, google_last_changed)
+                self.log.error(f"Failed to update database: {database_entry}")
+                raise DatabaseError(UNKNOWN_ARGUMENTS)
+        if database_entry.google_id:
+            if database_entry.google_full_name:
+                self.__update_full_name_by_google_id(
+                    database_entry.google_id, database_entry.google_full_name
+                )
+            if database_entry.google_last_changed:
+                self.__update_google_last_changed(
+                    database_entry.google_id, database_entry.google_last_changed
+                )
             else:
-                self.log.error(UNKNOWN_ARGUMENTS)
-        if not monica_id and not google_id:
-            self.log.error(UNKNOWN_ARGUMENTS)
+                self.log.error(f"Failed to update database: {database_entry}")
+                raise DatabaseError(UNKNOWN_ARGUMENTS)
+        if not database_entry.monica_id and not database_entry.google_id:
+            self.log.error(f"Failed to update database: {database_entry}")
+            raise DatabaseError(UNKNOWN_ARGUMENTS)
 
     def __update_full_name_by_monica_id(self, monica_id: str, monica_full_name: str) -> None:
         insert_sql = "UPDATE sync SET monicaFullName = ? WHERE monicaId = ?"
@@ -134,7 +155,7 @@ class Database:
         self.cursor.execute(insert_sql, (google_last_changed, google_id))
         self.connection.commit()
 
-    def find_by_id(self, google_id: str = None, monica_id: str = None) -> Union[tuple, None]:
+    def find_by_id(self, google_id: str = None, monica_id: str = None) -> Union[DatabaseEntry, None]:
         """Search for a contact row in the database. Returns None if not found.
         Needs Google id OR Monica id"""
         if monica_id:
@@ -142,10 +163,10 @@ class Database:
         elif google_id:
             row = self.__find_by_google_id(google_id)
         else:
-            self.log.error("Unknown database find arguments!")
+            self.log.error(f"Unknown database find arguments: '{google_id}', '{monica_id}'")
+            raise DatabaseError("Unknown database find arguments")
         if row:
-            g_id, m_id, g_full_name, m_full_name, g_last_changed, m_last_changed = row
-            return g_id, str(m_id), g_full_name, m_full_name, g_last_changed, m_last_changed
+            return DatabaseEntry(*row[0])
         return None
 
     def get_id_mapping(self) -> dict:

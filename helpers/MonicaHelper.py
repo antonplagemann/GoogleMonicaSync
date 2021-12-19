@@ -5,7 +5,7 @@ from typing import Dict, List
 import requests
 from requests.models import Response
 
-from helpers.DatabaseHelper import Database
+from helpers.DatabaseHelper import Database, DatabaseEntry
 from helpers.Exceptions import InternalError, MonicaFetchError
 
 
@@ -128,11 +128,12 @@ class Monica:
                 self.contacts.append(contact)
                 name = contact["complete_name"]
                 self.log.info(f"'{name}' ('{monica_id}'): Contact updated successfully")
-                self.database.update(
+                entry = DatabaseEntry(
                     monica_id=monica_id,
                     monica_last_changed=contact["updated_at"],
                     monica_full_name=contact["complete_name"],
                 )
+                self.database.update(entry)
                 return
             else:
                 error = response.json()["error"]["message"]
@@ -449,7 +450,8 @@ class Monica:
                 self.updated_contacts[monica_id] = True
                 contact = response.json()["data"]
                 self.log.info(f"'{name}' ('{monica_id}'): Company and job title updated successfully")
-                self.database.update(monica_id=monica_id, monica_last_changed=contact["updated_at"])
+                entry = DatabaseEntry(monica_id=monica_id, monica_last_changed=contact["updated_at"])
+                self.database.update(entry)
                 return
             else:
                 error = response.json()["error"]["message"]
