@@ -233,6 +233,7 @@ class Monkey:
         # Update contacts
         updated_contacts = self.google.update_contacts(update_list)
         self.state.contacts += updated_contacts
+
         # Save original contacts to state
         for contact in original_contacts:
             if not self.state.original_contacts.get(contact["resourceName"], None):

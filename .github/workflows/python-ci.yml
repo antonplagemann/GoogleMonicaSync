@@ -1,4 +1,8 @@
 name: Python CI
+# 1. Run linting and static code checks
+# 2. Test python syncing script
+# 3. Build and publish docker container
+# 4. Test published docker container
 
 on:
   pull_request:
@@ -69,13 +73,144 @@ jobs:
         with:
           path: '.'
           mypy_flags: '--install-types --non-interactive'
-  #pytest_unit:
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #    - uses: actions/setup-python@v2
-  #    - run: pip install pytest pyupgrade safety
-  #    - run: pytest .
-  #    - run: pytest --doctest-modules .
-  #    - run: shopt -s globstar && pyupgrade --py36-plus **/*.py
-  #    - run: safety check
+
+  python_test:
+    runs-on: ubuntu-latest
+    needs: [black_formatting, codespell_check, bandit_security, flake8_lint, isort_check, mypy_typecheck]
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+
+      - name: Start new Monica instance
+        run: docker-compose -f test/docker-compose-monica.yml up -d
+
+      - name: Install requirements
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt -r test/requirements.txt
+
+      - name: Download files from Azure Blob Storage
+        run: python test/TransferFiles.py --download --files data/token.pickle
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
+
+      - name: Create API token at Monica instance
+        run: python test/SetupToken.py
+
+      - name: Set folder permissions for non-root container
+        run: sudo chmod 777 data logs -R
+
+      # Start testing
+
+      # Test initial sync
+      - name: Prepare initial sync conflicts
+        run: python test/ChaosMonkey.py -i
+      - name: Test initial sync
+        run: python GMSync.py -i
+        timeout-minutes: 1
+        env:
+          TOKEN: ${{ env.TOKEN }}
+          BASE_URL: http://monica:80/api
+          CI: 1
+      - name: Check results of initial sync
+        run: '[[ -f logs/sync.log ]] && [[ -z "$(grep -e ERROR -e WARNING logs/sync.log)" ]] || exit 1'
+        if: always()
+      - name: Rename log file
+        run: mv logs/sync.log logs/python_sync_initial.log
+        if: always()
+
+      # End testing
+
+      - name: Upload files to Azure Blob Storage
+        run: python test/TransferFiles.py --upload --files logs/
+        if: always()
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
+
+  docker_build:
+    runs-on: ubuntu-latest
+    needs: python_test
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          no-cache: true
+          push: true
+          tags: antonplagemann/google-monica-sync:next
+
+  docker_test:
+    runs-on: ubuntu-latest
+    needs: docker_build
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+
+      - name: Start new Monica instance
+        run: docker-compose -f test/docker-compose-monica.yml up -d
+
+      - name: Install requirements
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt -r test/requirements.txt
+
+      - name: Download files from Azure Blob Storage
+        run: python test/TransferFiles.py --download --files data/token.pickle
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
+
+      - name: Create API token at Monica instance
+        run: python test/SetupToken.py
+
+      - name: Set folder permissions for non-root container
+        run: sudo chmod 777 data logs -R
+
+      # Start testing
+
+      # Test initial sync
+      - name: Prepare initial sync conflicts
+        run: python test/ChaosMonkey.py -i
+      - name: Test initial sync
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml up
+        timeout-minutes: 1
+        env:
+          TOKEN: ${{ env.TOKEN }}
+      - name: Check results of initial sync
+        run: '[[ -f logs/sync.log ]] && [[ -z "$(grep -e ERROR -e WARNING logs/sync.log)" ]] || exit 1'
+        if: always()
+      - name: Rename log file
+        run: mv logs/sync.log logs/docker_sync_initial.log
+        if: always()
+
+      # End testing
+
+      - name: Upload files to Azure Blob Storage
+        run: python test/TransferFiles.py --upload --files logs/
+        if: always()
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
+
+
