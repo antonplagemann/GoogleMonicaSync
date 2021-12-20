@@ -115,13 +115,6 @@ class GMSync:
             help="build the syncing database and do a full sync",
         )
         parser.add_argument(
-            "-sb",
-            "--syncback",
-            action="store_true",
-            required=False,
-            help="sync new Monica contacts back to Google. Can be combined with other arguments",
-        )
-        parser.add_argument(
             "-d",
             "--delta",
             action="store_true",
@@ -134,6 +127,13 @@ class GMSync:
             action="store_true",
             required=False,
             help="do a full sync and request a new delta sync token",
+        )
+        parser.add_argument(
+            "-sb",
+            "--syncback",
+            action="store_true",
+            required=False,
+            help="sync new Monica contacts back to Google. Can be combined with other arguments",
         )
         parser.add_argument(
             "-c",

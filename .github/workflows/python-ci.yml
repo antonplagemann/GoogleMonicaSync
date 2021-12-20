@@ -85,6 +85,7 @@ jobs:
     env:
       TEST_RUNNER: python
     steps:
+      # Setup environment
       - name: Check out source repository
         uses: actions/checkout@v2
       - name: Set up python environment
@@ -95,22 +96,67 @@ jobs:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
           ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
 
-      # Start testing
-
       # Test initial sync
-      - name: Prepare initial sync conflicts
-        run: python test/ChaosMonkey.py --initial --num ${{ github.event.inputs.numChaos || 4  }}
-      - name: Test initial sync
+      - name: Prepare initial sync
+        run: python test/ChaosMonkey.py --initial --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run initial sync
         run: python GMSync.py --initial
         timeout-minutes: 5
-      - name: Check results
+      - name: Check initial sync results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_initial.log && \
           [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_initial.log)" ]] || exit 1
 
-      # End testing
+      # Test delta sync
+      - name: Prepare delta sync
+        run: python test/ChaosMonkey.py --delta --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run delta sync
+        run: python GMSync.py --delta
+        timeout-minutes: 5
+      - name: Check delta sync results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_delta.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_delta.log)" ]] || exit 1
 
+      # Test full sync
+      - name: Prepare full sync
+        run: python test/ChaosMonkey.py --full --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run full sync
+        run: python GMSync.py --full
+        timeout-minutes: 5
+      - name: Check full sync results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_full.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_full.log)" ]] || exit 1
+
+      # Test sync back
+      - name: Prepare sync back
+        run: python test/ChaosMonkey.py --syncback --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run sync back
+        run: python GMSync.py --syncback
+        timeout-minutes: 5
+      - name: Check sync back results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_syncback.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_syncback.log)" ]] || exit 1
+
+      # Test database check
+      - name: Prepare database check
+        run: python test/ChaosMonkey.py --check --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run database check
+        run: python GMSync.py --check
+        timeout-minutes: 5
+      - name: Check database check results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log)" ]] || exit 1
+
+      # End testing
       - name: Cleanup testing environment
         uses: ./.github/actions/cleanup-environment
         if: always()
@@ -123,23 +169,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: python_test
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v2
-      -
-        name: Set up QEMU
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
-      -
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      -
-        name: Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
+      - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -154,6 +195,7 @@ jobs:
     env:
       TEST_RUNNER: docker
     steps:
+      # Set up environment
       - name: Check out source repository
         uses: actions/checkout@v2
       - name: Set up Python environment
@@ -164,22 +206,67 @@ jobs:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
           ACCOUNT_URL: ${{ secrets.ACCOUNT_URL }}
 
-      # Start testing
-
       # Test initial sync
-      - name: Prepare initial sync conflicts
-        run: python test/ChaosMonkey.py --initial --num ${{ github.event.inputs.numChaos || 4  }}
-      - name: Test initial sync
+      - name: Prepare initial sync
+        run: python test/ChaosMonkey.py --initial --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run initial sync
         run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml --env-file .env up
-        timeout-minutes: 1
-      - name: Check results
+        timeout-minutes: 5
+      - name: Check initial sync results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_initial.log && \
           [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_initial.log)" ]] || exit 1
 
-      # End testing
+      # Test delta sync
+      - name: Prepare delta sync
+        run: python test/ChaosMonkey.py --delta --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run delta sync
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-delta.yml --env-file .env up
+        timeout-minutes: 5
+      - name: Check delta sync results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_delta.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_delta.log)" ]] || exit 1
 
+      # Test full sync
+      - name: Prepare full sync
+        run: python test/ChaosMonkey.py --full --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run full sync
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-full.yml --env-file .env up
+        timeout-minutes: 5
+      - name: Check full sync results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_full.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_full.log)" ]] || exit 1
+
+      # Test sync back
+      - name: Prepare sync back
+        run: python test/ChaosMonkey.py --syncback --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run sync back
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-syncback.yml --env-file .env up
+        timeout-minutes: 5
+      - name: Check sync back results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_syncback.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_syncback.log)" ]] || exit 1
+
+      # Test database check
+      - name: Prepare database check
+        run: python test/ChaosMonkey.py --check --num ${{  github.event.inputs.numChaos || 4  }}
+      - name: Run database check
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-check.yml --env-file .env up
+        timeout-minutes: 5
+      - name: Check database check results
+        if: always()
+        run: |
+          mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log && \
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log)" ]] || exit 1
+
+      # Clean up environment
       - name: Cleanup testing environment
         uses: ./.github/actions/cleanup-environment
         if: always()
