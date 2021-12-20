@@ -99,33 +99,32 @@ class Sync:
         self.__sync("full", is_date_based_sync=False)
 
     def __delete_monica_contact(self, google_contact: dict) -> None:
-        """Deletes a Monica contact given a corresponding Google contact."""
+        """Removes a Monica contact given a corresponding Google contact."""
         try:
             # Initialization
             google_id = google_contact["resourceName"]
             entry = self.database.find_by_id(google_id=google_id)
             if not entry:
                 raise DatabaseError(f"No database entry for deleted google contact '{google_id}' found!")
-            msg = (
+
+            self.log.info(
                 f"'{entry.google_full_name}' ('{google_id}'): "
-                "Found deleted Google contact. Deleting Monica contact..."
+                "Found deleted Google contact. Removing database entry..."
             )
-            self.log.info(msg)
 
             # Try to delete the corresponding contact
-            self.monica.delete_contact(entry.monica_id, entry.monica_full_name)
+            if self.is_delete_monica_contacts:
+                self.log.info(
+                    f"'{entry.monica_full_name}' ('{entry.monica_id}'): Deleting Monica contact..."
+                )
+                self.monica.delete_contact(entry.monica_id, entry.monica_full_name)
             self.database.delete(google_id, entry.monica_id)
             self.mapping.pop(google_id)
-            msg = (
-                f"'{entry.monica_full_name}' ('{entry.monica_id}'): Monica contact deleted successfully"
-            )
+            msg = f"'{entry.google_full_name}' ('{google_id}'): database entry removed successfully"
             self.log.info(msg)
         except Exception:
             name = entry.google_full_name if entry else ""
-            msg = (
-                f"'{name}' ('{google_id}'): "
-                "Failed deleting corresponding Monica contact! Please delete manually!"
-            )
+            msg = f"'{name}' ('{google_id}'): Failed removing Monica contact or database entry!"
             self.log.error(msg)
             print(msg)
 
@@ -153,7 +152,7 @@ class Sync:
 
             # Delete Monica contact if Google contact was deleted (if chosen by user; delta sync only)
             is_deleted = google_contact.get("metadata", {}).get("deleted", False)
-            if is_deleted and self.is_delete_monica_contacts:
+            if is_deleted:
                 self.__delete_monica_contact(google_contact)
                 # Skip further processing
                 continue
@@ -983,7 +982,7 @@ class Sync:
                 entry = self.database.find_by_id(google_id)
                 if not entry:
                     raise DatabaseError("Database externally modified, entry not found!")
-                self.log.warning(
+                self.log.info(
                     f"'{google_id}' <-> '{entry.monica_id}' "
                     f"('{entry.google_full_name}' <-> '{entry.monica_full_name}')"
                 )

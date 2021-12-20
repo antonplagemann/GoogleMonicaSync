@@ -168,6 +168,7 @@ class Monica:
             if response.status_code == 200:
                 self.contacts = [c for c in self.contacts if str(c["id"]) != str(monica_id)]
                 self.deleted_contacts[monica_id] = True
+                self.log.info(f"'{name}' ('{monica_id}'): Contact deleted successfully")
                 return
             else:
                 error = response.json()["error"]["message"]
