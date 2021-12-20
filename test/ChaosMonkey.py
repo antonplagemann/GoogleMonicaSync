@@ -21,6 +21,7 @@ from dotenv import dotenv_values, find_dotenv  # type: ignore
 
 from helpers.ConfigHelper import Config
 from helpers.DatabaseHelper import Database, DatabaseEntry
+from helpers.Exceptions import DatabaseError
 from helpers.GoogleHelper import Google
 from helpers.MonicaHelper import Monica
 from helpers.SyncHelper import Sync
@@ -29,7 +30,9 @@ LOG_FOLDER = "logs"
 LOG_FILENAME = "monkey.log"
 STATE_FILENAME = "monkeyState.pickle"
 DEFAULT_CONFIG_FILEPATH = join("..", "helpers", ".env.default")
-SLEEP_TIME = 10
+
+# Google contact writes may have a propagation delay of several minutes for sync requests.
+SLEEP_TIME = 300
 
 # Chaos monkey
 # Creates, deletes and updates some random contacts at Google and Monica
@@ -46,6 +49,7 @@ class State:
         self.created_contacts: List[dict] = []
         self.deleted_database_entries: List[DatabaseEntry] = []
         self.created_database_entries: List[DatabaseEntry] = []
+        self.created_syncback_contact_ids: List[str] = []
 
     def save(self, log: logging.Logger) -> None:
         """Saves the state to the filesystem"""
@@ -137,9 +141,6 @@ class Monkey:
                 # Start initial sync  (-f)
                 self.log.info("Starting full sync chaos")
                 self.full_chaos(self.args.num)
-                # Give the People API some time to process changes before continuing
-                self.log.info(f"Waiting {SLEEP_TIME} seconds...")
-                sleep(SLEEP_TIME)
             elif self.args.syncback:
                 # Start sync back from Monica to Google  (-sb)
                 self.log.info("Starting sync back chaos")
@@ -163,6 +164,7 @@ class Monkey:
 
         except Exception as e:
             self.log.exception(e)
+            self.state.save(self.log)
             self.log.info("Script aborted")
             raise SystemExit(1) from e
 
@@ -180,14 +182,14 @@ class Monkey:
     def __clean_metadata(self, contacts: List[dict]) -> None:
         """Delete all metadata entries from a given Google contact"""
         for contact in contacts:
-            del contact["resourceName"]
-            del contact["etag"]
-            del contact["metadata"]
+            contact.pop("resourceName", None)
+            contact.pop("etag", None)
+            contact.pop("metadata", None)
             for key in tuple(contact):
                 if not isinstance(contact[key], list):
                     continue
                 for entry in contact[key]:
-                    del entry["metadata"]
+                    entry.pop("metadata", None)
 
     def __remove_contacts_from_list(self, contacts: List[dict]) -> None:
         """Removes a contact from the list (.remove does not work because of deepcopies)"""
@@ -291,7 +293,8 @@ class Monkey:
         """Creates the given count of Monica-only contacts for syncback"""
         # Create random Monica contacts
         for contact in self.__get_random_contacts(num):
-            self.sync.create_monica_contact(contact)
+            created_contact = self.sync.create_monica_contact(contact)
+            self.state.created_syncback_contact_ids.append(str(created_contact["id"]))
 
     def database_chaos(self, num: int) -> None:
         """Deletes the given count of database entries
@@ -346,12 +349,28 @@ class Monkey:
         self.google.update_contacts(updated_contacts)
         self.state.original_contacts = {}
 
-        # Delete created contacts
-        delete_mapping = {
+        # Create deleted database entries
+        for entry in self.state.deleted_database_entries:
+            self.database.insert_data(entry)
+
+        # Delete created database entries
+        for entry in self.state.created_database_entries:
+            self.database.delete(entry.google_id, entry.monica_id)
+
+        # Search created contacts during full sync
+        delete_mapping_1 = {
             contact["resourceName"]: contact["names"][0]["displayName"]
             for contact in self.state.created_contacts
         }
-        self.google.delete_contacts(delete_mapping)
+        # Search created contacts during sync back
+        delete_mapping_2 = {}
+        for monica_id in self.state.created_syncback_contact_ids:
+            deleted_entry = self.database.find_by_id(monica_id=monica_id)
+            if not deleted_entry:
+                raise DatabaseError(f"Could not find entry for syncback contact {monica_id}")
+            delete_mapping_2[deleted_entry.google_id] = deleted_entry.google_full_name
+        # Delete created contacts
+        self.google.delete_contacts({**delete_mapping_1, **delete_mapping_2})
         self.__remove_contacts_from_list(self.state.created_contacts)
         self.state.created_contacts = []
 
@@ -361,14 +380,6 @@ class Monkey:
         created_contacts = self.google.create_contacts(self.state.deleted_contacts)
         self.state.contacts += created_contacts
         self.state.deleted_contacts = []
-
-        # Create deleted database entries
-        for entry in self.state.deleted_database_entries:
-            self.database.insert_data(entry)
-
-        # Delete created database entries
-        for entry in self.state.created_database_entries:
-            self.database.delete(entry.google_id, entry.monica_id)
 
     def __create_logger(self) -> None:
         """Creates the logger object"""

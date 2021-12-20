@@ -14,12 +14,12 @@
 *.md
 *.yml
 **/conf.py
-/data/*
-/logs/*
-/test/*
+data
+logs
+test
+.mypy_cache
 Dockerfile
 .env
 .env.example
 .pylintrc
-.flake8
 .dockerignore
