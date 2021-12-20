@@ -2,17 +2,30 @@
     "python.linting.pylintEnabled": false,
     "python.linting.enabled": true,
     "python.languageServer": "Pylance",
-    "python.formatting.autopep8Args": [
-        "--max-line-length=100"
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "-l 105"
     ],
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "driver": "SQLite",
-            "name": "GMSync",
-            "database": "${workspaceFolder:GoogleMonicaSync}/syncState.db"
-        }
-    ],
-    "sqltools.useNodeRuntime": true,
     "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": [
+        "--max-line-length=105",
+        "--ignore=E203,W503,E231,E402"
+    ],
+    "python.linting.banditArgs": [
+        "--skip B403,B101,B301"
+    ],
+    "python.linting.banditEnabled": true,
+    "python.sortImports.args": [
+        "--profile black"
+    ],
+    "python.linting.mypyArgs": [
+        "--follow-imports=silent",
+        "--ignore-missing-imports",
+        "--show-column-numbers",
+        "--no-pretty",
+        "--install-types"
+    ],
+    "python.linting.mypyEnabled": true,
+    //"python.envFile": "${workspaceFolder}/.env",
+    
 }
