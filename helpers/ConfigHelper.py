@@ -12,7 +12,7 @@ class Config:
         self._log = log
         self._values = {key: value or "" for key, value in raw_config.items()}
         try:
-            self.TOKEN = self._values["TOKEN"]
+            self.TOKEN = self._values.get("TOKEN", "")
             self.BASE_URL = self._values["BASE_URL"]
             if not self.TOKEN or self.TOKEN == "YOUR_TOKEN_HERE":
                 msg = "Missing required monica token config value!"

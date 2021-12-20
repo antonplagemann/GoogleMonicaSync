@@ -160,28 +160,31 @@ class GMSync:
 
     def load_config(self) -> None:
         """Loads the config from file or environment variables"""
-        # Load raw config
+        # Load default config
+        self.log.info("Loading config (last value wins)")
         default_config = find_dotenv(DEFAULT_CONFIG_FILEPATH, raise_error_if_not_found=True)
         self.log.info(f"Loading default config from {default_config}")
         default_config_values = dotenv_values(default_config)
         if self.args.env_file:
             if not os.path.exists(self.args.env_file):
                 raise ConfigError("Could not find the custom user config file, check your input!")
-            # Use config from custom path
+            # Load config from custom path
             user_config = abspath(self.args.env_file)
         else:
             # Search config path
             user_config = find_dotenv()
         if user_config:
-            # Load user config from file
-            self.log.info(f"Loading user config from {user_config}")
-            user_config_values = dotenv_values(user_config)
+            # Load config from file
+            self.log.info(f"Loading file config from {user_config}")
+            file_config_values = dotenv_values(user_config)
         else:
-            # Load user config from environment vars
-            self.log.info("Loading user config from os environment")
-            user_config_values = dict(os.environ)
+            file_config_values = {}
+
+        # Load config from environment vars
+        self.log.info("Loading os environment config")
+        environment_config_values = dict(os.environ)
         self.log.info("Config loading complete")
-        raw_config = {**default_config_values, **user_config_values}
+        raw_config = {**default_config_values, **file_config_values, **environment_config_values}
 
         # Parse config
         self.conf = Config(self.log, raw_config)

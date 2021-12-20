@@ -243,7 +243,7 @@ class Monkey:
         return contacts_to_copy_from
 
     def initial_chaos(self, num: int) -> None:
-        """Creates Monica contacts.
+        """Creates the given count of Monica contacts.
         Produces some easy and some more complex contact matching cases for initial sync"""
         # Generate easy matches with no changes
         self.__initial_create_easy_matches(num)
@@ -265,7 +265,7 @@ class Monkey:
             self.sync.create_monica_contact(contact)
 
     def delta_chaos(self, num: int) -> None:
-        """Updates two and deletes two Google contacts"""
+        """Updates and deletes the given count of Google contacts"""
         # Update random contacts and delete their used source contacts
         contacts = self.__update_contacts(num)
         delete_mapping = {
@@ -276,7 +276,7 @@ class Monkey:
         self.state.deleted_contacts += contacts
 
     def full_chaos(self, num: int) -> None:
-        """Updates two and creates two Google contacts"""
+        """Updates and creates the given count of Google contacts"""
         # Update random contacts and recreate their used source contacts
         contacts = self.__update_contacts(num)
         # Clean metadata and id
@@ -287,13 +287,14 @@ class Monkey:
         self.state.created_contacts += created_contacts
 
     def syncback_chaos(self, num: int) -> None:
-        """Creates two Monica-only contacts for syncback"""
+        """Creates the given count of Monica-only contacts for syncback"""
         # Create random Monica contacts
         for contact in self.__get_random_contacts(num):
             self.sync.create_monica_contact(contact)
 
     def database_chaos(self, num: int) -> None:
-        """Deletes two database entries and creates two imaginary ones"""
+        """Deletes the given count of database entries
+        and creates the given count of imaginary ones"""
         # Delete entries
         for contact in self.__get_random_contacts(num):
             existing_entry = self.database.find_by_id(google_id=contact["resourceName"])
@@ -442,16 +443,23 @@ class Monkey:
 
     def __load_config(self) -> None:
         """Loads the config from file or environment variables"""
-        # Load raw config
+        # Load default config
+        self.log.info("Loading config (last value wins)")
         default_config = find_dotenv(DEFAULT_CONFIG_FILEPATH, raise_error_if_not_found=True)
         self.log.info(f"Loading default config from {default_config}")
         default_config_values = dotenv_values(default_config)
-
-        # Load user config from environment vars
-        self.log.info("Loading user config from os environment")
-        user_config_values = dict(os.environ)
+        user_config = find_dotenv()
+        if user_config:
+            # Load config from file
+            self.log.info(f"Loading file config from {user_config}")
+            file_config_values = dotenv_values(user_config)
+        else:
+            file_config_values = {}
+        # Load config from environment vars
+        self.log.info("Loading os environment config")
+        environment_config_values = dict(os.environ)
         self.log.info("Config loading complete")
-        raw_config = {**default_config_values, **user_config_values}
+        raw_config = {**default_config_values, **file_config_values, **environment_config_values}
 
         # Parse config
         self.conf = Config(self.log, raw_config)

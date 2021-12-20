@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from os.path import join
 from time import sleep
 from urllib.parse import unquote
@@ -14,6 +15,8 @@ from requests import ConnectionError, ConnectTimeout, ReadTimeout
 LOG_FOLDER = "logs"
 LOG_FILENAME = "setup.log"
 HOST = "localhost"
+PORT = 8080
+ENV_FILE = ".env"
 
 # Set logging configuration
 if not os.path.exists(LOG_FOLDER):
@@ -26,24 +29,19 @@ handler = logging.FileHandler(filename=log_filepath, mode="a", encoding="utf8")
 handler.setLevel(logging.INFO)
 handler.setFormatter(logging_format)
 log.addHandler(handler)
-msg = "Script started"
-log.info(msg)
-print(msg)
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.info("Script started")
 
 try:
     # Wait for Monica to be ready
-    msg = "Waiting for Monica to get ready"
-    log.info(msg)
-    print(msg)
+    log.info("Waiting for Monica to get ready")
     waiting_time = 0
     max_time = 300  # Wait max. 5 minutes
     while True:
         try:
-            response = requests.get(f"http://{HOST}:8080/register", timeout=0.2)
+            response = requests.get(f"http://{HOST}:{PORT}/register", timeout=0.2)
             if response.status_code == 200:
-                msg = f"Ready after {waiting_time} seconds"
-                print(msg)
-                log.info(msg)
+                log.info(f"Ready after {waiting_time} seconds")
                 sleep(1)
                 break
         except (ConnectTimeout, ConnectionError, ReadTimeout):
@@ -54,9 +52,7 @@ try:
             print(f"Waiting for Monica: {max_time - waiting_time} seconds remaining")
 
     # Get register token
-    msg = "Fetching register page"
-    log.info(msg)
-    print(msg)
+    log.info("Fetching register page")
     response = requests.get(f"http://{HOST}:8080/register")
     response.raise_for_status()
     cookies = response.cookies
@@ -77,9 +73,7 @@ try:
         "policy": "policy",
         "lang": "en",
     }
-    msg = "Registering new user"
-    log.info(msg)
-    print(msg)
+    log.info("Registering new user")
     response = requests.post(f"http://{HOST}:8080/register", cookies=response.cookies, data=data)
     response.raise_for_status()
 
@@ -88,9 +82,7 @@ try:
         "X-XSRF-TOKEN": unquote(response.cookies.get("XSRF-TOKEN")),
     }
     data = {"name": "PythonTestToken", "scopes": [], "errors": []}
-    msg = "Requesting access token"
-    log.info(msg)
-    print(msg)
+    log.info("Requesting access token")
     response = requests.post(
         f"http://{HOST}:8080/oauth/personal-access-tokens",
         headers=headers,
@@ -102,15 +94,13 @@ try:
     # Extract token from response
     access_token = response.json().get("accessToken", "error")
 
-    # Save token to environment
-    env_file = os.getenv("GITHUB_ENV", ".env")
-    print(f"Saving access token to '{env_file}'")
-    log.info(f"Saving access token '{access_token}' to '{env_file}'")
-    set_key(env_file, "TOKEN", access_token)
+    # Save token to .env file
+    open(ENV_FILE, "a+").close()
+    log.info(f"Saving access token '{access_token}' to '{ENV_FILE}'")
+    set_key(ENV_FILE, "TOKEN", access_token)
+    set_key(ENV_FILE, "BASE_URL", f"http://{HOST}:{PORT}/api")
 
-    msg = "Script finished"
-    log.info(msg)
-    print(msg)
+    log.info("Script finished")
 
 except Exception as e:
     log.exception(e)
