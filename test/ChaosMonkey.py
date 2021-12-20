@@ -29,7 +29,7 @@ LOG_FOLDER = "logs"
 LOG_FILENAME = "monkey.log"
 STATE_FILENAME = "monkeyState.pickle"
 DEFAULT_CONFIG_FILEPATH = join("..", "helpers", ".env.default")
-SLEEP_TIME = 5
+SLEEP_TIME = 10
 
 # Chaos monkey
 # Creates, deletes and updates some random contacts at Google and Monica
@@ -130,10 +130,16 @@ class Monkey:
                 # Start initial sync  (-d)
                 self.log.info("Starting delta sync chaos")
                 self.delta_chaos(self.args.num)
+                # Give the People API some time to process changes before continuing
+                self.log.info(f"Waiting {SLEEP_TIME} seconds...")
+                sleep(SLEEP_TIME)
             elif self.args.full:
                 # Start initial sync  (-f)
                 self.log.info("Starting full sync chaos")
                 self.full_chaos(self.args.num)
+                # Give the People API some time to process changes before continuing
+                self.log.info(f"Waiting {SLEEP_TIME} seconds...")
+                sleep(SLEEP_TIME)
             elif self.args.syncback:
                 # Start sync back from Monica to Google  (-sb)
                 self.log.info("Starting sync back chaos")
@@ -269,10 +275,6 @@ class Monkey:
         self.google.delete_contacts(delete_mapping)
         self.__remove_contacts_from_list(contacts)
         self.state.deleted_contacts += contacts
-
-        # Give the People API some time to process changes before continuing
-        self.log.info(f"Waiting {SLEEP_TIME} seconds...")
-        sleep(SLEEP_TIME)
 
     def full_chaos(self, num: int) -> None:
         """Updates and creates the given count of Google contacts"""
