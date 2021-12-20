@@ -29,8 +29,7 @@ LOG_FOLDER = "logs"
 LOG_FILENAME = "monkey.log"
 STATE_FILENAME = "monkeyState.pickle"
 DEFAULT_CONFIG_FILEPATH = join("..", "helpers", ".env.default")
-SLEEP_TIME = 0
-MOFIFY_COUNT = 4
+SLEEP_TIME = 5
 
 # Chaos monkey
 # Creates, deletes and updates some random contacts at Google and Monica
@@ -57,13 +56,13 @@ class State:
     def log(self, log: logging.Logger, title: str) -> None:
         """Logs the current state"""
         log.info(
-            title + f"contacts = {len(self.contacts)}\n"
-            f"seed = {self.seed}\n"
-            f"updated_contacts = {len(self.original_contacts)}\n"
-            f"deleted_contacts = {len(self.deleted_contacts)}\n"
-            f"created_contacts = {len(self.created_contacts)}\n"
-            f"deleted_database_entries = {len(self.deleted_database_entries)}\n"
-            f"created_database_entries = {len(self.created_database_entries)}"
+            title + f"\tcontacts = {len(self.contacts)}\n"
+            f"\tseed = {self.seed}\n"
+            f"\tupdated_contacts = {len(self.original_contacts)}\n"
+            f"\tdeleted_contacts = {len(self.deleted_contacts)}\n"
+            f"\tcreated_contacts = {len(self.created_contacts)}\n"
+            f"\tdeleted_database_entries = {len(self.deleted_database_entries)}\n"
+            f"\tcreated_database_entries = {len(self.created_database_entries)}"
         )
 
     @staticmethod
@@ -126,38 +125,34 @@ class Monkey:
             if self.args.initial:
                 # Start initial sync  (-i)
                 self.log.info("Starting initial sync chaos")
-                self.initial_chaos(MOFIFY_COUNT)
+                self.initial_chaos(self.args.num)
             elif self.args.delta:
                 # Start initial sync  (-d)
                 self.log.info("Starting delta sync chaos")
-                self.delta_chaos(MOFIFY_COUNT)
+                self.delta_chaos(self.args.num)
             elif self.args.full:
                 # Start initial sync  (-f)
                 self.log.info("Starting full sync chaos")
-                self.full_chaos(MOFIFY_COUNT)
+                self.full_chaos(self.args.num)
             elif self.args.syncback:
                 # Start sync back from Monica to Google  (-sb)
                 self.log.info("Starting sync back chaos")
-                self.syncback_chaos(MOFIFY_COUNT)
+                self.syncback_chaos(self.args.num)
             elif self.args.check:
                 # Start database error check  (-c)
                 self.log.info("Starting database check chaos")
-                self.database_chaos(MOFIFY_COUNT)
+                self.database_chaos(self.args.num)
             elif self.args.restore:
                 # Start database error check  (-c)
                 self.log.info("Starting restore Google contacts")
                 self.restore_contacts()
             else:
-                # Wrong arguments
-                self.log.info("Unknown sync arguments, check your input!")
+                # No arguments
+                self.log.info("Unknown arguments, exiting...")
                 self.parser.print_help()
-                sys.exit(2)
 
             # Its over now
             self.state.save(self.log)
-            # Give the People API some time to process changes before continuing
-            self.log.info(f"Waiting {SLEEP_TIME} seconds...")
-            sleep(SLEEP_TIME)
             self.log.info("Script ended\n")
 
         except Exception as e:
@@ -274,6 +269,10 @@ class Monkey:
         self.google.delete_contacts(delete_mapping)
         self.__remove_contacts_from_list(contacts)
         self.state.deleted_contacts += contacts
+
+        # Give the People API some time to process changes before continuing
+        self.log.info(f"Waiting {SLEEP_TIME} seconds...")
+        sleep(SLEEP_TIME)
 
     def full_chaos(self, num: int) -> None:
         """Updates and creates the given count of Google contacts"""
@@ -436,6 +435,9 @@ class Monkey:
         parser.add_argument(
             "-s", "--seed", type=int, required=False, help="custom seed for the random generator"
         )
+        parser.add_argument(
+            "-n", "--num", type=int, required=False, default=4, help="number of things to manipulate"
+        )
 
         # Parse arguments
         self.parser = parser
@@ -467,7 +469,7 @@ class Monkey:
 
     def __create_sync_helper(self) -> None:
         """Creates the main sync class object"""
-        # Create sync objects
+        # Create class objects
         self.database = Database(self.log, self.conf.DATABASE_FILE)
         self.google = Google(
             self.log,
