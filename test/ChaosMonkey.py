@@ -321,35 +321,8 @@ class Monkey:
 
     def restore_contacts(self) -> None:
         """Restore all manipulated Google contacts"""
-        # Revert updated contacts
-        changed_contacts = [
-            contact
-            for contact in self.state.contacts
-            if contact["resourceName"] in self.state.original_contacts
-        ]
-        self.__remove_contacts_from_list(list(self.state.original_contacts.values()))
-        update_mapping = [
-            (original_contact, changed_contact)
-            for original_contact in self.state.original_contacts.values()
-            for changed_contact in changed_contacts
-            if original_contact["resourceName"] == changed_contact["resourceName"]
-        ]
-        updated_contacts = []
-        for original_contact, changed_contact in update_mapping:
-            # Revert changes
-            for key in tuple(original_contact):
-                if not isinstance(original_contact[key], list):
-                    continue
-                changed_contact[key] = original_contact[key]
-            # Delete other fields
-            for key in tuple(changed_contact):
-                if isinstance(changed_contact[key], list) and key not in self.fields:
-                    del changed_contact[key]
-            # Update contact
-            updated_contacts.append(changed_contact)
-        self.state.contacts += updated_contacts
-        self.google.update_contacts(updated_contacts)
-        self.state.original_contacts = {}
+        # Restore updated contacts
+        self.__revert_updated_contacts()
 
         # Create deleted database entries
         for entry in self.state.deleted_database_entries:
@@ -386,6 +359,37 @@ class Monkey:
         created_contacts = self.google.create_contacts(self.state.deleted_contacts)
         self.state.contacts += created_contacts
         self.state.deleted_contacts = []
+
+    def __revert_updated_contacts(self):
+        """Reverts all changes to Google contacts"""
+        changed_contacts = [
+            contact
+            for contact in self.state.contacts
+            if contact["resourceName"] in self.state.original_contacts
+        ]
+        self.__remove_contacts_from_list(list(self.state.original_contacts.values()))
+        update_mapping = [
+            (original_contact, changed_contact)
+            for original_contact in self.state.original_contacts.values()
+            for changed_contact in changed_contacts
+            if original_contact["resourceName"] == changed_contact["resourceName"]
+        ]
+        updated_contacts = []
+        for original_contact, changed_contact in update_mapping:
+            # Revert changes
+            for key in tuple(original_contact):
+                if not isinstance(original_contact[key], list):
+                    continue
+                changed_contact[key] = original_contact[key]
+            # Delete other fields
+            for key in tuple(changed_contact):
+                if isinstance(changed_contact[key], list) and key not in self.fields:
+                    del changed_contact[key]
+            # Update contact
+            updated_contacts.append(changed_contact)
+        self.state.contacts += updated_contacts
+        self.google.update_contacts(updated_contacts)
+        self.state.original_contacts = {}
 
     def __create_logger(self) -> None:
         """Creates the logger object"""

@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 from logging import Logger
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from helpers.Exceptions import DatabaseError
 
@@ -169,7 +169,7 @@ class Database:
             return DatabaseEntry(*row)
         return None
 
-    def get_id_mapping(self) -> dict:
+    def get_id_mapping(self) -> Dict[str, str]:
         """Returns a dictionary with the {monicaId:googleId} mapping from the database"""
         find_sql = "SELECT googleId,monicaId FROM sync"
         self.cursor.execute(find_sql)

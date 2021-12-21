@@ -934,6 +934,40 @@ class Sync:
                 print("\nError: " + msg)
         return monica_contacts_not_synced, errors
 
+    def __check_results(
+        self,
+        orphaned_entries: List[str],
+        monica_contacts_not_synced: List[dict],
+        google_contacts_not_synced: List[dict],
+    ) -> None:
+        if orphaned_entries:
+            self.log.info("The following database entries are orphaned:")
+            for google_id in orphaned_entries:
+                entry = self.database.find_by_id(google_id)
+                if not entry:
+                    raise DatabaseError("Database externally modified, entry not found!")
+                self.log.info(
+                    f"'{google_id}' <-> '{entry.monica_id}' "
+                    f"('{entry.google_full_name}' <-> '{entry.monica_full_name}')"
+                )
+                self.log.info(
+                    "This doesn't cause sync errors, but you can fix it doing initial sync '-i'"
+                )
+        if not monica_contacts_not_synced and not google_contacts_not_synced:
+            self.log.info("All contacts are currently in sync")
+        elif monica_contacts_not_synced:
+            self.log.info("The following Monica contacts are currently not in sync:")
+            for monica_contact in monica_contacts_not_synced:
+                self.log.info(f"'{monica_contact['complete_name']}' ('{monica_contact['id']}')")
+            self.log.info("You can do a sync back '-sb' to fix that")
+        if google_contacts_not_synced:
+            self.log.info("The following Google contacts are currently not in sync:")
+            for google_contact in google_contacts_not_synced:
+                google_id = google_contact["resourceName"]
+                g_contact_display_name = self.google.get_contact_names(google_contact)[3]
+                self.log.info(f"'{g_contact_display_name}' ('{google_id}')")
+            self.log.info("You can do a full sync '-f' to fix that")
+
     def check_database(self) -> None:
         """Checks if there are orphaned database entries which need to be resolved.
         The following checks and assumptions will be made:
@@ -976,33 +1010,7 @@ class Sync:
         ]
 
         # Log results
-        if orphaned_entries:
-            self.log.info("The following database entries are orphaned:")
-            for google_id in orphaned_entries:
-                entry = self.database.find_by_id(google_id)
-                if not entry:
-                    raise DatabaseError("Database externally modified, entry not found!")
-                self.log.info(
-                    f"'{google_id}' <-> '{entry.monica_id}' "
-                    f"('{entry.google_full_name}' <-> '{entry.monica_full_name}')"
-                )
-                self.log.info(
-                    "This doesn't cause sync errors, but you can fix it doing initial sync '-i'"
-                )
-        if not monica_contacts_not_synced and not google_contacts_not_synced:
-            self.log.info("All contacts are currently in sync")
-        elif monica_contacts_not_synced:
-            self.log.info("The following Monica contacts are currently not in sync:")
-            for monica_contact in monica_contacts_not_synced:
-                self.log.info(f"'{monica_contact['complete_name']}' ('{monica_contact['id']}')")
-            self.log.info("You can do a sync back '-sb' to fix that")
-        if google_contacts_not_synced:
-            self.log.info("The following Google contacts are currently not in sync:")
-            for google_contact in google_contacts_not_synced:
-                google_id = google_contact["resourceName"]
-                g_contact_display_name = self.google.get_contact_names(google_contact)[3]
-                self.log.info(f"'{g_contact_display_name}' ('{google_id}')")
-            self.log.info("You can do a full sync '-f' to fix that")
+        self.__check_results(orphaned_entries, monica_contacts_not_synced, google_contacts_not_synced)
 
         # Finished
         if errors:
@@ -1067,23 +1075,7 @@ class Sync:
         """Updates names, birthday and deceased date by merging an existing Monica contact with
         a given Google contact."""
         # Get names
-        first_name, last_name = self.__get_monica_names_from_google_contact(google_contact)
-        middle_name = self.google.get_contact_names(google_contact)[1]
-        display_name = self.google.get_contact_names(google_contact)[3]
-        nick_name = self.google.get_contact_names(google_contact)[6]
-        # First name is required for Monica
-        if not first_name:
-            first_name = display_name
-            last_name = ""
-
-        # Get birthday
-        birthday = google_contact.get("birthdays", None)
-        birthdate_year, birthdate_month, birthdate_day = None, None, None
-        if birthday:
-            birthdate_year = birthday[0].get("date", {}).get("year", None)
-            birthdate_month = birthday[0].get("date", {}).get("month", None)
-            birthdate_day = birthday[0].get("date", {}).get("day", None)
-        is_birthdate_known = all([birthdate_month, birthdate_day])
+        names_and_birthday = self.__get_monica_details(google_contact)
 
         # Get deceased info
         deceased_date = monica_contact["information"]["dates"]["deceased_date"]["date"]
@@ -1097,23 +1089,13 @@ class Sync:
 
         # Assemble form object
         google_form = MonicaContactUploadForm(
-            first_name=first_name,
-            monica=self.monica,
-            last_name=last_name,
-            nick_name=nick_name,
-            middle_name=middle_name,
-            gender_type=monica_contact["gender_type"],
-            birthdate_day=birthdate_day if is_birthdate_known else None,
-            birthdate_month=birthdate_month if is_birthdate_known else None,
-            birthdate_year=birthdate_year if is_birthdate_known else None,
-            is_birthdate_known=is_birthdate_known,
+            **names_and_birthday,
             is_deceased=monica_contact["is_dead"],
             is_deceased_date_known=bool(deceased_date),
             deceased_year=deceased_year,
             deceased_month=deceased_month,
             deceased_day=deceased_day,
             deceased_age_based=is_d_date_age_based,
-            create_reminders=self.monica.create_reminders,
         )
 
         # Check if contacts are already equal
@@ -1176,6 +1158,17 @@ class Sync:
 
     def create_monica_contact(self, google_contact: dict) -> dict:
         """Creates a new Monica contact from a given Google contact and returns it."""
+        form_data = self.__get_monica_details(google_contact)
+
+        # Assemble form object
+        form = MonicaContactUploadForm(**form_data)
+        # Upload contact
+        monica_contact = self.monica.create_contact(
+            data=form.data, reference_id=google_contact["resourceName"]
+        )
+        return monica_contact
+
+    def __get_monica_details(self, google_contact: dict) -> Dict[str, Any]:
         # Get names
         first_name, last_name = self.__get_monica_names_from_google_contact(google_contact)
         middle_name = self.google.get_contact_names(google_contact)[1]
@@ -1195,24 +1188,19 @@ class Sync:
             birthdate_day = birthday[0].get("date", {}).get("day", None)
         is_birthdate_known = all([birthdate_month, birthdate_day])
 
-        # Assemble form object
-        form = MonicaContactUploadForm(
-            first_name=first_name,
-            monica=self.monica,
-            last_name=last_name,
-            middle_name=middle_name,
-            nick_name=nickname,
-            birthdate_day=birthdate_day if is_birthdate_known else None,
-            birthdate_month=birthdate_month if is_birthdate_known else None,
-            birthdate_year=birthdate_year if is_birthdate_known else None,
-            is_birthdate_known=all([birthdate_month, birthdate_day]),
-            create_reminders=self.monica.create_reminders,
-        )
-        # Upload contact
-        monica_contact = self.monica.create_contact(
-            data=form.data, reference_id=google_contact["resourceName"]
-        )
-        return monica_contact
+        form_data = {
+            "first_name": first_name,
+            "monica": self.monica,
+            "last_name": last_name,
+            "middle_name": middle_name,
+            "nick_name": nickname,
+            "birthdate_day": birthdate_day if is_birthdate_known else None,
+            "birthdate_month": birthdate_month if is_birthdate_known else None,
+            "birthdate_year": birthdate_year if is_birthdate_known else None,
+            "is_birthdate_known": all([birthdate_month, birthdate_day]),
+            "create_reminders": self.monica.create_reminders,
+        }
+        return form_data
 
     def __convert_google_timestamp(self, timestamp: str) -> Union[datetime, None]:
         """Converts Google timestamp to a datetime object."""
