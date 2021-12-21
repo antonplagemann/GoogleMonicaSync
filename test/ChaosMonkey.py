@@ -293,6 +293,10 @@ class Monkey:
 
     def syncback_chaos(self, num: int) -> None:
         """Creates the given count of Monica-only contacts for syncback"""
+        # Ensure that there is no lonely Monica contact yet (could be sometimes)
+        for contact in self.monica.get_contacts():
+            if str(contact["id"]) not in self.database.get_id_mapping().values():
+                self.monica.delete_contact(contact["id"], contact["complete_name"])
         # Create random Monica contacts
         for contact in self.__get_random_contacts(num):
             created_contact = self.sync.create_monica_contact(contact)

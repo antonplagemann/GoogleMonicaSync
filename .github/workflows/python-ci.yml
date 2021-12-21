@@ -19,6 +19,41 @@ on:
         description: 'Number of items the chaos monkey should manipulate during test'
         required: false
         default: '4'
+      CREATE_REMINDERS:
+        description: Create reminders for birthdays and deceased days?
+        required: false
+        type: boolean
+        default: true
+      DELETE_ON_SYNC:
+        description: Delete Monica contact if the corresponding Google contact has been deleted?
+        required: false
+        type: boolean
+        default: true
+      STREET_REVERSAL:
+        description: Do a street reversal in address sync if the first character is a number?
+        required: false
+        type: boolean
+        default: false
+      FIELDS:
+        description: What fields should be synced? (both directions)
+        required: false
+        default: career,address,phone,email,labels,notes
+      GOOGLE_LABELS_INCLUDE:
+        description: Define Google contact labels/tags/groups you want to include in sync
+        required: false
+        default: 
+      GOOGLE_LABELS_EXCLUDE:
+        description: Define Google contact labels/tags/groups you want to exclude from sync
+        required: false
+        default: 
+      MONICA_LABELS_INCLUDE:
+        description: Define Monica contact labels/tags/groups you want to include in sync
+        required: false
+        default: 
+      MONICA_LABELS_EXCLUDE:
+        description: Define Monica contact labels/tags/groups you want to exclude from sync
+        required: false
+        default: 
 
 # 1. Run linting and static code checks
 jobs:
@@ -97,6 +132,14 @@ jobs:
         uses: ./.github/actions/setup-environment
         with:
           GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
+          CREATE_REMINDERS: ${{  github.event.inputs.CREATE_REMINDERS  }}
+          DELETE_ON_SYNC:  ${{  github.event.inputs.DELETE_ON_SYNC  }}
+          STREET_REVERSAL:  ${{  github.event.inputs.STREET_REVERSAL  }}
+          FIELDS:  ${{  github.event.inputs.FIELDS  }}
+          GOOGLE_LABELS_INCLUDE:  ${{  github.event.inputs.GOOGLE_LABELS_INCLUDE  }}
+          GOOGLE_LABELS_EXCLUDE:  ${{  github.event.inputs.GOOGLE_LABELS_EXCLUDE  }}
+          MONICA_LABELS_INCLUDE:  ${{  github.event.inputs.MONICA_LABELS_INCLUDE  }}
+          MONICA_LABELS_EXCLUDE:  ${{  github.event.inputs.MONICA_LABELS_EXCLUDE  }}
 
       # Test initial sync
       - name: Prepare initial sync
@@ -165,10 +208,17 @@ jobs:
         with:
           TEST_RUNNER: ${{ env.TEST_RUNNER }}
 
-      - name: Get Google token from file
-        run: echo '::set-output name=GOOGLE_TOKEN::$(cat data/token.pickle)'
+      - name: Get token from file to environment
+        shell: python
+        run: |
+          import os
+          with open("data/token.pickle", "r") as base64_token:
+              creds_base64 = base64_token.read()
+          env_file = os.getenv('GITHUB_ENV')
+          with open(env_file, "a") as myfile:
+              myfile.write(f"GOOGLE_TOKEN={creds_base64}")
 
-      - name: Update Google token secret
+      - name: Save eventually updated Google token secret
         uses: hmanzur/actions-set-secret@v2.0.0
         with:
           name: GOOGLE_TOKEN
@@ -224,6 +274,14 @@ jobs:
         uses: ./.github/actions/setup-environment
         with:
           GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
+          CREATE_REMINDERS: ${{  github.event.inputs.CREATE_REMINDERS  }}
+          DELETE_ON_SYNC:  ${{  github.event.inputs.DELETE_ON_SYNC  }}
+          STREET_REVERSAL:  ${{  github.event.inputs.STREET_REVERSAL  }}
+          FIELDS:  ${{  github.event.inputs.FIELDS  }}
+          GOOGLE_LABELS_INCLUDE:  ${{  github.event.inputs.GOOGLE_LABELS_INCLUDE  }}
+          GOOGLE_LABELS_EXCLUDE:  ${{  github.event.inputs.GOOGLE_LABELS_EXCLUDE  }}
+          MONICA_LABELS_INCLUDE:  ${{  github.event.inputs.MONICA_LABELS_INCLUDE  }}
+          MONICA_LABELS_EXCLUDE:  ${{  github.event.inputs.MONICA_LABELS_EXCLUDE  }}
 
       # Test initial sync
       - name: Prepare initial sync
@@ -292,20 +350,11 @@ jobs:
         with:
           TEST_RUNNER: ${{ env.TEST_RUNNER }}
 
-      - name: Get Google token from file
-        run: echo '::set-output name=GOOGLE_TOKEN::$(cat data/token.pickle)'
-
-      - name: Update Google token secret
-        uses: hmanzur/actions-set-secret@v2.0.0
-        with:
-          name: GOOGLE_TOKEN
-          value: ${{ env.GOOGLE_TOKEN }}
-          repository: antonplagemann/GoogleMonicaSync
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
-
       - name: Upload log files
         if: always()
         uses: actions/upload-artifact@v2
         with:
           name: logs
-          path: logs/
+          path: |
+            logs/
+            data/syncState.db
