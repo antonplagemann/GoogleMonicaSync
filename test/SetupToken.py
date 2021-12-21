@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import sys
 from os.path import join
 from time import sleep
@@ -9,13 +10,16 @@ from urllib.parse import unquote
 
 import requests
 from bs4 import BeautifulSoup  # type: ignore
-from dotenv.main import set_key  # type: ignore
+from dotenv.main import load_dotenv, set_key  # type: ignore
 from requests import ConnectionError, ConnectTimeout, ReadTimeout
 
 LOG_FOLDER = "logs"
 LOG_FILENAME = "setup.log"
-HOST = "localhost"
-PORT = 8080
+try:
+    load_dotenv()
+    HOST, PORT = re.findall(r"https?://(.+?):(\d+)/api/?", os.getenv("BASE_URL", ""))[0]
+except IndexError:
+    HOST, PORT = "localhost", 8080
 ENV_FILE = ".env"
 
 # Set logging configuration
@@ -31,6 +35,7 @@ handler.setFormatter(logging_format)
 log.addHandler(handler)
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.info("Script started")
+log.info(f"Host: http://{HOST}:{PORT}")
 
 try:
     # Wait for Monica to be ready
@@ -92,11 +97,11 @@ try:
     response.raise_for_status()
 
     # Extract token from response
-    access_token = response.json().get("accessToken", "error")
+    access_token: str = response.json().get("accessToken", "error")
 
     # Save token to a (new) .env file
     open(ENV_FILE, "a+").close()
-    log.info(f"Saving access token '{access_token}' to '{ENV_FILE}'")
+    log.info(f"Saving access token '{access_token[:10]}...' to '{ENV_FILE}'")
     set_key(ENV_FILE, "TOKEN", access_token)
     set_key(ENV_FILE, "BASE_URL", f"http://{HOST}:{PORT}/api")
 

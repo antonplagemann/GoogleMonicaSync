@@ -1,3 +1,4 @@
+import codecs
 import os.path
 import pickle
 import time
@@ -57,9 +58,20 @@ class Google:
         # The file token.pickle stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists(self.token_file):
-            with open(self.token_file, "rb") as token:
-                creds = pickle.load(token)
+        try:
+            if os.path.exists(self.token_file):
+                with open(self.token_file, "r") as base64_token:
+                    creds_pickled = base64_token.read()
+                creds = pickle.loads(codecs.decode(creds_pickled.encode(), "base64"))
+            else:
+                raise ConfigError("Google token file not found!")
+        except UnicodeDecodeError:
+            # Maybe old pickling file, try to update
+            with open(self.token_file, "rb") as binary_token:
+                creds = pickle.load(binary_token)
+            creds_str = codecs.encode(pickle.dumps(creds), "base64").decode()
+            with open(self.token_file, "w") as token:
+                token.write(creds_str)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -86,8 +98,9 @@ class Google:
                 )
                 raise ConfigError("Google token not found or invalid!")
             # Save the credentials for the next run
-            with open(self.token_file, "wb") as token:
-                pickle.dump(creds, token)
+            creds_str = codecs.encode(pickle.dumps(creds), "base64").decode()
+            with open(self.token_file, "w") as token:
+                token.write(creds_str)
 
         service = build("people", "v1", credentials=creds)
         return service

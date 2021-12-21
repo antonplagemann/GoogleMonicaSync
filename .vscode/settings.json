@@ -26,6 +26,9 @@
         "--install-types"
     ],
     "python.linting.mypyEnabled": true,
+    "cSpell.words": [
+        "dotenv"
+    ],
     //"python.envFile": "${workspaceFolder}/.env",
     
 }
