@@ -1,13 +1,7 @@
 name: 'Cleanup test environment'
-description: 'Restores changed Google contacts and uploads log files'
+description: 'Restores changed Google contacts and renames log files'
 
 inputs:
-  AZURE_TOKEN:
-    description: 'An Azure SAS token'
-    required: true
-  ACCOUNT_URL:
-    description: 'Your Azure blob storage account url'
-    required: true
   TEST_RUNNER:
     description: 'The system used to run the scripts (python/docker)'
     required: true
@@ -18,15 +12,9 @@ runs:
       - name: Restore original data
         run: python test/ChaosMonkey.py --restore
         shell: bash
+
       - name: Rename log files
         run: |
           mv logs/monkey.log logs/${{ inputs.TEST_RUNNER }}_monkey.log
           mv logs/setup.log logs/${{ inputs.TEST_RUNNER }}_setup.log
-          mv logs/transfer.log logs/${{ inputs.TEST_RUNNER }}_transfer.log
         shell: bash
-      - name: Upload files to Azure Blob Storage
-        run: python test/TransferFiles.py --upload --files logs/
-        shell: bash
-        env:
-          AZURE_TOKEN: ${{ inputs.AZURE_TOKEN }}
-          ACCOUNT_URL: ${{ inputs.ACCOUNT_URL }}

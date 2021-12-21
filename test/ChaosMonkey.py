@@ -32,7 +32,7 @@ STATE_FILENAME = "monkeyState.pickle"
 DEFAULT_CONFIG_FILEPATH = join("..", "helpers", ".env.default")
 
 # Google contact writes may have a propagation delay of several minutes for sync requests.
-SLEEP_TIME = 300
+SLEEP_TIME = 180
 
 # Chaos monkey
 # Creates, deletes and updates some random contacts at Google and Monica
@@ -78,7 +78,9 @@ class State:
             state.log(monkey.log, "State loaded: \n")
             return state
         else:
-            google_contacts = monkey.google.get_contacts()
+            google_contacts = sorted(
+                monkey.google.get_contacts(), key=lambda contact: contact["resourceName"], reverse=True
+            )
             seed = monkey.args.seed
             if not seed:
                 seed = random.randint(100000, 999999)  # nosec
@@ -135,7 +137,7 @@ class Monkey:
                 self.log.info("Starting delta sync chaos")
                 self.delta_chaos(self.args.num)
                 # Give the People API some time to process changes before continuing
-                self.log.info(f"Waiting {SLEEP_TIME} seconds...")
+                self.log.info(f"Giving the People API {SLEEP_TIME} seconds to process changes...")
                 sleep(SLEEP_TIME)
             elif self.args.full:
                 # Start initial sync  (-f)
@@ -352,10 +354,14 @@ class Monkey:
         # Create deleted database entries
         for entry in self.state.deleted_database_entries:
             self.database.insert_data(entry)
+            self.log.info(f"Database row {entry.google_id} restored")
+        self.state.deleted_database_entries = []
 
         # Delete created database entries
         for entry in self.state.created_database_entries:
             self.database.delete(entry.google_id, entry.monica_id)
+            self.log.info(f"Database row {entry.google_id} deleted")
+        self.state.created_database_entries = []
 
         # Search created contacts during full sync
         delete_mapping_1 = {
