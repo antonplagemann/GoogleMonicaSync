@@ -1,9 +1,9 @@
 name: 'Setup test environment'
-description: 'Sets up a new Monica instance, installs dependencies, and creates/gets sync tokens'
+description: 'Sets up a new Monica instance, installs dependencies, and creates/retrieves sync tokens'
 
 inputs:
   GOOGLE_TOKEN:
-    description: The token.pickle file content (base64 string)
+    description: The token.pickle file content (base64 encoded string)
     required: true
   MONICA_URL:
     required: false
@@ -60,5 +60,5 @@ runs:
       shell: bash
 
     - name: Set folder permissions for non-root containers
-      run: sudo chmod 777 data logs -R
+      run: sudo chmod 755 data logs -R
       shell: bash

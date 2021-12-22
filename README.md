@@ -88,7 +88,7 @@ Alternatively to step 5 you can download and configure the [docker-compose.yml](
 
 ### Background script with docker
 
-Here's a sample script which can use to automate syncing e.g. with a crontab schedule.
+Here's a sample script which you can use to automate syncing e.g. with a crontab schedule.
 
 ```bash
 #!/bin/bash

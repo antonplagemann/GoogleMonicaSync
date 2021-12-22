@@ -76,7 +76,7 @@ class GMSync:
                 self.parser.print_help()
                 sys.exit(2)
 
-            # Its over now
+            # It's over now
             self.log.info("Script ended\n")
 
         except Exception as e:
@@ -225,7 +225,7 @@ class GMSync:
         )
 
     def update_environment(self):
-        """Updates the config and other environment files to work with v.4.x"""
+        """Updates the config and other environment files to work with v4.x.x"""
         self.log.info("Start updating environment")
 
         # Make 'data' folder
