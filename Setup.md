@@ -3,7 +3,7 @@
 # Google OAuth Application Setup Instructions
 
 Use these instructions to set up API credentials for use with the syncing script.  
-The following instructions are based on the [`Create a project and enable the API`](https://developers.google.com/workspace/guides/create-project) article and [`Create credentials`](https://developers.google.com/workspace/guides/create-credentials) article.
+The following instructions are based on the [Create a project and enable the API](https://developers.google.com/workspace/guides/create-project) and [Create credentials](https://developers.google.com/workspace/guides/create-credentials) articles.
 
 ## Create a new Google Cloud Platform (GCP) project
 

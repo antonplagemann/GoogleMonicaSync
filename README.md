@@ -65,7 +65,8 @@ All contributions are welcome! Feel free to open an issue or pull request 🙌
 
 ## Get started
 
-The setup is a bit involving process as you have to create a Google Cloud Platform project to access your contacts via the Google People API. After creating this project and creating the authorization credentials you need to do the first initial sync to build the sync database and match what is already at your Monica instance and what's in your Google account. Please follow [this guide](./Setup.md) to complete the described steps. Once you did an initial sync you can use one of the delta sync commands from the next section to update your contacts regularly.
+The setup is a bit involving process as you have to create a Google Cloud Platform project to access your contacts via the Google People API.  
+[Please follow this guide](./Setup.md) to complete the required steps and do an initial sync. Once you did that you can use one of the delta sync commands from the next section to update your contacts regularly.
 
 ## Delta sync (without docker)
 
