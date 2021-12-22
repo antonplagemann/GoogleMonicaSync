@@ -6,12 +6,12 @@
 
 [![CodeQL](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml)
 [![Docker CD](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml)
-[![Python CI](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python_lint.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python_ci.yml)
+[![Python CI](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python-ci.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python_ci.yml)
 [![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![spellcheck: codespell](https://img.shields.io/badge/spellcheck-codespell-brightgreen.svg)](https://github.com/codespell-project/codespell)
-[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![security: bandit](https://img.shields.io/badge/security-bandit-success.svg)](https://github.com/PyCQA/bandit)
 [![linter: flake8](https://img.shields.io/badge/linter-flake8-brightgreen.svg)](https://github.com/PyCQA/flake8)
-[![imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![imports: isort](https://img.shields.io/badge/imports-isort-blue.svg)](https://pycqa.github.io/isort/)
 [![mypy: checked](https://img.shields.io/badge/mypy-checked-blue.svg)](https://github.com/python/mypy)
 
 🔒 SonarCloud monitored
@@ -31,8 +31,8 @@
 
 Using [Monica](https://github.com/monicahq/monica) and Google Contacts, but you're annoyed by keeping your data in sync? Then this python script is for you 😎  
 It does one-way ➡ contact syncing of your Google Contacts to a Monica account 🎉  
-But wait, before trying something new and cool, please do not forget to **make a full backup 🔒** before entering the first command 😉  
-I did my best to write clean code, but if I missed a bug 🐛 that you've found, please return it to me 🏡😊, I would be happy to fix it 🙏!  
+But wait, before trying something new, please do not forget to **make a full backup 🔒** before entering the first command 😉  
+I did my best to write clean and working code, but if I missed a bug 🐛 that you've found, please return it to me 🏡😊, I would be happy to fix it 🙏!  
 All contributions are welcome! Feel free to open an issue or pull request 🙌
 
 ## Features
@@ -40,7 +40,7 @@ All contributions are welcome! Feel free to open an issue or pull request 🙌
 - One-way sync (Google → Monica)
   - Syncs the following details: first name, last name, middle name, nickname, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (see [limits](#limits))
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
-- User choice prompt before any modification to your Monica data during initial sync (you can choose to abort before the script makes any change).
+- User choice prompt before any modification to your Monica data during initial sync (you can choose to abort before the script makes any change)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica → Google) of new Monica contacts that do not have a corresponding Google contact yet
   - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags)
@@ -51,7 +51,7 @@ All contributions are welcome! Feel free to open an issue or pull request 🙌
 - **Do not update [*synced*](#features) details at Monica.** As this is a one-way ➡ sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete synced contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
 - The Monica public instance limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).  
-If you are using the hosted version of Monica you can [configure this rate limit](https://github.com/monicahq/monica/pull/5489) starting from Monica v3.3.0.
+    > If you are using the hosted version of Monica you can [configure this rate limit](https://github.com/monicahq/monica/pull/5489) starting from Monica v3.3.0.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do (fast) full sync instead
 - A label itself won't be deleted automatically if it has been removed from the last contact.
 - If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many *additional* notes as you want at Monica**, they will not be overwritten.
@@ -63,39 +63,31 @@ If you are using the hosted version of Monica you can [configure this rate limit
 - Birthdays on 29. Feb will be synced as 01. March 😊
 - Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True` (default: `False`), because Google assigns a new contact ID. That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
 
-## Get started (without docker)
+## Get started
 
-0. Install Python 3.9 or newer
-1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
-2. Copy `credentials.json` and `token.pickle` inside the data folder directory.
-3. Inside `data` rename `.env.example` to `.env` file and fill in your desired settings (a Monica token can be retrieved in your account settings).
-4. Do a `pip install -r requirements.txt` inside the main repository directory.
-5. Run `python GMSync.py -i`
+The setup is a bit involving process as you have to create a Google Cloud Platform project to access your contacts via the Google People API. After creating this project and creating the authorization credentials you need to do the first initial sync to build the sync database and match what is already at your Monica instance and what's in your Google account. Please follow [this guide](./Setup.md) to complete the described steps. Once you did an initial sync you can use one of the delta sync commands from the next section to update your contacts regularly.
 
-## Get started (with docker)
+## Delta sync (without docker)
 
-1. Use the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) or something similar to get the `credentials.json` and `token.pickle` files.
-2. In your chosen main folder, create two folders named `data` and `logs` and copy the files from step 1 inside the `data` folder.
-3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/.env.example) the `.env.example` file, rename to `.env`, put it in your main folder and fill in your desired settings (a Monica token can be retrieved in your account settings).
-    > This project is using a **non-root** container, so `data` and `logs` must have read-write permissions for UID 5678 (container user).
-    > For example, you can use `sudo chown 5678 data logs` inside your main directory to set the appropriate permissions. Sometimes this may be also necessary for files inside those folders (if you get a `permission denied` error).
-4. Open a console in the main folder and do an initial sync using your created `.env` file (on Windows replace `$(pwd)` with `%cd%`)
+Run the following command inside the main folder:
 
-    ```bash
-    docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env -it antonplagemann/google-monica-sync sh -c "python -u GMSync.py -i"
-    ```
+```bash
+python GMSync.py -d
+```
 
-5. For delta sync use this command:
+## Delta sync (with docker)
 
-    ```bash
-    docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
-    ```
+For delta sync use this command:
+
+```bash
+docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
+```
 
 Alternatively to step 5 you can download and configure the [docker-compose.yml](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
 
 ### Background script with docker
 
-A sample script you can use to automate syncing e.g. with a crontab schedule.
+Here's a sample script which can use to automate syncing e.g. with a crontab schedule.
 
 ```bash
 #!/bin/bash
@@ -106,7 +98,7 @@ export COMPOSE_INTERACTIVE_NO_CLI=1
 docker-compose up -d
 ```
 
-## All sync commands
+## All commands
 
 Usage:
 
@@ -177,3 +169,4 @@ If you think something has gone wrong, you miss some contacts or just want a pre
 - [ ] ~~Think about a pip package~~
 - [ ] ~~Implement sync procedure using python threads: probably much faster with multithreading~~ (not much faster because the Monica API rate limit is the bottleneck here)
 - [x] Add docker container
+- [x] Add automated testing of changes
