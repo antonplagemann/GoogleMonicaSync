@@ -3,12 +3,7 @@ name: Docker CD
 on:
   push:
     branches:
-      - 'main'
-    paths:
-      - '**.py'
-      - '.dockerignore'
-      - 'Dockerfile'
-      - 'requirements.txt'
+      - main
 
 jobs:
   docker:

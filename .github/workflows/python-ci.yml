@@ -7,12 +7,7 @@ name: Python CI
 on:
   pull_request:
     types: ['opened', 'reopened', 'synchronize']
-  push:
-    branches:
-    - 'development'
-    - 'main'
-    paths:
-    - '**.py'
+
   workflow_dispatch:
     inputs:
       numChaos:

@@ -4,8 +4,7 @@ from base64 import b64encode
 import requests
 from nacl import encoding, public  # type: ignore
 
-OWNER = "antonplagemann"
-REPO = "GoogleMonicaSync"
+REPO = os.getenv("GITHUB_REPOSITORY")
 SECRET_NAME = "GOOGLE_TOKEN"  # nosec
 REPO_TOKEN = os.getenv("REPO_TOKEN")
 
@@ -25,7 +24,7 @@ with open("data/token.pickle", "r") as base64_token:
 # Get repo public key
 headers = {"accept": "application/vnd.github.v3+json", "Authorization": f"token {REPO_TOKEN}"}
 response = requests.get(
-    f"https://api.github.com/repos/{OWNER}/{REPO}/actions/secrets/public-key", headers=headers
+    f"https://api.github.com/repos/{REPO}/actions/secrets/public-key", headers=headers
 )
 response.raise_for_status()
 data = response.json()
@@ -38,7 +37,7 @@ body = {"encrypted_value": encrypted_secret, "key_id": public_key_id}
 
 # Set secret
 response = requests.put(
-    f"https://api.github.com/repos/{OWNER}/{REPO}/actions/secrets/{SECRET_NAME}",
+    f"https://api.github.com/repos/{REPO}/actions/secrets/{SECRET_NAME}",
     headers=headers,
     json=body,
 )

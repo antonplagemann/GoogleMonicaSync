@@ -99,7 +99,7 @@ try:
     # Extract token from response
     access_token: str = response.json().get("accessToken", "error")
 
-    # Save token to a (new) .env file
+    # Save token to .env file
     open(ENV_FILE, "a+").close()
     log.info(f"Saving access token '{access_token[:10]}...' to '{ENV_FILE}'")
     set_key(ENV_FILE, "TOKEN", access_token)
