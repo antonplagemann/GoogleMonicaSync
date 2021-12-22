@@ -269,10 +269,10 @@ class Google:
 
     def __is_slow_down_error(self, error: HttpError) -> bool:
         """Checks if the error is an quota exceeded error and slows down the requests if yes."""
-        WAITING_TIME = 60
+        waiting_time = 60
         if "Quota exceeded" in str(error):
-            print(f"\nToo many Google requests, waiting {WAITING_TIME} seconds...")
-            time.sleep(WAITING_TIME)
+            print(f"\nToo many Google requests, waiting {waiting_time} seconds...")
+            time.sleep(waiting_time)
             return True
         else:
             return False

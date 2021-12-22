@@ -106,7 +106,7 @@ class Database:
     def update(self, database_entry: DatabaseEntry) -> None:
         """Updates a dataset in the database.
         Needs at least a Monica id OR a Google id and the related data."""
-        UNKNOWN_ARGUMENTS = "Unknown database update arguments!"
+        unknown_arguments = "Unknown database update arguments!"
         if database_entry.monica_id:
             if database_entry.monica_full_name:
                 self.__update_full_name_by_monica_id(
@@ -118,7 +118,7 @@ class Database:
                 )
             else:
                 self.log.error(f"Failed to update database: {database_entry}")
-                raise DatabaseError(UNKNOWN_ARGUMENTS)
+                raise DatabaseError(unknown_arguments)
         if database_entry.google_id:
             if database_entry.google_full_name:
                 self.__update_full_name_by_google_id(
@@ -130,10 +130,10 @@ class Database:
                 )
             else:
                 self.log.error(f"Failed to update database: {database_entry}")
-                raise DatabaseError(UNKNOWN_ARGUMENTS)
+                raise DatabaseError(unknown_arguments)
         if not database_entry.monica_id and not database_entry.google_id:
             self.log.error(f"Failed to update database: {database_entry}")
-            raise DatabaseError(UNKNOWN_ARGUMENTS)
+            raise DatabaseError(unknown_arguments)
 
     def __update_full_name_by_monica_id(self, monica_id: str, monica_full_name: str) -> None:
         insert_sql = "UPDATE sync SET monicaFullName = ? WHERE monicaId = ?"

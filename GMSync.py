@@ -236,8 +236,8 @@ class GMSync:
             print(msg)
 
         # Convert config to '.env' file
-        ENV_FILE = ".env"
-        open(ENV_FILE, "w").close()
+        env_file = ".env"
+        open(env_file, "w").close()
         from conf import (  # type: ignore
             BASE_URL,
             CREATE_REMINDERS,
@@ -249,16 +249,16 @@ class GMSync:
             TOKEN,
         )
 
-        set_key(ENV_FILE, "TOKEN", TOKEN)
-        set_key(ENV_FILE, "BASE_URL", BASE_URL)
-        set_key(ENV_FILE, "CREATE_REMINDERS", str(CREATE_REMINDERS))
-        set_key(ENV_FILE, "DELETE_ON_SYNC", str(DELETE_ON_SYNC))
-        set_key(ENV_FILE, "STREET_REVERSAL", str(STREET_REVERSAL))
-        set_key(ENV_FILE, "FIELDS", ",".join([field for field, isTrue in FIELDS.items() if isTrue]))
-        set_key(ENV_FILE, "GOOGLE_LABELS_INCLUDE", ",".join(GOOGLE_LABELS["include"]))
-        set_key(ENV_FILE, "GOOGLE_LABELS_EXCLUDE", ",".join(GOOGLE_LABELS["exclude"]))
-        set_key(ENV_FILE, "MONICA_LABELS_INCLUDE", ",".join(MONICA_LABELS["include"]))
-        set_key(ENV_FILE, "MONICA_LABELS_EXCLUDE", ",".join(MONICA_LABELS["exclude"]))
+        set_key(env_file, "TOKEN", TOKEN)
+        set_key(env_file, "BASE_URL", BASE_URL)
+        set_key(env_file, "CREATE_REMINDERS", str(CREATE_REMINDERS))
+        set_key(env_file, "DELETE_ON_SYNC", str(DELETE_ON_SYNC))
+        set_key(env_file, "STREET_REVERSAL", str(STREET_REVERSAL))
+        set_key(env_file, "FIELDS", ",".join([field for field, is_true in FIELDS.items() if is_true]))
+        set_key(env_file, "GOOGLE_LABELS_INCLUDE", ",".join(GOOGLE_LABELS["include"]))
+        set_key(env_file, "GOOGLE_LABELS_EXCLUDE", ",".join(GOOGLE_LABELS["exclude"]))
+        set_key(env_file, "MONICA_LABELS_INCLUDE", ",".join(MONICA_LABELS["include"]))
+        set_key(env_file, "MONICA_LABELS_EXCLUDE", ",".join(MONICA_LABELS["exclude"]))
         msg = "'.env' file created, old 'conf.py' can be deleted now"
         self.log.info(msg)
         print(msg)

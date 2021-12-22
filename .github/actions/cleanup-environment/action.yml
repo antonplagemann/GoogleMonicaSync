@@ -5,6 +5,9 @@ inputs:
   TEST_RUNNER:
     description: 'The system used to run the scripts (python/docker)'
     required: true
+  REPO_TOKEN:
+    description: 'A GitHub Personal Access token with repo scope'
+    required: true
 
 runs:
   using: "composite"
@@ -17,4 +20,11 @@ runs:
         run: |
           mv logs/monkey.log logs/${{ inputs.TEST_RUNNER }}_monkey.log
           mv logs/setup.log logs/${{ inputs.TEST_RUNNER }}_setup.log
+          mv data/syncState.db data/${{ inputs.TEST_RUNNER }}_syncState.db
+        shell: bash
+
+      - name: Upload Google token to repo secrets
+        run: python test/UpdateToken.py
+        env:
+          REPO_TOKEN: ${{ inputs.REPO_TOKEN }}
         shell: bash

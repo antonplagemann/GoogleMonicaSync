@@ -86,7 +86,7 @@ jobs:
     steps:
       - name: Check out source repository
         uses: actions/checkout@v2
-      - name: Set up Python environment
+      - name: Setup Python environment
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
@@ -126,7 +126,7 @@ jobs:
       # Setup environment
       - name: Check out source repository
         uses: actions/checkout@v2
-      - name: Set up python environment
+      - name: Setup python environment
         uses: actions/setup-python@v2
       - name: Setup testing environment
         uses: ./.github/actions/setup-environment
@@ -207,31 +207,16 @@ jobs:
         if: always()
         with:
           TEST_RUNNER: ${{ env.TEST_RUNNER }}
-
-      - name: Get token from file to environment
-        shell: python
-        run: |
-          import os
-          with open("data/token.pickle", "r") as base64_token:
-              creds_base64 = base64_token.read()
-          env_file = os.getenv('GITHUB_ENV')
-          with open(env_file, "a") as myfile:
-              myfile.write(f"GOOGLE_TOKEN={creds_base64}")
-
-      - name: Save eventually updated Google token secret
-        uses: hmanzur/actions-set-secret@v2.0.0
-        with:
-          name: GOOGLE_TOKEN
-          value: ${{ env.GOOGLE_TOKEN }}
-          repository: antonplagemann/GoogleMonicaSync
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          REPO_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
 
       - name: Upload log files
         if: always()
         uses: actions/upload-artifact@v2
         with:
           name: logs
-          path: logs/
+          path: |
+            logs/
+            data/${{ env.TEST_RUNNER }}_syncState.db
 
 # 3. Build and publish docker container
   docker_build:
@@ -240,9 +225,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Set up QEMU
+      - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
-      - name: Set up Docker Buildx
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -268,7 +253,7 @@ jobs:
       # Setup environment
       - name: Check out source repository
         uses: actions/checkout@v2
-      - name: Set up python environment
+      - name: Setup python environment
         uses: actions/setup-python@v2
       - name: Setup testing environment
         uses: ./.github/actions/setup-environment
@@ -349,6 +334,7 @@ jobs:
         if: always()
         with:
           TEST_RUNNER: ${{ env.TEST_RUNNER }}
+          REPO_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
 
       - name: Upload log files
         if: always()
@@ -357,4 +343,4 @@ jobs:
           name: logs
           path: |
             logs/
-            data/syncState.db
+            data/${{ env.TEST_RUNNER }}_syncState.db
