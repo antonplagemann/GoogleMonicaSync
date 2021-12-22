@@ -60,5 +60,5 @@ runs:
       shell: bash
 
     - name: Set folder permissions for non-root containers
-      run: sudo chmod 755 data logs -R
+      run: sudo chmod 777 data logs -R
       shell: bash

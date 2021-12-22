@@ -267,7 +267,7 @@ jobs:
       - name: Prepare initial sync
         run: python test/ChaosMonkey.py --initial --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run initial sync
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml --env-file .env up
         timeout-minutes: 5
       - name: Check initial sync results
         if: always()
@@ -279,7 +279,7 @@ jobs:
       - name: Prepare delta sync
         run: python test/ChaosMonkey.py --delta --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run delta sync
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-delta.yml up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-delta.yml --env-file .env up
         timeout-minutes: 5
       - name: Check delta sync results
         if: always()
@@ -291,7 +291,7 @@ jobs:
       - name: Prepare full sync
         run: python test/ChaosMonkey.py --full --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run full sync
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-full.yml up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-full.yml --env-file .env up
         timeout-minutes: 5
       - name: Check full sync results
         if: always()
@@ -303,7 +303,7 @@ jobs:
       - name: Prepare sync back
         run: python test/ChaosMonkey.py --syncback --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run sync back
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-syncback.yml up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-syncback.yml --env-file .env up
         timeout-minutes: 5
       - name: Check sync back results
         if: always()
@@ -315,7 +315,7 @@ jobs:
       - name: Prepare database check
         run: python test/ChaosMonkey.py --check --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run database check
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-check.yml up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-check.yml --env-file .env up
         timeout-minutes: 5
       - name: Check database check results
         if: always()
