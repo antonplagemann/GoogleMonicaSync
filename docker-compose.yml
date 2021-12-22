@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   python:
-    image: antonplagemann/google-monica-sync
+    image: antonplagemann/google-monica-sync:latest
 
     environment:
       # Your Monica api token (without 'Bearer ')

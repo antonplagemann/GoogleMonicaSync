@@ -146,7 +146,7 @@ jobs:
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_initial.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_initial.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_initial.log)" ]]
 
       # Test delta sync
       - name: Prepare delta sync
@@ -158,7 +158,7 @@ jobs:
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_delta.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_delta.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_delta.log)" ]]
 
       # Test full sync
       - name: Prepare full sync
@@ -170,7 +170,7 @@ jobs:
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_full.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_full.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_full.log)" ]]
 
       # Test sync back
       - name: Prepare sync back
@@ -182,7 +182,7 @@ jobs:
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_syncback.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_syncback.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_syncback.log)" ]]
 
       # Test database check
       - name: Prepare database check
@@ -194,7 +194,7 @@ jobs:
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log)" ]]
 
       # End testing
       - name: Cleanup testing environment
@@ -267,61 +267,61 @@ jobs:
       - name: Prepare initial sync
         run: python test/ChaosMonkey.py --initial --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run initial sync
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml --env-file .env up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-initial.yml up
         timeout-minutes: 5
       - name: Check initial sync results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_initial.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_initial.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_initial.log)" ]]
 
       # Test delta sync
       - name: Prepare delta sync
         run: python test/ChaosMonkey.py --delta --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run delta sync
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-delta.yml --env-file .env up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-delta.yml up
         timeout-minutes: 5
       - name: Check delta sync results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_delta.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_delta.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_delta.log)" ]]
 
       # Test full sync
       - name: Prepare full sync
         run: python test/ChaosMonkey.py --full --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run full sync
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-full.yml --env-file .env up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-full.yml up
         timeout-minutes: 5
       - name: Check full sync results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_full.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_full.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_full.log)" ]]
 
       # Test sync back
       - name: Prepare sync back
         run: python test/ChaosMonkey.py --syncback --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run sync back
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-syncback.yml --env-file .env up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-syncback.yml up
         timeout-minutes: 5
       - name: Check sync back results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_syncback.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_syncback.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_syncback.log)" ]]
 
       # Test database check
       - name: Prepare database check
         run: python test/ChaosMonkey.py --check --num ${{  github.event.inputs.numChaos || 4  }}
       - name: Run database check
-        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-check.yml --env-file .env up
+        run: docker-compose -f test/docker-compose-sync.yml -f test/docker-compose-sync-check.yml up
         timeout-minutes: 5
       - name: Check database check results
         if: always()
         run: |
           mv logs/sync.log logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log && \
-          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log)" ]] || exit 1
+          [[ -z "$(grep -e ERROR -e WARNING logs/${{ env.TEST_RUNNER }}_sync_databasecheck.log)" ]]
 
       # End testing
       - name: Cleanup testing environment
