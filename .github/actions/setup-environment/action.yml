@@ -1,0 +1,64 @@
+name: 'Setup test environment'
+description: 'Sets up a new Monica instance, installs dependencies, and creates/retrieves sync tokens'
+
+inputs:
+  GOOGLE_TOKEN:
+    description: The token.pickle file content (base64 encoded string)
+    required: true
+  MONICA_URL:
+    required: false
+    default: http://localhost:8080/api
+  CREATE_REMINDERS:
+    required: true
+  DELETE_ON_SYNC:
+    required: true
+  STREET_REVERSAL:
+    required: true
+  FIELDS:
+    required: true
+  GOOGLE_LABELS_INCLUDE:
+    required: true
+  GOOGLE_LABELS_EXCLUDE:
+    required: true
+  MONICA_LABELS_INCLUDE:
+    required: true
+  MONICA_LABELS_EXCLUDE:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Start new Monica instance
+      run: docker-compose -f test/docker-compose-monica.yml up -d
+      shell: bash
+
+    - name: Create env file
+      run: |
+        touch .env data/token.pickle
+        echo "${{ inputs.GOOGLE_TOKEN }}" >> data/token.pickle
+        echo BASE_URL="${{ inputs.MONICA_URL }}" >> .env
+        echo CREATE_REMINDERS="${{ inputs.CREATE_REMINDERS || true }}" >> .env
+        echo DELETE_ON_SYNC="${{ inputs.DELETE_ON_SYNC || true }}" >> .env
+        echo STREET_REVERSAL="${{ inputs.STREET_REVERSAL || false }}" >> .env
+        echo FIELDS="${{ inputs.FIELDS || 'career,address,phone,email,labels,notes' }}" >> .env
+        echo GOOGLE_LABELS_INCLUDE="${{ inputs.GOOGLE_LABELS_INCLUDE }}" >> .env
+        echo GOOGLE_LABELS_EXCLUDE="${{ inputs.GOOGLE_LABELS_EXCLUDE }}" >> .env
+        echo MONICA_LABELS_INCLUDE="${{ inputs.MONICA_LABELS_INCLUDE }}" >> .env
+        echo MONICA_LABELS_EXCLUDE="${{ inputs.MONICA_LABELS_EXCLUDE }}" >> .env
+      shell: bash
+
+    - name: Install requirements
+      run: python -m pip install --upgrade pip && pip install -r requirements.txt -r test/requirements.txt
+      shell: bash
+
+    - name: Create API token at Monica instance
+      run: python test/SetupToken.py
+      shell: bash
+
+    - name: Create database file and monkey state
+      run: python test/ChaosMonkey.py
+      shell: bash
+
+    - name: Set folder permissions for non-root containers
+      run: sudo chmod 777 data logs -R
+      shell: bash

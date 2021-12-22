@@ -1,0 +1,4 @@
+services:
+  python:
+    # Do a delta sync
+    command: python -u GMSync.py -d

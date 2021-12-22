@@ -2,31 +2,57 @@
 
 # Google to Monica contact syncing script
 
-## Introduction
+🤖 Automated CI/CD Pipelines
 
-This script does a contact syncing from a Google account to a [Monica](https://github.com/monicahq/monica) account. This script is intended for personal use only. It can contain all kinds of bugs, errors, and unhandled exceptions, so please do a backup before using it. It was programmed very carefully not to do bad things and delete everything, but it's your own risk trusting my words.
+[![CodeQL](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/codeql-analysis.yml)
+[![Docker CD](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/docker-cd.yml)
+[![Python CI](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python-ci.yml/badge.svg)](https://github.com/antonplagemann/GoogleMonicaSync/actions/workflows/python_ci.yml)
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![spellcheck: codespell](https://img.shields.io/badge/spellcheck-codespell-brightgreen.svg)](https://github.com/codespell-project/codespell)
+[![security: bandit](https://img.shields.io/badge/security-bandit-success.svg)](https://github.com/PyCQA/bandit)
+[![linter: flake8](https://img.shields.io/badge/linter-flake8-brightgreen.svg)](https://github.com/PyCQA/flake8)
+[![imports: isort](https://img.shields.io/badge/imports-isort-blue.svg)](https://pycqa.github.io/isort/)
+[![mypy: checked](https://img.shields.io/badge/mypy-checked-blue.svg)](https://github.com/python/mypy)
 
-That being said: Be welcome to use it, fork it, copy it for your own projects, and file issues for bug fixes or improvements.
+🔒 SonarCloud monitored
+
+[![SonarCloud Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=bugs)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=antonplagemann_GoogleMonicaSync&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=antonplagemann_GoogleMonicaSync)
+
+## Hey 👋
+
+Using [Monica](https://github.com/monicahq/monica) and Google Contacts, but you're annoyed by keeping your data in sync? Then this python script is for you 😎  
+It does one-way ➡ contact syncing of your Google Contacts to a Monica account 🎉  
+But wait, before trying something new, please do not forget to **make a full backup 🔒** before entering the first command 😉  
+I did my best to write clean and working code, but if I missed a bug 🐛 that you've found, please return it to me 🏡😊, I would be happy to fix it 🙏!  
+All contributions are welcome! Feel free to open an issue or pull request 🙌
 
 ## Features
 
 - One-way sync (Google → Monica)
   - Syncs the following details: first name, last name, middle name, nickname, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags), notes (see [limits](#limits))
 - Advanced matching of already present Monica contacts (e.g. from earlier contact import)
-- User choice prompt before any modification to your Monica data during initial sync (you can choose to abort before the script makes any change).
+- User choice prompt before any modification to your Monica data during initial sync (you can choose to abort before the script makes any change)
 - Fast delta sync using Google sync tokens
 - Optional sync-back (Monica → Google) of new Monica contacts that do not have a corresponding Google contact yet
   - Syncs the following details: first name, last name, middle name, birthday, job title, company, addresses, phone numbers, email addresses, labels (tags)
-- Extensive logging of every change, warning, or error including the affected contact ID and name (File: `Sync.log`)
+- Extensive logging of every change, warning, or error including the affected contact ID and name (file: `logs/sync.log`)
 
 ## Limits
 
-- **Do not update [*synced*](#features) details at Monica.** As this is a one-way sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
+- **Do not update [*synced*](#features) details at Monica.** As this is a one-way ➡ sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete synced contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
-- Monica limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).  
-**UPDATE:** If you are using the hosted version of Monica you can [configure this rate limit](https://github.com/monicahq/monica/pull/5489) starting from Monica v3.3.0.
-- Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do full sync instead
-- No support for gender sync (support can be added, file an issue if you want it).
+- The Monica public instance limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).  
+    > If you are hosting your own instance of Monica you can configure this rate limit starting from Monica v3.3.0.
+- Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do (fast) full sync instead
 - A label itself won't be deleted automatically if it has been removed from the last contact.
 - If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many *additional* notes as you want at Monica**, they will not be overwritten.
 - Monica contacts require a first name. If a Google contact does not have any name, it will be skipped.
@@ -34,19 +60,46 @@ That being said: Be welcome to use it, fork it, copy it for your own projects, a
 ## Known bugs
 
 - Sometimes the Google API returns more contacts than necessary. This is not an issue because the sync will match the last known update timestamps and skip the contact if nothing has changed.
-- Birthdays on 29. Feb will be synced as 01. March :-)
-- Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True`(because Google assigns a new contact ID). That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
+- Birthdays on 29. Feb will be synced as 01. March 😊
+- Pay attention when you *merge* Google contacts on the web GUI. In this case the contact will get recreated at Monica during sync if `DELETE_ON_SYNC` is set to `True` (default: `False`), because Google assigns a new contact ID. That means all Monica-specific data will be deleted. You can avoid this by merging them manually (copy over the details by hand) or doing initial sync `-i` again afterwards.
 
 ## Get started
 
-0. Install Python 3.9 or newer
-1. Get the [official Python Quickstart script from Google](https://developers.google.com/people/quickstart/python) working.
-2. Copy `credentials.json` and `token.pickle` inside the main repository directory.
-3. Create a new `conf.py` file inside the main repository directory with [this content](#Config).
-4. Do a `pip install -r requirements.txt` inside the main repository directory.
-5. Run `python GMSync.py -i`
+The setup is a bit involving process as you have to create a Google Cloud Platform project to access your contacts via the Google People API.  
+[Please follow this guide](./Setup.md) to complete the required steps and do an initial sync. Once you did that you can use one of the delta sync commands from the next section to update your contacts regularly.
 
-## All sync commands
+## Delta sync (without docker)
+
+Run the following command inside the main folder:
+
+```bash
+python GMSync.py -d
+```
+
+## Delta sync (with docker)
+
+Run the following command inside the main folder (add `-d` for detached mode):
+
+```bash
+docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
+```
+
+Alternatively you can download and configure the [docker-compose.yml](./docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
+
+### Background script with docker
+
+Here's a sample script which you can use to automate syncing e.g. with a crontab schedule.
+
+```bash
+#!/bin/bash
+
+cd /path/to/folder-with-docker-compose-yaml
+set -e
+export COMPOSE_INTERACTIVE_NO_CLI=1
+docker-compose up -d
+```
+
+## All commands
 
 Usage:
 
@@ -54,13 +107,14 @@ Usage:
 python GMSync.py [arguments]
 ```
 
-| Argument | Description                                                                              |
-| :------- | :--------------------------------------------------------------------------------------- |
-| `-i`     | Database rebuild (interactive) and full sync                                             |
-| `-d`     | Delta sync (unattended)                                                                  |
-| `-f`     | Full sync (unattended)                                                                   |
-| `-sb`    | Sync back new Monica contacts (unattended). Can be combined with all other arguments     |
-| `-c`     | Check syncing database for errors (unattended). Can be combined with all other arguments |
+| Argument  | Description                                                                              |
+| :-------- | :--------------------------------------------------------------------------------------- |
+| `-i`      | Database rebuild (interactive) and full sync                                             |
+| `-d`      | Delta sync (unattended)                                                                  |
+| `-f`      | Full sync (unattended)                                                                   |
+| `-sb`     | Sync back new Monica contacts (unattended). Can be combined with all other arguments     |
+| `-c`      | Check syncing database for errors (unattended). Can be combined with all other arguments |
+| `-e PATH` | Custom .env configuration file path (relative or absolute)                               |
 
 **Remark**:  
 Full sync, database check and sync back require heavy API use (e.g. fetching of all Monica and Google contacts). So use wisely and consider the load you're producing with those operations (especially if you use the public hosted Monica instance).
@@ -95,57 +149,6 @@ All progress will be printed at running time and logged in the `Sync.log` file. 
 
 If you think something has gone wrong, you miss some contacts or just want a pretty database statistic, you can do a database check. This will check if every Google contact has its Monica counterpart and vice versa. It will also report orphaned database entries that do not have a contact on both sides.
 
-## Config
-
-This is the config file.
-Copy the content below and create a new `conf.py` file inside the main repository directory.
-Then fill in your desired settings (hint: a Monica token can be retrieved in your account settings, no OAuth client needed).
-
-```python
-# General: 
-# String values need to be in single or double quotes
-# Boolean values need to be True or False
-# List Elements need to be are seperated by commas (e.g. ["a", "b"])
-
-# Your Monica api token (without 'Bearer ')
-TOKEN = 'YOUR_TOKEN_HERE'
-# Your Monica base url
-BASE_URL = 'https://app.monicahq.com/api'
-# Create reminders for birthdays and deceased days?
-CREATE_REMINDERS = True
-# Delete Monica contact if the corresponding Google contact has been deleted?
-DELETE_ON_SYNC = True
-# Do a street reversal in address sync if the first character is a number? 
-# (e.g. from '13 Auenweg' to 'Auenweg 13')
-STREET_REVERSAL = False
-
-# What fields should be synced? (both directions)
-# Names and birthday are mandatory
-FIELDS = {
-    "career": True,     # Company and job title
-    "address": True,
-    "phone": True,
-    "email": True,
-    "labels": True,
-    "notes": True
-}
-
-# Define contact labels/tags/groups you want to include or exclude from sync. 
-# Exclude labels have the higher priority.
-# Both lists empty means every contact is included
-# Example: "include": ["Family"] will only process contacts labeled as Family.
-GOOGLE_LABELS = {
-    # Applies for Google -> Monica sync
-    "include": [],
-    "exclude": []
-}
-MONICA_LABELS = {
-    # Applies for Monica -> Google sync back
-    "include": [],
-    "exclude": []
-}
-```
-
 ## Feature roadmap
 
 - ~~Add more sync fields:~~
@@ -164,5 +167,7 @@ MONICA_LABELS = {
 - [x] Extend config to allow user choice of synced fields
 - [ ] ~~Think about two-way sync~~ (too involving, not really needed)
 - [x] Database consistency check function
-- [ ] Think about a pip package
-- [ ] ~~Implement sync procedure using python threads: propably much faster with multithreading~~ (not much faster because the Monica API rate limit is the bottleneck here)
+- [ ] ~~Think about a pip package~~
+- [ ] ~~Implement sync procedure using python threads: probably much faster with multithreading~~ (not much faster because the Monica API rate limit is the bottleneck here)
+- [x] Add docker container
+- [x] Add automated testing of changes
