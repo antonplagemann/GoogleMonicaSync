@@ -51,7 +51,7 @@ All contributions are welcome! Feel free to open an issue or pull request 🙌
 - **Do not update [*synced*](#features) details at Monica.** As this is a one-way ➡ sync, it will overwrite all Monica changes to these fields! Of course, you can continue to use activities, notes, journal, relationships and almost any other Monica feature. Just don't update [name, birthday, job info, ...](#features) at Monica.
 - **Do not delete synced contacts at Monica.** This will cause a sync error which you can resolve by doing initial sync again.
 - The Monica public instance limits API usage to 60 calls per minute. As every contact needs *at least* 2 API calls, **the script can not sync more than 30 contacts per minute** (thus affecting primarily initial and full sync).  
-    > If you are using the hosted version of Monica you can [configure this rate limit](https://github.com/monicahq/monica/pull/5489) starting from Monica v3.3.0.
+    > If you are hosting your own instance of Monica you can configure this rate limit starting from Monica v3.3.0.
 - Delta sync will fail if there are more than 7 days between the last sync (Google restriction). In this case, the script will automatically do (fast) full sync instead
 - A label itself won't be deleted automatically if it has been removed from the last contact.
 - If there is a Google note it will be synced with exactly one Monica note. To this end, a small text will be added to the synced note at Monica. This makes it easy for you to distinguish synced and Monica-only notes. This means **you can update and create as many *additional* notes as you want at Monica**, they will not be overwritten.
@@ -78,13 +78,13 @@ python GMSync.py -d
 
 ## Delta sync (with docker)
 
-For delta sync use this command:
+Run the following command inside the main folder (add `-d` for detached mode):
 
 ```bash
 docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env antonplagemann/google-monica-sync sh -c "python -u GMSync.py -d"
 ```
 
-Alternatively to step 5 you can download and configure the [docker-compose.yml](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
+Alternatively you can download and configure the [docker-compose.yml](./docker-compose.yml) to your main directory and use `docker-compose up` (Windows & Linux).
 
 ### Background script with docker
 

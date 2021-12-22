@@ -7,8 +7,7 @@ from helpers.Exceptions import DatabaseError
 
 
 class DatabaseEntry:
-    """Represents a database row.
-    Needs at least a Monica id AND a Google id."""
+    """Represents a database row."""
 
     def __init__(
         self,

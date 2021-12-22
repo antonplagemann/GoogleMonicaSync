@@ -35,7 +35,6 @@ networks:
   monica_network:
     name: monica_network
 
-
 volumes:
   data:
     name: data

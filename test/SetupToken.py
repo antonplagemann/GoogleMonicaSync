@@ -17,10 +17,11 @@ LOG_FOLDER = "logs"
 LOG_FILENAME = "setup.log"
 try:
     load_dotenv()
-    HOST, PORT = re.findall(r"https?://(.+?):(\d+)/api/?", os.getenv("BASE_URL", ""))[0]
+    PROTOCOL, HOST, PORT = re.findall(r"(https?)://(.+?):(\d+)/api/?", os.getenv("BASE_URL", ""))[0]
 except IndexError:
-    HOST, PORT = "localhost", 8080
+    PROTOCOL, HOST, PORT = "http", "localhost", 8080
 ENV_FILE = ".env"
+URL = f"{PROTOCOL}://{HOST}:{PORT}"
 
 # Set logging configuration
 if not os.path.exists(LOG_FOLDER):
@@ -35,7 +36,7 @@ handler.setFormatter(logging_format)
 log.addHandler(handler)
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.info("Script started")
-log.info(f"Host: http://{HOST}:{PORT}")
+log.info(f"Host: {PROTOCOL}://{HOST}:{PORT}")
 
 try:
     # Wait for Monica to be ready
@@ -44,7 +45,7 @@ try:
     max_time = 300  # Wait max. 5 minutes
     while True:
         try:
-            response = requests.get(f"http://{HOST}:{PORT}/register", timeout=0.2)
+            response = requests.get(f"{URL}/register", timeout=0.2)
             if response.status_code == 200:
                 log.info(f"Ready after {waiting_time} seconds")
                 sleep(1)
@@ -58,7 +59,7 @@ try:
 
     # Get register token
     log.info("Fetching register page")
-    response = requests.get(f"http://{HOST}:8080/register")
+    response = requests.get(f"{URL}/register")
     response.raise_for_status()
     cookies = response.cookies
     soup = BeautifulSoup(response.text, "html.parser")
@@ -79,7 +80,7 @@ try:
         "lang": "en",
     }
     log.info("Registering new user")
-    response = requests.post(f"http://{HOST}:8080/register", cookies=response.cookies, data=data)
+    response = requests.post(f"{URL}/register", cookies=response.cookies, data=data)
     response.raise_for_status()
 
     # Create api token
@@ -89,7 +90,7 @@ try:
     data = {"name": "PythonTestToken", "scopes": [], "errors": []}
     log.info("Requesting access token")
     response = requests.post(
-        f"http://{HOST}:8080/oauth/personal-access-tokens",
+        f"{URL}/oauth/personal-access-tokens",
         headers=headers,
         cookies=response.cookies,
         json=data,
@@ -103,7 +104,6 @@ try:
     open(ENV_FILE, "a+").close()
     log.info(f"Saving access token '{access_token[:10]}...' to '{ENV_FILE}'")
     set_key(ENV_FILE, "TOKEN", access_token)
-    set_key(ENV_FILE, "BASE_URL", f"http://{HOST}:{PORT}/api")
 
     log.info("Script finished")
 

@@ -129,30 +129,30 @@ class Monkey:
 
             # Start
             if self.args.initial:
-                # Start initial sync  (-i)
+                # Start initial sync chaos (-i)
                 self.log.info("Starting initial sync chaos")
                 self.initial_chaos(self.args.num)
             elif self.args.delta:
-                # Start initial sync  (-d)
+                # Start delta sync chaos (-d)
                 self.log.info("Starting delta sync chaos")
                 self.delta_chaos(self.args.num)
                 # Give the People API some time to process changes before continuing
                 self.log.info(f"Giving the People API {SLEEP_TIME} seconds to process changes...")
                 sleep(SLEEP_TIME)
             elif self.args.full:
-                # Start initial sync  (-f)
+                # Start full sync chaos (-f)
                 self.log.info("Starting full sync chaos")
                 self.full_chaos(self.args.num)
             elif self.args.syncback:
-                # Start sync back from Monica to Google  (-sb)
+                # Start sync back from Monica to Google chaos (-sb)
                 self.log.info("Starting sync back chaos")
                 self.syncback_chaos(self.args.num)
             elif self.args.check:
-                # Start database error check  (-c)
+                # Start database error check chaos (-c)
                 self.log.info("Starting database check chaos")
                 self.database_chaos(self.args.num)
             elif self.args.restore:
-                # Start database error check  (-c)
+                # No chaos anymore 😔 (-r)
                 self.log.info("Starting restore Google contacts")
                 self.restore_contacts()
             else:
@@ -225,7 +225,7 @@ class Monkey:
             for field in fields:
                 contact_to_update[field] = deepcopy(contact_to_copy_from.get(field, []))
                 for entry in contact_to_update[field]:
-                    del entry["metadata"]
+                    entry.pop("metadata", None)
 
             # Delete other fields
             for key in tuple(contact_to_update):
@@ -324,7 +324,7 @@ class Monkey:
             self.log.info(f"Inserted 'google/randomEntry{num}' into database")
 
     def restore_contacts(self) -> None:
-        """Restore all manipulated Google contacts"""
+        """Restore all manipulated Google contacts and database entries"""
         # Restore updated contacts
         self.__revert_updated_contacts()
 
