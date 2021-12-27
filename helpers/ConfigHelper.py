@@ -29,6 +29,8 @@ class Config:
             self.DATABASE_FILE = abspath(self._values["DATABASE_FILE"])
             self.GOOGLE_TOKEN_FILE = abspath(self._values["GOOGLE_TOKEN_FILE"])
             self.GOOGLE_CREDENTIALS_FILE = abspath(self._values["GOOGLE_CREDENTIALS_FILE"])
+            self.SYSLOG_TARGET = self._values["SYSLOG_TARGET"]
+            self.SYSLOG_PORT = self._values["SYSLOG_PORT"]
         except Exception as e:
             raise ConfigError("Error parsing config, check syntax and required args!") from e
 
