@@ -51,6 +51,8 @@ To configure the OAuth consent screen:
     > Hint: If you get a `403 forbidden` during consent later, you may have entered the wrong email here.
 12. Click `Save and Continue`. The "OAuth consent screen" appears.
 13. Click `Back to Dashboard`.
+14. Back at the "OAuth consent screen" screen, click `PUBLISH APP` and then `CONFIRM`.
+    > This step is necessary because when in "Testing"-status, Google limits the token lifetime to seven days. You don't need to complete the app verification process.
 
 ### Create an OAuth client ID credential
 

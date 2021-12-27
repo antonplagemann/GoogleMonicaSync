@@ -64,7 +64,7 @@ class Google:
                     creds_pickled = base64_token.read()
                 creds = pickle.loads(codecs.decode(creds_pickled.encode(), "base64"))
             else:
-                raise ConfigError("Google token file not found!")
+                self.log.warning("Google token file not found!")
         except UnicodeDecodeError:
             # Maybe old pickling file, try to update
             with open(self.token_file, "rb") as binary_token:
