@@ -25,6 +25,7 @@ runs:
 
       - name: Upload Google token to repo secrets
         run: python test/UpdateToken.py
+        if: always()
         env:
           REPO_TOKEN: ${{ inputs.REPO_TOKEN }}
         shell: bash
