@@ -1,8 +1,10 @@
 import argparse
 import logging
+import logging.handlers
 import os
 import sys
 from os.path import abspath, join
+from typing import Tuple, Union
 
 from dotenv import dotenv_values, find_dotenv  # type: ignore
 from dotenv.main import set_key  # type: ignore
@@ -14,7 +16,7 @@ from helpers.GoogleHelper import Google
 from helpers.MonicaHelper import Monica
 from helpers.SyncHelper import Sync
 
-VERSION = "v4.0.0"
+VERSION = "v4.1.0"
 LOG_FOLDER = "logs"
 LOG_FILENAME = "sync.log"
 DEFAULT_CONFIG_FILEPATH = join("helpers", ".env.default")
@@ -38,6 +40,17 @@ class GMSync:
 
             # Load config
             self.load_config()
+
+            # Create syslog handler
+            if self.conf.SYSLOG_TARGET:
+                address: Union[Tuple[str, int], str] = (
+                    (self.conf.SYSLOG_TARGET, int(self.conf.SYSLOG_PORT))
+                    if self.conf.SYSLOG_PORT
+                    else self.conf.SYSLOG_TARGET
+                )
+                syslog_handler = logging.handlers.SysLogHandler(address=address)
+                syslog_handler.setFormatter(self.logging_format)
+                self.log.addHandler(syslog_handler)
 
             # Create sync object
             self.create_sync_helper()
@@ -94,11 +107,11 @@ class GMSync:
         log = logging.getLogger("GMSync")
         dotenv_log = logging.getLogger("dotenv.main")
         log.setLevel(logging.INFO)
-        logging_format = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+        self.logging_format = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
         log_filepath = join(LOG_FOLDER, LOG_FILENAME)
         handler = logging.FileHandler(filename=log_filepath, mode="a", encoding="utf8")
         handler.setLevel(logging.INFO)
-        handler.setFormatter(logging_format)
+        handler.setFormatter(self.logging_format)
         log.addHandler(handler)
         dotenv_log.addHandler(handler)
         self.log = log
