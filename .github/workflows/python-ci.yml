@@ -55,7 +55,7 @@ jobs:
   black_formatting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: psf/black@stable
         with:
           options: "-l 105 --check --diff"
@@ -63,7 +63,7 @@ jobs:
   codespell_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: codespell-project/actions-codespell@master
         with:
           check_filenames: true
@@ -71,7 +71,7 @@ jobs:
   bandit_security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: jpetrucciani/bandit-check@master
         with:
           path: '.'
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Python environment
         uses: actions/setup-python@v3
         with:
@@ -95,7 +95,7 @@ jobs:
   isort_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
           python-version: 3.8
@@ -105,7 +105,7 @@ jobs:
   mypy_typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: jpetrucciani/mypy-check@master
         with:
           path: '.'
@@ -120,7 +120,7 @@ jobs:
     steps:
       # Setup environment
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup python environment
         uses: actions/setup-python@v3
       - name: Setup testing environment
@@ -219,7 +219,7 @@ jobs:
     needs: python_test
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
       - name: Setup Docker Buildx
@@ -247,7 +247,7 @@ jobs:
     steps:
       # Setup environment
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup python environment
         uses: actions/setup-python@v3
       - name: Setup testing environment
