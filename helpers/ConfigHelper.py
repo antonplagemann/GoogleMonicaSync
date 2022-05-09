@@ -14,7 +14,7 @@ class Config:
         try:
             self.TOKEN = self._values.get("TOKEN", "")
             self.BASE_URL = self._values["BASE_URL"]
-            if not self.TOKEN or self.TOKEN == "YOUR_TOKEN_HERE":
+            if not self.TOKEN or self.TOKEN == "YOUR_TOKEN_HERE":  # nosec
                 msg = "Missing required monica token config value!"
                 self._log.error(msg)
                 raise ConfigError(msg)

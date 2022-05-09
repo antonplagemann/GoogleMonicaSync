@@ -55,7 +55,7 @@ jobs:
   black_formatting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: psf/black@stable
         with:
           options: "-l 105 --check --diff"
@@ -63,7 +63,7 @@ jobs:
   codespell_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: codespell-project/actions-codespell@master
         with:
           check_filenames: true
@@ -71,7 +71,7 @@ jobs:
   bandit_security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: jpetrucciani/bandit-check@master
         with:
           path: '.'
@@ -80,9 +80,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: 3.8
       - name: flake8 Lint
@@ -95,8 +95,8 @@ jobs:
   isort_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
         with:
           python-version: 3.8
       - uses: isort/isort-action@master
@@ -105,7 +105,7 @@ jobs:
   mypy_typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: jpetrucciani/mypy-check@master
         with:
           path: '.'
@@ -120,9 +120,9 @@ jobs:
     steps:
       # Setup environment
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
       - name: Setup testing environment
         uses: ./.github/actions/setup-environment
         with:
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload log files
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: logs
           path: |
@@ -219,19 +219,19 @@ jobs:
     needs: python_test
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v2 
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           no-cache: true
@@ -247,9 +247,9 @@ jobs:
     steps:
       # Setup environment
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
       - name: Setup testing environment
         uses: ./.github/actions/setup-environment
         with:
@@ -333,7 +333,7 @@ jobs:
 
       - name: Upload log files
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: logs
           path: |
