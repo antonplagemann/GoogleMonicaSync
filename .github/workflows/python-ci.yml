@@ -82,7 +82,7 @@ jobs:
       - name: Check out source repository
         uses: actions/checkout@v3
       - name: Setup Python environment
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4.0.0
         with:
           python-version: 3.8
       - name: flake8 Lint
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4.0.0
         with:
           python-version: 3.8
       - uses: isort/isort-action@master
@@ -122,7 +122,7 @@ jobs:
       - name: Check out source repository
         uses: actions/checkout@v3
       - name: Setup python environment
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4.0.0
       - name: Setup testing environment
         uses: ./.github/actions/setup-environment
         with:
@@ -249,7 +249,7 @@ jobs:
       - name: Check out source repository
         uses: actions/checkout@v3
       - name: Setup python environment
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4.0.0
       - name: Setup testing environment
         uses: ./.github/actions/setup-environment
         with:
