@@ -340,7 +340,7 @@ class Google:
         returns a {name: id} mapping."""
         try:
             # Get all contact groups
-            response = self.service.contactGroups().list().execute()
+            response = self.service.contactGroups().list(pageSize=1000).execute()
             self.api_requests += 1
             groups = response.get("contactGroups", [])
 
@@ -397,6 +397,7 @@ class Google:
 
             group_id = response.get("resourceName", "contactGroups/myContacts")
             self.label_mapping.update({label_name: group_id})
+            self.reverse_label_mapping.update({group_id: label_name})
             return group_id
 
         except HttpError as error:
