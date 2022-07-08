@@ -77,12 +77,11 @@ class Google:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             elif self.is_interactive:
-                prompt = "\nPlease visit this URL to authorize this application:\n{url}\n"
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_file,
                     scopes=["https://www.googleapis.com/auth/contacts"],
                 )
-                creds = flow.run_console(prompt="consent", authorization_prompt_message=prompt)
+                creds = flow.run_local_server(port=56411, prompt="consent")
             else:
                 self.log.error("The 'token.pickle' file was not found or invalid!")
                 self.log.info(
