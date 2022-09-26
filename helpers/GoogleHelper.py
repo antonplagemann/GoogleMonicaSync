@@ -82,7 +82,7 @@ class Google:
                     self.credentials_file,
                     scopes=["https://www.googleapis.com/auth/contacts"],
                 )
-                creds = flow.run_console(prompt="consent", authorization_prompt_message=prompt)
+                creds = flow.run_local_server(port=0)
             else:
                 self.log.error("The 'token.pickle' file was not found or invalid!")
                 self.log.info(
