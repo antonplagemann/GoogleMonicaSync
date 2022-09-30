@@ -77,12 +77,13 @@ class Google:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             elif self.is_interactive:
-                prompt = "\nPlease visit this URL to authorize this application:\n{url}\n"
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_file,
                     scopes=["https://www.googleapis.com/auth/contacts"],
                 )
-                creds = flow.run_console(prompt="consent", authorization_prompt_message=prompt)
+                creds = flow.run_local_server(
+                    port=56411, bind_addr="0.0.0.0", prompt="consent"  # nosec B104
+                )
             else:
                 self.log.error("The 'token.pickle' file was not found or invalid!")
                 self.log.info(
@@ -340,7 +341,7 @@ class Google:
         returns a {name: id} mapping."""
         try:
             # Get all contact groups
-            response = self.service.contactGroups().list().execute()
+            response = self.service.contactGroups().list(pageSize=1000).execute()
             self.api_requests += 1
             groups = response.get("contactGroups", [])
 
@@ -397,6 +398,7 @@ class Google:
 
             group_id = response.get("resourceName", "contactGroups/myContacts")
             self.label_mapping.update({label_name: group_id})
+            self.reverse_label_mapping.update({group_id: label_name})
             return group_id
 
         except HttpError as error:

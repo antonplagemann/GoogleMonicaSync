@@ -863,8 +863,9 @@ class Sync:
     def __get_monica_middle_name(
         self, first_name: str, last_name: str, nickname: str, full_name: str
     ) -> str:
-        """Monica contacts have for some reason a hidden field middlename that can be set (creation/update)
-        but sadly can not retrieved later. This function computes it by using the complete_name field."""
+        """Monica contacts have for some reason a hidden field middlename
+        that can be set (creation/update) but sadly can not retrieved later.
+        This function computes it by using the complete_name field."""
         try:
             # If there is a nickname it will be parenthesized with a space
             nickname_length = len(nickname) + 3 if nickname else 0
