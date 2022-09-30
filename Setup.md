@@ -89,7 +89,7 @@ To configure the OAuth consent screen:
 4. Open a command prompt inside the main directory run initial sync using the following command (on Windows replace `$(pwd)` with `%cd%`)
 
     ```bash
-    docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs --env-file .env -it antonplagemann/google-monica-sync sh -c "python -u GMSync.py -i"
+    docker run -v "$(pwd)/data":/usr/app/data -v "$(pwd)/logs":/usr/app/logs -p 56411:56411 --env-file .env -it antonplagemann/google-monica-sync sh -c "python -u GMSync.py -i"
     ```
 
 5. On the first run the script will print a Google consent URL in the console. Copy this URL and open it in a browser on the host machine.
