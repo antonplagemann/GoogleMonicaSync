@@ -246,7 +246,7 @@ class Google:
 
             # Return contact
             google_contact = self.__filter_contacts_by_label([result])[0]
-            google_contact = self.__filter_unnamed_contacts(google_contact)
+            google_contact = self.__filter_unnamed_contacts([google_contact])[0]
             self.contacts.append(google_contact)
             return google_contact
 
