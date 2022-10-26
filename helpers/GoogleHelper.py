@@ -246,7 +246,7 @@ class Google:
 
             # Return contact
             google_contact = self.__filter_contacts_by_label([result])[0]
-            google_contact = self.__filter_unnamed_contacts([result])[0]
+            google_contact = self.__filter_unnamed_contacts(google_contact)
             self.contacts.append(google_contact)
             return google_contact
 
@@ -328,7 +328,7 @@ class Google:
             if next_page_token:
                 parameters["pageToken"] = next_page_token
             else:
-                self.contacts = self.__filter_contacts_by_label(contacts)
+                contacts = self.__filter_contacts_by_label(contacts)
                 self.contacts = self.__filter_unnamed_contacts(contacts)
                 break
 
