@@ -75,8 +75,7 @@ To configure the OAuth consent screen:
 6. In your browser window, log in to your target Google account (the Google Account whose contacts you want to sync).
 7. At "Google hasn’t verified this app" click `Continue`.
 8. At "GMSync wants access to your Google Account" click `Continue`.
-9. You should see now an authorization code. Copy this code, and switch back to your terminal window.
-10. Paste the authorization code, press enter, and follow the prompts to complete the initial sync.
+9. An authorization code should have been transmitted via local server, follow the prompts in your terminal to complete the initial sync.
 
 ## Get the sync token and run initial sync (**with** docker)
 
@@ -96,5 +95,4 @@ To configure the OAuth consent screen:
 6. In your browser window, log in to your target Google account (the Google Account whose contacts you want to sync).
 7. At "Google hasn’t verified this app" click `Continue`.
 8. At "GMSync wants access to your Google Account" click `Continue`.
-9. You should see now an authorization code. Copy this code, and switch back to your terminal window.
-10. Paste the authorization code, press enter, and follow the prompts to complete the initial sync.
+9. An authorization code should have been transmitted via local server, follow the prompts in your terminal to complete the initial sync.
