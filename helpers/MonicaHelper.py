@@ -646,7 +646,7 @@ class Monica:
 
     def __is_temp_error(self, response: Response, error: str) -> bool:
         """Checks if the error is a temporary one and retries the request if yes."""
-        waiting_time = .5
+        waiting_time = 0.5
         max_retries = 5
         if "Too many attempts, please slow down the request" in error:
             sec_str = str(response.headers.get("Retry-After"))

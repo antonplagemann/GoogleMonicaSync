@@ -272,7 +272,7 @@ class Google:
     def __is_temp_error(self, error: HttpError) -> bool:
         """Checks if the error is a temporary one and retries the request if yes."""
         quota_waiting_time = 60
-        waiting_time = .5
+        waiting_time = 0.5
         max_retries = 5
         if "Quota exceeded" in str(error):
             print(f"\nToo many Google requests, waiting {quota_waiting_time} seconds...")
