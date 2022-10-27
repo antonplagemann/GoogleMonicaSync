@@ -16,7 +16,7 @@ from helpers.GoogleHelper import Google
 from helpers.MonicaHelper import Monica
 from helpers.SyncHelper import Sync
 
-VERSION = "v4.1.3"
+VERSION = "v4.2.0"
 LOG_FOLDER = "logs"
 LOG_FILENAME = "sync.log"
 DEFAULT_CONFIG_FILEPATH = join("helpers", ".env.default")
