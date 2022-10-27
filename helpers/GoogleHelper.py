@@ -255,7 +255,7 @@ class Google:
             if self.__is_temp_error(error):
                 return self.get_contact(google_id)
             else:
-                msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
+                msg = f"Failed to fetch Google contact '{google_id}'! Reason: {str(error)}"
                 self.log.error(msg)
                 raise GoogleFetchError(msg) from error
 
@@ -265,7 +265,7 @@ class Google:
             raise InternalError(msg) from error
 
         except Exception as error:
-            msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
+            msg = f"Failed to fetch Google contact '{google_id}'! Reason: {str(error)}"
             self.log.error(msg)
             raise GoogleFetchError(msg) from error
 
@@ -316,9 +316,10 @@ class Google:
             elif self.__is_temp_error(error):
                 return self.get_contacts(refetch_data, **params)
             else:
-                msg = "Failed to fetch Google contacts!"
+                reason = str(error)
+                msg = f"Failed to fetch Google contacts! Reason: {reason}"
                 self.log.error(msg)
-                raise GoogleFetchError(str(error)) from error
+                raise GoogleFetchError(reason) from error
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
@@ -365,7 +366,8 @@ class Google:
             if self.__is_temp_error(error):
                 return self.__get_label_mapping()
             else:
-                msg = "Failed to fetch Google labels!"
+                reason = str(error)
+                msg = f"Failed to fetch Google labels! Reason: {reason}"
                 self.log.error(msg)
                 raise GoogleFetchError(str(error)) from error
 
@@ -412,7 +414,8 @@ class Google:
             if self.__is_temp_error(error):
                 return self.create_label(label_name)
             else:
-                msg = "Failed to create Google label!"
+                reason = str(error)
+                msg = f"Failed to create Google label! Reason: {reason}"
                 self.log.error(msg)
                 raise GoogleFetchError(str(error)) from error
 
