@@ -31,8 +31,6 @@ class Google:
         self.log = log
         self.credentials_file = credentials_file
         self.token_file = token_file
-        self.include_labels = include_labels
-        self.exclude_labels = exclude_labels
         self.is_interactive = is_interactive_sync
         self.database = database_handler
         self.api_requests = 0
@@ -40,6 +38,16 @@ class Google:
         self.service = self.__build_service()
         self.label_mapping = self.__get_label_mapping()
         self.reverse_label_mapping = {label_id: name for name, label_id in self.label_mapping.items()}
+        self.include_labels = [
+            label_id
+            for label in include_labels
+            if (label_id := self.get_label_id(label, create_on_error=False))
+        ]
+        self.exclude_labels = [
+            label_id
+            for label in exclude_labels
+            if (label_id := self.get_label_id(label, create_on_error=False))
+        ]
         self.contacts: List[dict] = []
         self.data_already_fetched = False
         self.created_contacts: Dict[str, bool] = {}
@@ -128,13 +136,14 @@ class Google:
                 for contact in contact_list
                 if any(
                     [
-                        contact_label["contactGroupMembership"]["contactGroupId"] in self.include_labels
+                        contact_label["contactGroupMembership"]["contactGroupResourceName"]
+                        in self.include_labels
                         for contact_label in contact["memberships"]
                     ]
                 )
                 and all(
                     [
-                        contact_label["contactGroupMembership"]["contactGroupId"]
+                        contact_label["contactGroupMembership"]["contactGroupResourceName"]
                         not in self.exclude_labels
                         for contact_label in contact["memberships"]
                     ]
@@ -146,7 +155,7 @@ class Google:
                 for contact in contact_list
                 if all(
                     [
-                        contact_label["contactGroupMembership"]["contactGroupId"]
+                        contact_label["contactGroupMembership"]["contactGroupResourceName"]
                         not in self.exclude_labels
                         for contact_label in contact["memberships"]
                     ]
