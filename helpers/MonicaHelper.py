@@ -37,6 +37,7 @@ class Monica:
         self.created_contacts: Dict[str, bool] = {}
         self.deleted_contacts: Dict[str, bool] = {}
         self.api_requests = 0
+        self.retries = 0
         self.create_reminders = create_reminders
 
     def __filter_contacts_by_label(self, contact_list: List[dict]) -> List[dict]:
@@ -99,7 +100,7 @@ class Monica:
                     return self.gender_mapping
                 else:
                     error = response.json()["error"]["message"]
-                    if self.__is_slow_down_error(response, error):
+                    if self.__is_temp_error(response, error):
                         continue
                     self.log.error(f"Failed to fetch genders from Monica: {error}")
                     raise MonicaFetchError("Error fetching genders from Monica!")
@@ -145,7 +146,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 self.log.error(
                     f"'{name}' ('{monica_id}'): "
@@ -172,7 +173,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 self.log.error(f"'{name}' ('{monica_id}'): Failed to complete delete request: {error}")
                 raise MonicaFetchError("Error deleting Monica contact!")
@@ -195,7 +196,7 @@ class Monica:
                 return contact
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 self.log.info(f"'{reference_id}': Error creating Monica contact: {error}")
                 raise MonicaFetchError("Error creating Monica contact!")
@@ -229,7 +230,7 @@ class Monica:
                     page += 1
                 else:
                     error = response.json()["error"]["message"]
-                    if self.__is_slow_down_error(response, error):
+                    if self.__is_temp_error(response, error):
                         continue
                     msg = f"Error fetching Monica contacts: {error}"
                     self.log.error(msg)
@@ -272,7 +273,7 @@ class Monica:
                     return monica_contact
                 else:
                     error = response.json()["error"]["message"]
-                    if self.__is_slow_down_error(response, error):
+                    if self.__is_temp_error(response, error):
                         continue
                     raise MonicaFetchError(error)
 
@@ -308,7 +309,7 @@ class Monica:
                 return monica_notes
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error fetching Monica notes: {error}")
 
@@ -333,7 +334,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error creating Monica note: {error}")
 
@@ -361,7 +362,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error updating Monica note: {error}")
 
@@ -382,7 +383,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(f"'{name}' ('{monica_id}'): Error deleting Monica note: {error}")
 
@@ -408,7 +409,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error removing Monica labels: {error}"
@@ -434,7 +435,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error assigning Monica labels: {error}"
@@ -466,7 +467,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 self.log.warning(
                     f"'{name}' ('{monica_id}'): Error updating Monica contact career info: {error}"
@@ -488,7 +489,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error deleting address '{address_id}': {error}"
@@ -515,7 +516,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error creating Monica address: {error}"
@@ -540,7 +541,7 @@ class Monica:
                 return field_list
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error fetching Monica contact fields: {error}"
@@ -581,7 +582,7 @@ class Monica:
                 return self.contact_field_type_mapping
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 self.log.error(f"Failed to fetch contact field types from Monica: {error}")
                 raise MonicaFetchError("Error fetching contact field types from Monica!")
@@ -610,7 +611,7 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error creating Monica contact field: {error}"
@@ -636,21 +637,26 @@ class Monica:
                 return
             else:
                 error = response.json()["error"]["message"]
-                if self.__is_slow_down_error(response, error):
+                if self.__is_temp_error(response, error):
                     continue
                 raise MonicaFetchError(
                     f"'{name}' ('{monica_id}'): Error deleting Monica contact field"
                     f" '{field_id}': {error}"
                 )
 
-    def __is_slow_down_error(self, response: Response, error: str) -> bool:
-        """Checks if the error is an rate limiter error and slows down the requests if yes."""
-
+    def __is_temp_error(self, response: Response, error: str) -> bool:
+        """Checks if the error is a temporary one and retries the request if yes."""
+        waiting_time = 0.5
+        max_retries = 5
         if "Too many attempts, please slow down the request" in error:
             sec_str = str(response.headers.get("Retry-After"))
             sec = int(sec_str)
             print(f"\nToo many Monica requests, waiting {sec} seconds...")
             time.sleep(sec)
+            return True
+        elif self.retries < max_retries:
+            time.sleep(waiting_time)
+            self.retries += 1
             return True
         else:
             return False

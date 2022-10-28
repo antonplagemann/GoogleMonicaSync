@@ -31,14 +31,23 @@ class Google:
         self.log = log
         self.credentials_file = credentials_file
         self.token_file = token_file
-        self.include_labels = include_labels
-        self.exclude_labels = exclude_labels
         self.is_interactive = is_interactive_sync
         self.database = database_handler
         self.api_requests = 0
+        self.retries = 0
         self.service = self.__build_service()
         self.label_mapping = self.__get_label_mapping()
         self.reverse_label_mapping = {label_id: name for name, label_id in self.label_mapping.items()}
+        self.include_labels = [
+            label_id
+            for label in include_labels
+            if (label_id := self.get_label_id(label, create_on_error=False))
+        ]
+        self.exclude_labels = [
+            label_id
+            for label in exclude_labels
+            if (label_id := self.get_label_id(label, create_on_error=False))
+        ]
         self.contacts: List[dict] = []
         self.data_already_fetched = False
         self.created_contacts: Dict[str, bool] = {}
@@ -127,13 +136,14 @@ class Google:
                 for contact in contact_list
                 if any(
                     [
-                        contact_label["contactGroupMembership"]["contactGroupId"] in self.include_labels
+                        contact_label["contactGroupMembership"]["contactGroupResourceName"]
+                        in self.include_labels
                         for contact_label in contact["memberships"]
                     ]
                 )
                 and all(
                     [
-                        contact_label["contactGroupMembership"]["contactGroupId"]
+                        contact_label["contactGroupMembership"]["contactGroupResourceName"]
                         not in self.exclude_labels
                         for contact_label in contact["memberships"]
                     ]
@@ -145,7 +155,7 @@ class Google:
                 for contact in contact_list
                 if all(
                     [
-                        contact_label["contactGroupMembership"]["contactGroupId"]
+                        contact_label["contactGroupMembership"]["contactGroupResourceName"]
                         not in self.exclude_labels
                         for contact_label in contact["memberships"]
                     ]
@@ -246,15 +256,15 @@ class Google:
 
             # Return contact
             google_contact = self.__filter_contacts_by_label([result])[0]
-            google_contact = self.__filter_unnamed_contacts([result])[0]
+            google_contact = self.__filter_unnamed_contacts([google_contact])[0]
             self.contacts.append(google_contact)
             return google_contact
 
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.get_contact(google_id)
             else:
-                msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
+                msg = f"Failed to fetch Google contact '{google_id}'! Reason: {str(error)}"
                 self.log.error(msg)
                 raise GoogleFetchError(msg) from error
 
@@ -264,16 +274,22 @@ class Google:
             raise InternalError(msg) from error
 
         except Exception as error:
-            msg = f"Failed to fetch Google contact '{google_id}': {str(error)}"
+            msg = f"Failed to fetch Google contact '{google_id}'! Reason: {str(error)}"
             self.log.error(msg)
             raise GoogleFetchError(msg) from error
 
-    def __is_slow_down_error(self, error: HttpError) -> bool:
-        """Checks if the error is an quota exceeded error and slows down the requests if yes."""
-        waiting_time = 60
+    def __is_temp_error(self, error: HttpError) -> bool:
+        """Checks if the error is a temporary one and retries the request if yes."""
+        quota_waiting_time = 60
+        waiting_time = 0.5
+        max_retries = 5
         if "Quota exceeded" in str(error):
-            print(f"\nToo many Google requests, waiting {waiting_time} seconds...")
+            print(f"\nToo many Google requests, waiting {quota_waiting_time} seconds...")
+            time.sleep(quota_waiting_time)
+            return True
+        elif self.retries < max_retries:
             time.sleep(waiting_time)
+            self.retries += 1
             return True
         else:
             return False
@@ -306,12 +322,13 @@ class Google:
                 print("\n" + msg)
                 parameters.pop("syncToken")
                 self.__fetch_contacts(parameters)
-            elif self.__is_slow_down_error(error):
+            elif self.__is_temp_error(error):
                 return self.get_contacts(refetch_data, **params)
             else:
-                msg = "Failed to fetch Google contacts!"
+                reason = str(error)
+                msg = f"Failed to fetch Google contacts! Reason: {reason}"
                 self.log.error(msg)
-                raise GoogleFetchError(str(error)) from error
+                raise GoogleFetchError(reason) from error
         msg = "Finished fetching Google contacts"
         self.log.info(msg)
         print("\n" + msg)
@@ -328,7 +345,7 @@ class Google:
             if next_page_token:
                 parameters["pageToken"] = next_page_token
             else:
-                self.contacts = self.__filter_contacts_by_label(contacts)
+                contacts = self.__filter_contacts_by_label(contacts)
                 self.contacts = self.__filter_unnamed_contacts(contacts)
                 break
 
@@ -355,10 +372,11 @@ class Google:
 
             return label_mapping
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.__get_label_mapping()
             else:
-                msg = "Failed to fetch Google labels!"
+                reason = str(error)
+                msg = f"Failed to fetch Google labels! Reason: {reason}"
                 self.log.error(msg)
                 raise GoogleFetchError(str(error)) from error
 
@@ -368,7 +386,7 @@ class Google:
             response = self.service.contactGroups().delete(resourceName=group_id).execute()
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 self.delete_label(group_id)
             else:
                 reason = str(error)
@@ -402,10 +420,11 @@ class Google:
             return group_id
 
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.create_label(label_name)
             else:
-                msg = "Failed to create Google label!"
+                reason = str(error)
+                msg = f"Failed to create Google label! Reason: {reason}"
                 self.log.error(msg)
                 raise GoogleFetchError(str(error)) from error
 
@@ -418,7 +437,7 @@ class Google:
             )
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.create_contact(data)
             else:
                 reason = str(error)
@@ -451,7 +470,7 @@ class Google:
             results = self.service.people().batchUpdateContacts(body=body).execute()
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.update_contacts(data)
             else:
                 reason = str(error)
@@ -486,7 +505,7 @@ class Google:
             self.service.people().batchDeleteContacts(body=body).execute()
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.delete_contacts(data)
             else:
                 reason = str(error)
@@ -514,7 +533,7 @@ class Google:
             results = self.service.people().batchCreateContacts(body=body).execute()
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.create_contacts(data)
             else:
                 reason = str(error)
@@ -549,7 +568,7 @@ class Google:
             )
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.update_contact(data)
             else:
                 reason = str(error)
@@ -571,7 +590,7 @@ class Google:
             self.service.people().deleteContact(resourceName=google_id).execute()
             self.api_requests += 1
         except HttpError as error:
-            if self.__is_slow_down_error(error):
+            if self.__is_temp_error(error):
                 return self.delete_contact(google_id, display_name)
             else:
                 reason = str(error)
