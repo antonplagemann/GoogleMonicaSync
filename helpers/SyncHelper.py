@@ -129,7 +129,7 @@ class Sync:
             print(msg)
 
     def __sync(self, sync_type: str, is_date_based_sync: bool = True) -> None:
-        """Fetches every contact from Google and Monica and does a full sync."""
+        """Fetches every contact from Google and Monica and does a full or delta sync."""
         # Initialization
         msg = f"Starting {sync_type} sync..."
         self.log.info(msg)
@@ -161,7 +161,6 @@ class Sync:
 
             # Create a new Google contact in the database if there's nothing yet
             if not entry:
-                # Create a new Google contact in the database if there's nothing yet
                 google_id = google_contact["resourceName"]
                 g_contact_display_name = self.google.get_contact_names(google_contact)[3]
                 msg = (
@@ -1091,6 +1090,7 @@ class Sync:
         # Assemble form object
         google_form = MonicaContactUploadForm(
             **names_and_birthday,
+            gender_type=monica_contact["gender_type"],
             is_deceased=monica_contact["is_dead"],
             is_deceased_date_known=bool(deceased_date),
             deceased_year=deceased_year,
@@ -1148,6 +1148,7 @@ class Sync:
             birthdate_month=birthdate_month,
             birthdate_year=birthdate_year,
             is_birthdate_known=bool(birthday_timestamp),
+            is_birthdate_age_based=False,
             is_deceased=monica_contact["is_dead"],
             is_deceased_date_known=bool(deceased_date),
             deceased_year=deceased_year,
@@ -1199,6 +1200,7 @@ class Sync:
             "birthdate_month": birthdate_month if is_birthdate_known else None,
             "birthdate_year": birthdate_year if is_birthdate_known else None,
             "is_birthdate_known": all([birthdate_month, birthdate_day]),
+            "is_birthdate_age_based": False,
             "create_reminders": self.monica.create_reminders,
         }
         return form_data
