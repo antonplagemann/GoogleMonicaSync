@@ -30,9 +30,9 @@
 ## Hey 👋
 
 Using [Monica](https://github.com/monicahq/monica) and Google Contacts, but you're annoyed by keeping your data in sync? Then this python script is for you 😎  
-It does one-way ➡ contact syncing of your Google Contacts to a Monica account 🎉  
-But wait, before trying something new, please do not forget to **make a full backup 🔒** before entering the first command 😉  
-I did my best to write clean and working code, but if I missed a bug 🐛 that you've found, please return it to me 🏡😊, I would be happy to fix it 🙏!  
+It does one-way ➡ contact syncing of your Google Contacts to a Monica account.
+But wait, before trying something new, please do not forget to **make a full backup** before entering the first command 😉  
+I did my best to write clean and working code, but if I missed a bug that you've found, please return it to me, I would be happy to fix it 🙏!  
 All contributions are welcome! Feel free to open an issue or pull request 🙌
 
 ## Features

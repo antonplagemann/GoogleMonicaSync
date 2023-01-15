@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 from logging import Logger
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from helpers.Exceptions import DatabaseError
 
@@ -154,7 +154,9 @@ class Database:
         self.cursor.execute(insert_sql, (google_last_changed, google_id))
         self.connection.commit()
 
-    def find_by_id(self, google_id: str = None, monica_id: str = None) -> Union[DatabaseEntry, None]:
+    def find_by_id(
+        self, google_id: Optional[str] = None, monica_id: Optional[str] = None
+    ) -> Union[DatabaseEntry, None]:
         """Search for a contact row in the database. Returns None if not found.
         Needs Google id OR Monica id"""
         if monica_id:
