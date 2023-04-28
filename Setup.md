@@ -84,7 +84,7 @@ To configure the OAuth consent screen:
 2. Copy `credentials.json` inside a `data` folder of your main directory.
 3. [Download](https://github.com/antonplagemann/GoogleMonicaSync/blob/main/.env.example) the `.env.example` file, rename to `.env`, put it in your main folder, and fill in your desired settings (a Monica token can be retrieved in your account settings).
     > This project is using a **non-root** container, so `data` and `logs` must have read-write permissions for UID 5678 (container user).
-    > For example, you can use `sudo chown -R 5678 data logs` or `sudo chmod -R 766 data logs` inside your main directory to set the appropriate permissions.
+    > For example, you can use `sudo chown -R 5678 data logs` or `sudo chmod -R 777 data logs` inside your main directory to set the appropriate permissions.
 4. Open a command prompt inside the main directory run initial sync using the following command (on Windows replace `$(pwd)` with `%cd%`)
 
     ```bash
