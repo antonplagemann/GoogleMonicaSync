@@ -88,7 +88,7 @@ class Monica:
             while True:
                 # Get genders
                 response = requests.get(
-                    self.base_url + "/genders", headers=self.header, params=self.parameters
+                    self.base_url + "/genders", headers=self.header, params=self.parameters, timeout=5
                 )
                 self.api_requests += 1
 
@@ -127,6 +127,7 @@ class Monica:
                 headers=self.header,
                 params=self.parameters,
                 json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -161,7 +162,10 @@ class Monica:
         while True:
             # Delete contact
             response = requests.delete(
-                self.base_url + f"/contacts/{monica_id}", headers=self.header, params=self.parameters
+                self.base_url + f"/contacts/{monica_id}",
+                headers=self.header,
+                params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -183,7 +187,11 @@ class Monica:
         while True:
             # Create contact
             response = requests.post(
-                self.base_url + "/contacts", headers=self.header, params=self.parameters, json=data
+                self.base_url + "/contacts",
+                headers=self.header,
+                params=self.parameters,
+                json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -216,7 +224,10 @@ class Monica:
             while True:
                 print(f"Fetching all Monica contacts (page {page} of {max_page})")
                 response = requests.get(
-                    self.base_url + f"/contacts?page={page}", headers=self.header, params=self.parameters
+                    self.base_url + f"/contacts?page={page}",
+                    headers=self.header,
+                    params=self.parameters,
+                    timeout=5,
                 )
                 self.api_requests += 1
                 # If successful
@@ -261,7 +272,10 @@ class Monica:
             while True:
                 # Fetch contact
                 response = requests.get(
-                    self.base_url + f"/contacts/{monica_id}", headers=self.header, params=self.parameters
+                    self.base_url + f"/contacts/{monica_id}",
+                    headers=self.header,
+                    params=self.parameters,
+                    timeout=5,
                 )
                 self.api_requests += 1
 
@@ -300,6 +314,7 @@ class Monica:
                 self.base_url + f"/contacts/{monica_id}/notes",
                 headers=self.header,
                 params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -321,7 +336,11 @@ class Monica:
         while True:
             # Create address
             response = requests.post(
-                self.base_url + "/notes", headers=self.header, params=self.parameters, json=data
+                self.base_url + "/notes",
+                headers=self.header,
+                params=self.parameters,
+                json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -350,6 +369,7 @@ class Monica:
                 headers=self.header,
                 params=self.parameters,
                 json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -372,7 +392,10 @@ class Monica:
         while True:
             # Create address
             response = requests.delete(
-                self.base_url + f"/notes/{note_id}", headers=self.header, params=self.parameters
+                self.base_url + f"/notes/{note_id}",
+                headers=self.header,
+                params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -397,6 +420,7 @@ class Monica:
                 headers=self.header,
                 params=self.parameters,
                 json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -425,6 +449,7 @@ class Monica:
                 headers=self.header,
                 params=self.parameters,
                 json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -454,6 +479,7 @@ class Monica:
                 headers=self.header,
                 params=self.parameters,
                 json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -478,7 +504,10 @@ class Monica:
         while True:
             # Delete address
             response = requests.delete(
-                self.base_url + f"/addresses/{address_id}", headers=self.header, params=self.parameters
+                self.base_url + f"/addresses/{address_id}",
+                headers=self.header,
+                params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -503,7 +532,11 @@ class Monica:
         while True:
             # Create address
             response = requests.post(
-                self.base_url + "/addresses", headers=self.header, params=self.parameters, json=data
+                self.base_url + "/addresses",
+                headers=self.header,
+                params=self.parameters,
+                json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -532,6 +565,7 @@ class Monica:
                 self.base_url + f"/contacts/{monica_id}/contactfields",
                 headers=self.header,
                 params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -568,7 +602,10 @@ class Monica:
         while True:
             # Get genders
             response = requests.get(
-                self.base_url + "/contactfieldtypes", headers=self.header, params=self.parameters
+                self.base_url + "/contactfieldtypes",
+                headers=self.header,
+                params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -594,7 +631,11 @@ class Monica:
         while True:
             # Create contact field
             response = requests.post(
-                self.base_url + "/contactfields", headers=self.header, params=self.parameters, json=data
+                self.base_url + "/contactfields",
+                headers=self.header,
+                params=self.parameters,
+                json=data,
+                timeout=5,
             )
             self.api_requests += 1
 
@@ -624,7 +665,10 @@ class Monica:
         while True:
             # Delete contact field
             response = requests.delete(
-                self.base_url + f"/contactfields/{field_id}", headers=self.header, params=self.parameters
+                self.base_url + f"/contactfields/{field_id}",
+                headers=self.header,
+                params=self.parameters,
+                timeout=5,
             )
             self.api_requests += 1
 
