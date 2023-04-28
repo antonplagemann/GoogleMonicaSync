@@ -24,7 +24,7 @@ with open("data/token.pickle", "r") as base64_token:
 # Get repo public key
 headers = {"accept": "application/vnd.github.v3+json", "Authorization": f"token {REPO_TOKEN}"}
 response = requests.get(
-    f"https://api.github.com/repos/{REPO}/actions/secrets/public-key", headers=headers
+    f"https://api.github.com/repos/{REPO}/actions/secrets/public-key", headers=headers, timeout=5
 )
 response.raise_for_status()
 data = response.json()
@@ -40,5 +40,6 @@ response = requests.put(
     f"https://api.github.com/repos/{REPO}/actions/secrets/{SECRET_NAME}",
     headers=headers,
     json=body,
+    timeout=5,
 )
 response.raise_for_status()

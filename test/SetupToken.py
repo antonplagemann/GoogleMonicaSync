@@ -46,7 +46,7 @@ try:
     max_time = 300  # Wait max. 5 minutes
     while True:
         try:
-            response = requests.get(f"{URL}/register", timeout=0.2)
+            response = requests.get(f"{URL}/register", timeout=5)
             if response.status_code == 200:
                 log.info(f"Ready after {waiting_time} seconds")
                 sleep(1)
@@ -60,7 +60,7 @@ try:
 
     # Get register token
     log.info("Fetching register page")
-    response = requests.get(f"{URL}/register")
+    response = requests.get(f"{URL}/register", timeout=5)
     response.raise_for_status()
     cookies = response.cookies
     soup = BeautifulSoup(response.text, "html.parser")
@@ -81,7 +81,7 @@ try:
         "lang": "en",
     }
     log.info("Registering new user")
-    response = requests.post(f"{URL}/register", cookies=response.cookies, data=data)
+    response = requests.post(f"{URL}/register", cookies=response.cookies, data=data, timeout=5)
     response.raise_for_status()
 
     # Create api token
@@ -95,6 +95,7 @@ try:
         headers=headers,
         cookies=response.cookies,
         json=data,
+        timeout=5,
     )
     response.raise_for_status()
 
